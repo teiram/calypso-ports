@@ -1,0 +1,15 @@
+[submodule "menu/Menu_MIST"]
+	path = menu/Menu_MIST
+	url = https://github.com/mist-devel/Menu_MIST.git
+[submodule "plus_too/plus_too"]
+	path = plus_too/plus_too
+	url = https://github.com/mist-devel/plus_too.git
+[submodule "amstrad-cpc/Amstrad_MiST"]
+	path = amstrad-cpc/Amstrad_MiST
+	url = https://github.com/sorgelig/Amstrad_MiST.git
+[submodule "archimedes/archimedes"]
+	path = archimedes/archimedes
+	url = https://github.com/mist-devel/archimedes.git
+[submodule "nes/nes"]
+	path = nes/nes
+	url = https://github.com/mist-devel/nes.git

@@ -1,0 +1,33 @@
+Info: Starting: Create block symbol file (.bsf)
+Info: qsys-generate /home/mteira/src/cyc1000/software/Archimedes_Poseidon/fpga/mist/clkcltr_calypso.qsys --block-symbol-file --output-directory=/home/mteira/src/cyc1000/software/Archimedes_Poseidon/fpga/mist/clkcltr_calypso --family="Cyclone 10 LP" --part=10CL025YU256C8G
+Progress: Loading mist/clkcltr_calypso.qsys
+Progress: Reading input file
+Progress: Adding altclkctrl_0 [altclkctrl 22.1]
+Progress: Parameterizing module altclkctrl_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+: clkcltr_calypso.altclkctrl_0: Targeting device family: Cyclone 10 LP.
+: clkcltr_calypso.altclkctrl_0: Global clock network allows a clock signal to reach all parts of the chip with the same amount of skew. Input port 'clkselect' can be used to switch between four clock inputs.
+Info: qsys-generate succeeded.
+Info: Finished: Create block symbol file (.bsf)
+Info: 
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate /home/mteira/src/cyc1000/software/Archimedes_Poseidon/fpga/mist/clkcltr_calypso.qsys --synthesis=VERILOG --output-directory=/home/mteira/src/cyc1000/software/Archimedes_Poseidon/fpga/mist/clkcltr_calypso/synthesis --family="Cyclone 10 LP" --part=10CL025YU256C8G
+Progress: Loading mist/clkcltr_calypso.qsys
+Progress: Reading input file
+Progress: Adding altclkctrl_0 [altclkctrl 22.1]
+Progress: Parameterizing module altclkctrl_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+: clkcltr_calypso.altclkctrl_0: Targeting device family: Cyclone 10 LP.
+: clkcltr_calypso.altclkctrl_0: Global clock network allows a clock signal to reach all parts of the chip with the same amount of skew. Input port 'clkselect' can be used to switch between four clock inputs.
+Info: clkcltr_calypso: Generating clkcltr_calypso "clkcltr_calypso" for QUARTUS_SYNTH
+Info: altclkctrl_0: Generating top-level entity clkcltr_calypso_altclkctrl_0.
+Info: altclkctrl_0: "clkcltr_calypso" instantiated altclkctrl "altclkctrl_0"
+Info: clkcltr_calypso: Done "clkcltr_calypso" with 2 modules, 2 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis

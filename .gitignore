@@ -1,0 +1,6 @@
+output_files/
+*.bak
+build_id.v
+db/
+greybox_tmp/
+incremental_db/
