@@ -13,3 +13,6 @@
 [submodule "nes/nes"]
 	path = nes/nes
 	url = https://github.com/mist-devel/nes.git
+[submodule "c64/c64"]
+	path = c64/c64
+	url = https://github.com/mist-devel/c64.git
