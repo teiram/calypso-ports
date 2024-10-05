@@ -363,6 +363,8 @@ end component progressbar;
 
 	signal pll_locked_in : std_logic_vector(1 downto 0);
 	signal pll_locked : std_logic;
+    signal pll_2_locked: std_logic;
+    signal pllsync: std_logic;
 	signal pll_areset : std_logic;
 	signal pll_scanclk : std_logic;
 	signal pll_scandata : std_logic;
@@ -1178,7 +1180,8 @@ begin
 		scanclkena => pll_scanclkena,
 		configupdate => pll_configupdate,
 		scandataout => pll_scandataout,
-		scandone => pll_scandone
+		scandone => pll_scandone,
+        locked => pll_locked
 	);
 
 	-- clock for 1541
@@ -1186,7 +1189,7 @@ begin
 	port map(
 		inclk0 => CLOCK_IN,
 		c0 => clk32,
-		locked => pll_locked
+		locked => pll_2_locked
 	);
 
 	process(clk_c64, pll_locked)
@@ -1288,6 +1291,12 @@ begin
 
 	SDRAM_CKE <= '1';
 
+    process(clk_ram) begin
+        if rising_edge(clk_ram) then
+            pllsync <= pll_locked and pll_2_locked;
+        end if;
+    end process;
+    
 	sdr: sdram port map(
 		sd_addr => SDRAM_A,
 		sd_data => SDRAM_DQ,
@@ -1304,7 +1313,7 @@ begin
 		din => sdram_data_in,
 		dout => sdram_data_out,
 		bs => sdram_bs,
-		init => not pll_locked,
+		init => not pllsync,
 		we => sdram_we,
 		refresh => idle,
 		ce => sdram_ce
