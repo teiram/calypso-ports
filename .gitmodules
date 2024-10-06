@@ -16,3 +16,6 @@
 [submodule "c64/c64"]
 	path = c64/c64
 	url = https://github.com/mist-devel/c64.git
+[submodule "wsoltys-mist-cores/mist-cores"]
+	path = wsoltys-mist-cores/mist-cores
+	url = https://github.com/wsoltys/mist-cores.git
