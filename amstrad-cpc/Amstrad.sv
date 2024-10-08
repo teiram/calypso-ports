@@ -369,7 +369,7 @@ reg reset;
 
 always @(posedge clk_sys) begin
 	if(reset) model <= st_cpc664;
-	reset <= status[0] | buttons[1] | rom_download | ext_download;
+	reset <= status[0] | buttons[1] | rom_download | ext_download | ~locked;
 end
 
 ////////////////////// CDT playback ///////////////////////////////

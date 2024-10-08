@@ -19,3 +19,6 @@
 [submodule "wsoltys-mist-cores/mist-cores"]
 	path = wsoltys-mist-cores/mist-cores
 	url = https://github.com/wsoltys/mist-cores.git
+[submodule "wsoltys-mist-cores/mist-modules"]
+	path = wsoltys-mist-cores/mist-modules
+	url = https://github.com/mist-devel/mist-modules.git
