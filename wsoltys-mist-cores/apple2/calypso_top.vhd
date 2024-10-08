@@ -50,23 +50,18 @@ entity calypso_top is
     CONF_DATA0 : in std_logic;
 
     -- VGA output
-    
-
     VGA_HS,                                             -- H_SYNC
     VGA_VS : out std_logic;                             -- V_SYNC
     VGA_R,                                              -- Red[5:0]
     VGA_G,                                              -- Green[5:0]
     VGA_B : out std_logic_vector(3 downto 0);           -- Blue[5:0]
     
+	 -- I2S audio
     I2S_BCK    : out   std_logic;
     I2S_LRCK   : out   std_logic;
     I2S_DATA   : out   std_logic;
 
-    -- Audio
---    AUDIO_L,
---    AUDIO_R : out std_logic;
-    
-    -- LEDG
+    -- LEDs
     LED : out std_logic_vector(7 downto 0)
 
     );
@@ -200,7 +195,7 @@ architecture datapath of calypso_top is
   component i2s
     generic (
           I2S_Freq   : integer := 48000;
-          AUDIO_DW   : integer := 1
+          AUDIO_DW   : integer := 16
     );
     port (
         clk        : in    std_logic;
@@ -467,8 +462,6 @@ begin
     LED(1) <= audio;
     LED(2) <= audiol;
     LED(3) <= audior;
---  AUDIO_L <= audiol or audio;
---  AUDIO_R <= audior or audio;
 
   vga : entity work.vga_controller port map (
     CLK_28M    => CLK_28M,
@@ -533,9 +526,7 @@ begin
     ram_di         => TRACK_RAM_DI,
     ram_we         => TRACK_RAM_WE
     );
-    
-  --LED <= not D1_ACTIVE;
-  
+      
   user_io_d : user_io
     generic map (STRLEN => CONF_STR'length)
     
@@ -630,17 +621,17 @@ begin
       pb    => pb,
       pr    => pr
     );
-
-    my_i2s : i2s
+  
+    i2scomponent : i2s
       port map (
-        clk => CLK_14M,
+        clk => CLK_28M,
         reset => '0',
-        clk_rate => 14000000,
+        clk_rate => 28_000_000,
         sclk => I2S_BCK,
         lrclk => I2S_LRCK,
         sdata => I2S_DATA,
-        left_chan  => (0 => audiol or audio),
-        right_chan => (0 => audior or audio)
+        left_chan  => "0" & (audiol or audio) & "00000000000000",
+        right_chan => "0" & (audior or audio) & "00000000000000"
       );
 
 end datapath;
