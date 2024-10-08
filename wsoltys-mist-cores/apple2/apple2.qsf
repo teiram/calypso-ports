@@ -348,8 +348,13 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to VGA_B[0]
 set_global_assignment -name TOP_LEVEL_ENTITY calypso_top
 
 
-set_global_assignment -name VHDL_FILE calypso_top.vhd
+set_global_assignment -name VERILOG_FILE "../mist-modules/i2s.v"
+set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/osd.v"
+set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/sd_card.v"
+set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/user_io.v"
+set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/data_io.v"
 set_global_assignment -name SYSTEMVERILOG_FILE "../mist-cores/apple2fpga/rgb2ypbpr.sv"
+set_global_assignment -name VHDL_FILE calypso_top.vhd
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/mockingboard/dac.vhd"
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/mockingboard/YM2149_volmix.vhd"
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/mockingboard/vol_table_array.vhd"
@@ -357,13 +362,9 @@ set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/mockingboard/moc
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/mockingboard/m6522.vhd"
 set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/ramcard.v"
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/spi_controller.vhd"
-set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/sd_card.v"
-set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/osd.v"
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/spram.vhd"
 set_global_assignment -name VERILOG_FILE sdram.v
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/keyboard.vhd"
-set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/user_io.v"
-set_global_assignment -name VERILOG_FILE "../mist-cores/apple2fpga/data_io.v"
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/timing_generator.vhd"
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/character_rom.vhd"
 set_global_assignment -name VHDL_FILE "../mist-cores/apple2fpga/video_generator.vhd"

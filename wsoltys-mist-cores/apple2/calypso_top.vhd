@@ -56,11 +56,15 @@ entity calypso_top is
     VGA_VS : out std_logic;                             -- V_SYNC
     VGA_R,                                              -- Red[5:0]
     VGA_G,                                              -- Green[5:0]
-    VGA_B : out std_logic_vector(5 downto 0);           -- Blue[5:0]
+    VGA_B : out std_logic_vector(3 downto 0);           -- Blue[5:0]
     
+    I2S_BCK    : out   std_logic;
+    I2S_LRCK   : out   std_logic;
+    I2S_DATA   : out   std_logic;
+
     -- Audio
-    AUDIO_L,
-    AUDIO_R : out std_logic;
+--    AUDIO_L,
+--    AUDIO_R : out std_logic;
     
     -- LEDG
     LED : out std_logic_vector(7 downto 0)
@@ -192,6 +196,23 @@ architecture datapath of calypso_top is
            pr : out std_logic_vector(5 downto 0)
     );
   end component;
+
+  component i2s
+    generic (
+          I2S_Freq   : integer := 48000;
+          AUDIO_DW   : integer := 1
+    );
+    port (
+        clk        : in    std_logic;
+        reset      : in    std_logic;
+        clk_rate   : in    integer;
+        sclk       : out   std_logic;
+        lrclk      : out   std_logic;
+        sdata      : out   std_logic;
+        left_chan  : in    std_logic_vector(AUDIO_DW-1 downto 0);
+        right_chan : in    std_logic_vector(AUDIO_DW-1 downto 0)
+);
+end component i2s;
 
   signal CLK_28M, CLK_14M, CLK_2M, PRE_PHASE_ZERO, CLK_12k : std_logic;
   signal clk_div : unsigned(1 downto 0);
@@ -443,8 +464,11 @@ begin
     mb_enabled     => status(6)
     );
     
-  AUDIO_L <= audiol or audio;
-  AUDIO_R <= audior or audio;
+    LED(1) <= audio;
+    LED(2) <= audiol;
+    LED(3) <= audior;
+--  AUDIO_L <= audiol or audio;
+--  AUDIO_R <= audior or audio;
 
   vga : entity work.vga_controller port map (
     CLK_28M    => CLK_28M,
@@ -591,9 +615,9 @@ begin
     );
 
   -- map ypbpr or rgb to VGA output
-  VGA_R <= pr when ypbpr='1' else vga_red;
-  VGA_G <= y  when ypbpr='1' else vga_green;
-  VGA_B <= pb when ypbpr='1' else vga_blue;
+  VGA_R <= pr(5 downto 2) when ypbpr='1' else vga_red(5 downto 2);
+  VGA_G <= y(5 downto 2)  when ypbpr='1' else vga_green(5 downto 2);
+  VGA_B <= pb(5 downto 2) when ypbpr='1' else vga_blue(5 downto 2);
   VGA_HS <= not (vga_hsync xor vga_vsync) when ypbpr='1' else vga_hsync;
   VGA_VS <= '1' when ypbpr='1' else vga_vsync;
 
@@ -606,5 +630,17 @@ begin
       pb    => pb,
       pr    => pr
     );
+
+    my_i2s : i2s
+      port map (
+        clk => CLK_14M,
+        reset => '0',
+        clk_rate => 14000000,
+        sclk => I2S_BCK,
+        lrclk => I2S_LRCK,
+        sdata => I2S_DATA,
+        left_chan  => (0 => audiol or audio),
+        right_chan => (0 => audior or audio)
+      );
 
 end datapath;
