@@ -1,0 +1,3 @@
+PROJECT_NAME=menu
+VERSION=1
+BITSTREAM_FILE=output_files/menu.rbf
