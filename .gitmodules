@@ -22,3 +22,6 @@
 [submodule "wsoltys-mist-cores/mist-modules"]
 	path = wsoltys-mist-cores/mist-modules
 	url = https://github.com/mist-devel/mist-modules.git
+[submodule "atari2600/TCA2601"]
+	path = atari2600/TCA2601
+	url = https://github.com/mist-devel/TCA2601.git
