@@ -1,0 +1,15 @@
+name: Update Calypso cores
+on:
+  schedule:
+    cron: "0 0 * * *" 
+
+jobs:
+  synthesis:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Repository checkout
+        uses: actions/checkout@v3
+      - name: Core generation
+        run: docker run --rm -v ${{ github.workspace }}:/build ghcr.io/teiram/calypso-quartus-docker:0.1 /usr/local/bin/build-images
