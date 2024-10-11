@@ -1,7 +1,7 @@
 --
--- MA2601.vhd
+-- atari2600.vhd
 --
--- Atari VCS 2600 toplevel for the MiST board
+-- Atari VCS 2600 toplevel for the Calypso board
 -- https://github.com/wsoltys/tca2601
 --
 -- Copyright (c) 2014 W. Soltys <wsoltys@gmail.com>
@@ -26,11 +26,11 @@ use IEEE.numeric_std.ALL;
 use work.mist.ALL;
 -- -----------------------------------------------------------------------
 
-entity MA2601 is
+entity atari2600 is
     port (
     
 -- Clock
-      CLOCK_27 : in std_logic_vector(1 downto 0);
+      CLK12M : in std_logic;
 
 -- SPI
       SPI_SCK : in std_logic;
@@ -41,18 +41,19 @@ entity MA2601 is
       CONF_DATA0 : in std_logic;
 
 -- LED
-      LED : out std_logic;
+      LED : out std_logic_vector(7 downto 0);
 
 -- Video
-      VGA_R : out std_logic_vector(5 downto 0);
-      VGA_G : out std_logic_vector(5 downto 0);
-      VGA_B : out std_logic_vector(5 downto 0);
+      VGA_R : out std_logic_vector(3 downto 0);
+      VGA_G : out std_logic_vector(3 downto 0);
+      VGA_B : out std_logic_vector(3 downto 0);
       VGA_HS : out std_logic;
       VGA_VS : out std_logic;
 
--- Audio
-      AUDIO_L : out std_logic;
-      AUDIO_R : out std_logic;
+-- I2S audio
+    I2S_BCK    : out   std_logic;
+    I2S_LRCK   : out   std_logic;
+    I2S_DATA   : out   std_logic;
 
 -- SDRAM
       SDRAM_nCS : out std_logic
@@ -61,7 +62,7 @@ end entity;
 
 -- -----------------------------------------------------------------------
 
-architecture rtl of MA2601 is
+architecture rtl of atari2600 is
 
 -- System clocks
   signal vid_clk: std_logic := '0'; -- 28 MHz
@@ -71,9 +72,9 @@ architecture rtl of MA2601 is
   signal audio: std_logic := '0';
   signal O_VSYNC: std_logic := '0';
   signal O_HSYNC: std_logic := '0';
-  signal O_VIDEO_R: std_logic_vector(5 downto 0) := (others => '0');
-  signal O_VIDEO_G: std_logic_vector(5 downto 0) := (others => '0');
-  signal O_VIDEO_B: std_logic_vector(5 downto 0) := (others => '0');
+  signal O_VIDEO_R: std_logic_vector(3 downto 0) := (others => '0');
+  signal O_VIDEO_G: std_logic_vector(3 downto 0) := (others => '0');
+  signal O_VIDEO_B: std_logic_vector(3 downto 0) := (others => '0');
   signal res: std_logic := '0';
   signal p_l: std_logic := '0';
   signal p_r: std_logic := '0';
@@ -172,6 +173,23 @@ architecture rtl of MA2601 is
   );
   end component;
 
+  component i2s
+  generic (
+	I2S_Freq   : integer := 48000;
+	AUDIO_DW   : integer := 16
+  );
+  port (
+	clk        : in    std_logic;
+	reset      : in    std_logic;
+	clk_rate   : in    integer;
+	sclk       : out   std_logic;
+	lrclk      : out   std_logic;
+	sdata      : out   std_logic;
+	left_chan  : in    std_logic_vector(AUDIO_DW-1 downto 0);
+	right_chan : in    std_logic_vector(AUDIO_DW-1 downto 0)
+  );
+  end component i2s;
+
 begin
 
 -- -----------------------------------------------------------------------
@@ -196,9 +214,9 @@ begin
       audio => audio,
       O_VSYNC => O_VSYNC,
       O_HSYNC => O_HSYNC,
-      O_VIDEO_R => O_VIDEO_R,
-      O_VIDEO_G => O_VIDEO_G,
-      O_VIDEO_B => O_VIDEO_B,
+      O_VIDEO_R(5 downto 2) => O_VIDEO_R,
+      O_VIDEO_G(5 downto 2) => O_VIDEO_G,
+      O_VIDEO_B(5 downto 2) => O_VIDEO_B,
       res => res,
       p_l => p_l,
       p_r => p_r,
@@ -248,20 +266,28 @@ begin
 
         HSync       => not O_HSYNC,
         VSync       => not O_VSYNC,
-        R           => O_VIDEO_R,
-        G           => O_VIDEO_G,
-        B           => O_VIDEO_B,
+        R           => O_VIDEO_R & "00",
+        G           => O_VIDEO_G & "00",
+        B           => O_VIDEO_B & "00",
 
         VGA_HS      => VGA_HS,
         VGA_VS      => VGA_VS,
-        VGA_R       => VGA_R,
-        VGA_G       => VGA_G,
-        VGA_B       => VGA_B
+        VGA_R(5 downto 2)       => VGA_R,
+        VGA_G(5 downto 2)       => VGA_G,
+        VGA_B(5 downto 2)       => VGA_B
     );
 
-  AUDIO_L <= audio;
-  AUDIO_R <= audio;
-
+  i2scomponent : i2s
+    port map (
+      clk => vid_clk,
+      reset => '0',
+      clk_rate => 28_000_000,
+      sclk => I2S_BCK,
+      lrclk => I2S_LRCK,
+      sdata => I2S_DATA,
+      left_chan  => "0" & audio & "00000000000000",
+      right_chan => "0" & audio & "00000000000000"
+      );
   -- 9 pin d-sub joystick pinout:
   -- pin 1: up
   -- pin 2: down
@@ -313,9 +339,9 @@ begin
 -- -----------------------------------------------------------------------
 -- Clocks and PLL
 -- -----------------------------------------------------------------------
-  pllInstance : entity work.pll27
+  pllInstance : entity work.pll
     port map (
-      inclk0 => CLOCK_27(0),
+      inclk0 => CLK12M,
       c0 => vid_clk,
       c1 => clk,
       locked => open
@@ -403,6 +429,6 @@ begin
   p_start  <= '0' when (ps2_scancode = X"01" or joy0(7) = '1' or joy1(7) = '1' ) else '1'; -- F9 or MiST right button
   p_select <= '0' when (ps2_scancode = X"09" or joy0(6) = '1' or joy1(6) = '1' ) else '1'; -- F10
 
-  LED <= not downl; -- yellow led is bright when downloading ROM
+  LED(0) <= not downl; -- yellow led is bright when downloading ROM
 
 end architecture;

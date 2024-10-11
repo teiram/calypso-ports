@@ -21,9 +21,6 @@
 
 ## DATE    "Fri Jul 06 23:05:47 2012"
 
-##
-## DEVICE  "EP3C25Q240C8"
-##
 
 
 #**************************************************************
@@ -38,7 +35,7 @@ set_time_format -unit ns -decimal_places 3
 # Create Clock
 #**************************************************************
 
-create_clock -name clk_27 -period 37.037 [get_ports {CLOCK_27[0]}]
+create_clock -name CLK12M -period 83.333 [get_ports {CLK12M}]
 create_clock -name {SPI_SCK}  -period 41.666 -waveform { 20.8 41.666 } [get_ports {SPI_SCK}]
 
 #**************************************************************
@@ -80,10 +77,10 @@ set_clock_groups -asynchronous -group [get_clocks {SPI_SCK}] -group [get_clocks 
 # Set False Path
 #**************************************************************
 
-set_false_path -to [get_ports {UART_TX}]
-set_false_path -to [get_ports {AUDIO_L}]
-set_false_path -to [get_ports {AUDIO_R}]
-set_false_path -to [get_ports {LED}]
+set_false_path -to [get_ports {I2S_LRCK}]
+set_false_path -to [get_ports {I2S_BCK}]
+set_false_path -to [get_ports {I2S_DATA}]
+set_false_path -to [get_ports {LED[0]}]
 
 #**************************************************************
 # Set Multicycle Path
