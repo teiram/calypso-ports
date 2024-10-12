@@ -1,0 +1,4 @@
+CORE_ID=coleco
+PROJECT_NAME=coleco
+VERSION=1
+BITSTREAM_FILE=output_files/coleco.rbf

@@ -25,3 +25,6 @@
 [submodule "atari2600/TCA2601"]
 	path = atari2600/TCA2601
 	url = https://github.com/mist-devel/TCA2601.git
+[submodule "colecovision/colecovision_fpga"]
+	path = colecovision/colecovision_fpga
+	url = https://github.com/mist-devel/colecovision_fpga.git
