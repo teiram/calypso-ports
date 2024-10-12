@@ -1,0 +1,4 @@
+CORE_ID=atari2600
+PROJECT_NAME=atari2600
+VERSION=1
+BITSTREAM_FILE=output_files/atari2600.rbf
