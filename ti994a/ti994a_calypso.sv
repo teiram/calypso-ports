@@ -337,7 +337,7 @@ always @(posedge clk_sys) begin
 end
 
 always @(posedge clk_sys)
-	reset <= status[0] || buttons[1] || force_reset;
+	reset <= status[0] || buttons[1] || force_reset || ~pll_locked;
 
 //-----------------------------------------------------------------------------
 //-- The TI99/4A module
