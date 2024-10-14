@@ -28,3 +28,9 @@
 [submodule "colecovision/colecovision_fpga"]
 	path = colecovision/colecovision_fpga
 	url = https://github.com/mist-devel/colecovision_fpga.git
+[submodule "SMS/SMS_MiSTer"]
+	path = SMS/SMS_MiSTer
+	url = https://github.com/MiSTer-devel/SMS_MiSTer.git
+[submodule "ti994a-alt/TI-99_4A_MiSTer"]
+	path = ti994a-alt/TI-99_4A_MiSTer
+	url = https://github.com/MiSTer-devel/TI-99_4A_MiSTer.git
