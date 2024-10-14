@@ -54,14 +54,14 @@ END pll;
 
 ARCHITECTURE SYN OF pll IS
 
-	SIGNAL sub_wire0	: STD_LOGIC ;
-	SIGNAL sub_wire1	: STD_LOGIC_VECTOR (1 DOWNTO 0);
-	SIGNAL sub_wire2_bv	: BIT_VECTOR (0 DOWNTO 0);
-	SIGNAL sub_wire2	: STD_LOGIC_VECTOR (0 DOWNTO 0);
-	SIGNAL sub_wire3	: STD_LOGIC_VECTOR (4 DOWNTO 0);
+	SIGNAL sub_wire0	: STD_LOGIC_VECTOR (4 DOWNTO 0);
+	SIGNAL sub_wire1	: STD_LOGIC ;
+	SIGNAL sub_wire2	: STD_LOGIC ;
+	SIGNAL sub_wire3	: STD_LOGIC ;
 	SIGNAL sub_wire4	: STD_LOGIC ;
-	SIGNAL sub_wire5	: STD_LOGIC ;
-	SIGNAL sub_wire6	: STD_LOGIC ;
+	SIGNAL sub_wire5	: STD_LOGIC_VECTOR (1 DOWNTO 0);
+	SIGNAL sub_wire6_bv	: BIT_VECTOR (0 DOWNTO 0);
+	SIGNAL sub_wire6	: STD_LOGIC_VECTOR (0 DOWNTO 0);
 
 
 
@@ -136,15 +136,15 @@ ARCHITECTURE SYN OF pll IS
 	END COMPONENT;
 
 BEGIN
-	sub_wire2_bv(0 DOWNTO 0) <= "0";
-	sub_wire2    <= To_stdlogicvector(sub_wire2_bv);
-	sub_wire0    <= inclk0;
-	sub_wire1    <= sub_wire2(0 DOWNTO 0) & sub_wire0;
-	sub_wire5    <= sub_wire3(1);
-	sub_wire4    <= sub_wire3(0);
-	c0    <= sub_wire4;
-	c1    <= sub_wire5;
-	locked    <= sub_wire6;
+	sub_wire6_bv(0 DOWNTO 0) <= "0";
+	sub_wire6    <= To_stdlogicvector(sub_wire6_bv);
+	sub_wire2    <= sub_wire0(1);
+	sub_wire1    <= sub_wire0(0);
+	c0    <= sub_wire1;
+	c1    <= sub_wire2;
+	locked    <= sub_wire3;
+	sub_wire4    <= inclk0;
+	sub_wire5    <= sub_wire6(0 DOWNTO 0) & sub_wire4;
 
 	altpll_component : altpll
 	GENERIC MAP (
@@ -156,7 +156,7 @@ BEGIN
 		clk1_divide_by => 3,
 		clk1_duty_cycle => 50,
 		clk1_multiply_by => 16,
-		clk1_phase_shift => "2500",
+		clk1_phase_shift => "-1736",
 		compensate_clock => "CLK0",
 		inclk0_input_frequency => 83333,
 		intended_device_family => "Cyclone 10 LP",
@@ -210,9 +210,9 @@ BEGIN
 	)
 	PORT MAP (
 		areset => areset,
-		inclk => sub_wire1,
-		clk => sub_wire3,
-		locked => sub_wire6
+		inclk => sub_wire5,
+		clk => sub_wire0,
+		locked => sub_wire3
 	);
 
 
@@ -280,7 +280,7 @@ END SYN;
 -- Retrieval info: PRIVATE: PHASE_RECONFIG_FEATURE_ENABLED STRING "1"
 -- Retrieval info: PRIVATE: PHASE_RECONFIG_INPUTS_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PHASE_SHIFT0 STRING "0.00000000"
--- Retrieval info: PRIVATE: PHASE_SHIFT1 STRING "2.50000000"
+-- Retrieval info: PRIVATE: PHASE_SHIFT1 STRING "-1.73610400"
 -- Retrieval info: PRIVATE: PHASE_SHIFT_STEP_ENABLED_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PHASE_SHIFT_UNIT0 STRING "deg"
 -- Retrieval info: PRIVATE: PHASE_SHIFT_UNIT1 STRING "ns"
@@ -302,7 +302,7 @@ END SYN;
 -- Retrieval info: PRIVATE: SPREAD_FEATURE_ENABLED STRING "0"
 -- Retrieval info: PRIVATE: SPREAD_FREQ STRING "50.000"
 -- Retrieval info: PRIVATE: SPREAD_FREQ_UNIT STRING "KHz"
--- Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.500"
+-- Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.000"
 -- Retrieval info: PRIVATE: SPREAD_USE STRING "0"
 -- Retrieval info: PRIVATE: SRC_SYNCH_COMP_RADIO STRING "0"
 -- Retrieval info: PRIVATE: STICKY_CLK0 STRING "1"
@@ -325,7 +325,7 @@ END SYN;
 -- Retrieval info: CONSTANT: CLK1_DIVIDE_BY NUMERIC "3"
 -- Retrieval info: CONSTANT: CLK1_DUTY_CYCLE NUMERIC "50"
 -- Retrieval info: CONSTANT: CLK1_MULTIPLY_BY NUMERIC "16"
--- Retrieval info: CONSTANT: CLK1_PHASE_SHIFT STRING "2500"
+-- Retrieval info: CONSTANT: CLK1_PHASE_SHIFT STRING "-1736"
 -- Retrieval info: CONSTANT: COMPENSATE_CLOCK STRING "CLK0"
 -- Retrieval info: CONSTANT: INCLK0_INPUT_FREQUENCY NUMERIC "83333"
 -- Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone 10 LP"

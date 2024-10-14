@@ -38,8 +38,9 @@ entity sms_calypso is
     VGA_B : out std_logic_vector(3 downto 0);           -- Blue[3:0]
     
     -- Audio
-    AUDIO_L,
-    AUDIO_R : out std_logic
+   I2S_BCK    : out   std_logic;
+   I2S_LRCK   : out   std_logic;
+   I2S_DATA   : out   std_logic
     
 
     );
@@ -82,7 +83,7 @@ architecture Behavioral of sms_calypso is
       );
   end component;
   
-  constant CONF_STR : string := "SMS;SMS;T1:Pause;T2:Reset;O5,Joysticks,Normal,Swapped;";
+  constant CONF_STR : string := "SMS;;F,SMS,Load *.SMS;T1,Pause;T2,Reset;O5,Joysticks,Normal,Swapped;";
 
   function to_slv(s: string) return std_logic_vector is
     constant ss: string(1 to s'length) := s;
@@ -136,6 +137,24 @@ architecture Behavioral of sms_calypso is
            hs_out, vs_out : out std_logic
          );
   end component osd;
+  
+  component i2s
+    generic (
+	  I2S_Freq   : integer := 48000;
+	  AUDIO_DW   : integer := 16
+    );
+    port (
+	  clk        : in    std_logic;
+	  reset      : in    std_logic;
+	  clk_rate   : in    integer;
+	  sclk       : out   std_logic;
+	  lrclk      : out   std_logic;
+	  sdata      : out   std_logic;
+	  left_chan  : in    std_logic_vector(AUDIO_DW-1 downto 0);
+	  right_chan : in    std_logic_vector(AUDIO_DW-1 downto 0)
+  );
+  end component i2s;
+
 	
   signal clk_64M:     std_logic;
 	signal clk_cpu:			std_logic;
@@ -357,8 +376,17 @@ begin
 		dbr       	=> dbr
 	);
 	
-	AUDIO_L <= audio;
-	AUDIO_R <= audio;
+  i2scomponent : i2s
+    port map (
+      clk => clk16,
+      reset => '0',
+      clk_rate => 16_000_000,
+      sclk => I2S_BCK,
+      lrclk => I2S_LRCK,
+      sdata => I2S_DATA,
+      left_chan  => "0" & audio & "00000000000000",
+      right_chan => "0" & audio & "00000000000000"
+    );
 	
 end Behavioral;
 
