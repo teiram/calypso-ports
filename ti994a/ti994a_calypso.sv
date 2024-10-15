@@ -437,7 +437,7 @@ TI994A_keyboard keyboard
 //-----------------------------------------------------------------------------
 //-- SPEECH ROM
 //-----------------------------------------------------------------------------
-sprom #(.widthad_a(15), .init_file("../../../roms/hex/spchrom.hex")) speech_rom
+sprom speech_rom
 (
     .clock       ( clk_sys ),
     .address     ( speech_rom_a ),
@@ -448,7 +448,7 @@ sprom #(.widthad_a(15), .init_file("../../../roms/hex/spchrom.hex")) speech_rom
 //-- VRAM
 //-----------------------------------------------------------------------------
   
-spram #(.widthad_a(14)) vram_b
+spram vram_b
 (
     .clock     ( clk_sys ),
     .wren      ( vram_we ),
@@ -464,9 +464,9 @@ spram #(.widthad_a(14)) vram_b
 //---------------------------------------------------------
 //-- 00000..7FFFF - Cartridge module port, paged, 512K, to support the TI megademo :)
 //-- 80000..8FFFF - GROM mapped to this area, 64K (was at 30000)
-//-- 90000..AFFFF - Not used currently
-//-- B0000..B7FFF - DSR area, 32K reserved	(was at 60000)
-//-- B8000..B8FFF - Scratchpad 	(was at 68000)
+//-- 90000..AFFFF - Not used currently (128K)
+//-- B0000..B7FFF - DSR area, 32K reserved	(was at 60000) (32K)
+//-- B8000..B8FFF - Scratchpad 	(was at 68000) (4K)
 //-- BA000..BCFFF - Boot ROM remapped (was at 0)   
 //-- C0000..FFFFF - SAMS SRAM 256K (i.e. the "normal" CPU RAM paged with the SAMS system)
 //---------------------------------------------------------
@@ -478,7 +478,7 @@ wire  [1:0] sdram_bs;
 wire [15:0] sdram_dout;
 wire [15:0] sdram_din;
 
-sdram ext_ram_rom
+sdram #(.MHZ(85)) ext_ram_rom
 (
     .SDRAM_DQ    ( SDRAM_DQ ),
     .SDRAM_A     ( SDRAM_A ),
