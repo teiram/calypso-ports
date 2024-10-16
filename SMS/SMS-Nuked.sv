@@ -2,8 +2,7 @@
 //  SMS top-level for Nuked-SMS-FPGA
 //  https://github.com/nukeykt/Nuked-SMS-FPGA
 //
-//  Port to MiST/SiDi
-//  Szombathelyi György
+//  Port to Calypso
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the Free
@@ -22,12 +21,12 @@
 
 module SMS_Nuked
 (
-	input         CLOCK_27,
+	input         CLK12M,
 `ifdef USE_CLOCK_50
 	input         CLOCK_50,
 `endif
 
-	output        LED,
+	output          [7:0] LED,
 	output [VGA_BITS-1:0] VGA_R,
 	output [VGA_BITS-1:0] VGA_G,
 	output [VGA_BITS-1:0] VGA_B,
@@ -64,7 +63,7 @@ module SMS_Nuked
 	input         SPI_SS4,
 `endif
 
-	output [12:0] SDRAM_A,
+	output [11:0] SDRAM_A,
 	inout  [15:0] SDRAM_DQ,
 	output        SDRAM_DQML,
 	output        SDRAM_DQMH,
@@ -131,7 +130,7 @@ localparam bit QSPI = 0;
 `ifdef VGA_8BIT
 localparam VGA_BITS = 8;
 `else
-localparam VGA_BITS = 6;
+localparam VGA_BITS = 4;
 `endif
 
 `ifdef USE_HDMI
@@ -202,7 +201,7 @@ wire       save_ram = status[7];
 wire [1:0] lightgun = status[14:13];
 wire       lockmappers = status[15];
 
-assign LED  = ~ioctl_download & ~bk_ena;
+assign LED[0]  = ~ioctl_download & ~bk_ena;
 
 ////////////////////   CLOCKS   ///////////////////
 
@@ -211,7 +210,7 @@ wire clk_sys;
 
 pll pll
 (
-	.inclk0(CLOCK_27),
+	.inclk0(CLK12M),
 	.c0(clk_sys),
 	.locked(locked)
 );
@@ -331,7 +330,7 @@ wire [15:0] cart_addr;
 wire  [7:0] cart_dout, cart_din;
 wire        cart_oe, cart_cs, cart_csram, cart_wr;
 
-sdram ram
+sdram #(.MHZ(52)) ram
 (
 	.*,
 
@@ -471,7 +470,7 @@ mappers mappers_inst
 	.nvram_cs  (nvram_cs)
 );
 
-spram #(.widthad_a(13)) ram_inst
+spram ram_inst
 (
 	.clock     (clk_sys),
 	.address   (ram_a),
@@ -480,7 +479,7 @@ spram #(.widthad_a(13)) ram_inst
 	.q         (ram_q)
 );
 
-dpram #(.widthad_a(13)) bios_inst
+dpram bios_inst
 (
 	.clock_a    (clk_sys),
 	.address_a  (bios_address),
@@ -733,7 +732,7 @@ spdif spdif
 
 /////////////////////////  STATE SAVE/LOAD  /////////////////////////////
 // 8k auxilary RAM - 32k doesn't fit
-dpram #(.widthad_a(13)) nvram_inst
+dpram nvram_inst
 (
 	.clock_a     (clk_sys),
 	.address_a   (nvram_a[12:0]),
