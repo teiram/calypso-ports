@@ -28,3 +28,6 @@
 [submodule "colecovision/colecovision_fpga"]
 	path = colecovision/colecovision_fpga
 	url = https://github.com/mist-devel/colecovision_fpga.git
+[submodule "SMS/SMS-Nuked"]
+	path = SMS/SMS-Nuked
+	url = https://github.com/gyurco/SMS-Nuked.git
