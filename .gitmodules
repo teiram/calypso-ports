@@ -31,3 +31,6 @@
 [submodule "SMS/SMS-Nuked"]
 	path = SMS/SMS-Nuked
 	url = https://github.com/gyurco/SMS-Nuked.git
+[submodule "xt/PCXT_DeMiSTify"]
+	path = xt/PCXT_DeMiSTify
+	url = https://github.com/somhi/PCXT_DeMiSTify
