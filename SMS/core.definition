@@ -1,0 +1,4 @@
+CORE_ID=SMS
+PROJECT_NAME=SMS-Nuked_calypso
+VERSION=1
+BITSTREAM_FILE=output_files/SMS-Nuked_calypso.rbf
