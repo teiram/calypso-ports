@@ -13,6 +13,7 @@ set_global_assignment -name FMAX_REQUIREMENT "101.58 MHz"
 set_global_assignment -name FMAX_REQUIREMENT "34 MHz" -section_id clk32
 
 set_global_assignment -name GENERATE_RBF_FILE ON
+set_global_assignment -name ON_CHIP_BITSTREAM_DECOMPRESSION OFF
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name SMART_RECOMPILE ON
 
@@ -252,12 +253,12 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to CONF_DATA0
 
 
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
+set_global_assignment -name VERILOG_FILE defs.v
 set_global_assignment -name SYSTEMVERILOG_FILE PCXT.sv
 set_global_assignment -name SDC_FILE constraints.sdc
-set_global_assignment -name VERILOG_FILE defs.v
 set_global_assignment -name SYSTEMVERILOG_FILE KFSDRAM.sv
 set_global_assignment -name QIP_FILE files.qip
-set_global_assignment -name QIP_FILE "PCXT_DeMiSTify/mist-modules/mist.qip"
+set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:PCXT_DeMiSTify/build_id.tcl"
 
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top

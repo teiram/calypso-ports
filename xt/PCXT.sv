@@ -110,7 +110,6 @@ module PCXT
         output        UART_TX,
     
     ////// DeMiSTify ports //////
-
         input		  UART_CTS,
         output 		  UART_RTS,
 
@@ -1013,7 +1012,7 @@ module PCXT
     reg splash_off;
     reg [24:0] splash_cnt = 0;
     reg [3:0] splash_cnt2 = 0;
-    reg splashscreen = 1;
+    reg splashscreen = 0;
 
     always @ (posedge clk_14_318)
     begin

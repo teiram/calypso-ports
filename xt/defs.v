@@ -11,7 +11,7 @@
 // RELEASE MACROS			[M9Ks  63 / 66 ]  [98% LEs]
 `define EMBED_8088_ROM        	// (16 M9K)
 `define NO_MDA			// MDA video disabled
-`define NO_ADLIB     		// Adlib. (4/9 M9K) 
+// `define NO_ADLIB     		// Adlib. (4/9 M9K) 
 `define NO_CMSOUND   		// Game Blaster. For board with not enough Logic cells
 `define NO_CREDITS		// (10 M9K) Remove Credits screen. For boards with not enough BRAM 
 `define CGA_32			// (32 M9K)    
@@ -23,7 +23,7 @@
 //`define NO_CMSOUND   		// Game Blaster. For board with not enough Logic cells
 //`define NO_CREDITS		// (10 M9K) Remove Credits screen. For boards with not enough BRAM 
 //`define CGA_16		// (16 M9K)	
-`define DEBUG2		// Define if want to show DEBUG menu in OSD
+//`define DEBUG2		// Define if want to show DEBUG menu in OSD
 
 /////////////////////////////////   COMPLETE LIST OF MACROS   //////////////////////////////////////
 

@@ -34,3 +34,9 @@
 [submodule "xt/PCXT_DeMiSTify"]
 	path = xt/PCXT_DeMiSTify
 	url = https://github.com/somhi/PCXT_DeMiSTify
+[submodule "bbcmicro/beeb"]
+	path = bbcmicro/beeb
+	url = https://github.com/mist-devel/beeb.git
+[submodule "xt/mist-modules"]
+	path = xt/mist-modules
+	url = https://github.com/mist-devel/mist-modules.git
