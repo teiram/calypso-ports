@@ -15,7 +15,7 @@
 `define NO_CMSOUND   		// Game Blaster. For board with not enough Logic cells
 `define NO_CREDITS		// (10 M9K) Remove Credits screen. For boards with not enough BRAM 
 `define CGA_32			// (32 M9K)    
-//`define NO_UART1		// (2 M9K) 
+`define NO_UART1		// (2 M9K) 
 
 // DEVELOPMENT MACROS
 //`define NO_MDA
@@ -23,12 +23,12 @@
 //`define NO_CMSOUND   		// Game Blaster. For board with not enough Logic cells
 //`define NO_CREDITS		// (10 M9K) Remove Credits screen. For boards with not enough BRAM 
 //`define CGA_16		// (16 M9K)	
-//`define DEBUG2		// Define if want to show DEBUG menu in OSD
+`define DEBUG2		// Define if want to show DEBUG menu in OSD
 
 /////////////////////////////////   COMPLETE LIST OF MACROS   //////////////////////////////////////
 
 ////// MiST / SiDi & compatible boards specific macros //////
-//`define MIST_SIDI		// Define if your board is MiST compatible
+`define MIST_SIDI		// Define if your board is MiST compatible
 
 ////// EMBED ROMs into Logic Cells to free BRAM resources needed for video and audio //////
 //`define EMBED_8088_ROM        // (16 M9K)
