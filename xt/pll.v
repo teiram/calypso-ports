@@ -61,26 +61,26 @@ module pll (
 // synopsys translate_on
 `endif
 
-	wire [4:0] sub_wire0;
-	wire  sub_wire5;
-	wire [0:0] sub_wire8 = 1'h0;
-	wire [3:3] sub_wire4 = sub_wire0[3:3];
-	wire [2:2] sub_wire3 = sub_wire0[2:2];
-	wire [1:1] sub_wire2 = sub_wire0[1:1];
-	wire [0:0] sub_wire1 = sub_wire0[0:0];
-	wire  c0 = sub_wire1;
-	wire  c1 = sub_wire2;
-	wire  c2 = sub_wire3;
-	wire  c3 = sub_wire4;
-	wire  locked = sub_wire5;
-	wire  sub_wire6 = inclk0;
-	wire [1:0] sub_wire7 = {sub_wire8, sub_wire6};
+	wire [0:0] sub_wire2 = 1'h0;
+	wire [4:0] sub_wire3;
+	wire  sub_wire8;
+	wire  sub_wire0 = inclk0;
+	wire [1:0] sub_wire1 = {sub_wire2, sub_wire0};
+	wire [3:3] sub_wire7 = sub_wire3[3:3];
+	wire [2:2] sub_wire6 = sub_wire3[2:2];
+	wire [1:1] sub_wire5 = sub_wire3[1:1];
+	wire [0:0] sub_wire4 = sub_wire3[0:0];
+	wire  c0 = sub_wire4;
+	wire  c1 = sub_wire5;
+	wire  c2 = sub_wire6;
+	wire  c3 = sub_wire7;
+	wire  locked = sub_wire8;
 
 	altpll	altpll_component (
 				.areset (areset),
-				.inclk (sub_wire7),
-				.clk (sub_wire0),
-				.locked (sub_wire5),
+				.inclk (sub_wire1),
+				.clk (sub_wire3),
+				.locked (sub_wire8),
 				.activeclock (),
 				.clkbad (),
 				.clkena ({6{1'b1}}),
@@ -127,10 +127,10 @@ module pll (
 		altpll_component.clk2_divide_by = 6,
 		altpll_component.clk2_duty_cycle = 50,
 		altpll_component.clk2_multiply_by = 25,
-		altpll_component.clk2_phase_shift = "0",
-		altpll_component.clk3_divide_by = 61,
+		altpll_component.clk2_phase_shift = "-2000",
+		altpll_component.clk3_divide_by = 625,
 		altpll_component.clk3_duty_cycle = 50,
-		altpll_component.clk3_multiply_by = 75,
+		altpll_component.clk3_multiply_by = 768,
 		altpll_component.clk3_phase_shift = "0",
 		altpll_component.compensate_clock = "CLK0",
 		altpll_component.inclk0_input_frequency = 83333,
@@ -208,7 +208,7 @@ endmodule
 // Retrieval info: PRIVATE: DIV_FACTOR0 NUMERIC "3"
 // Retrieval info: PRIVATE: DIV_FACTOR1 NUMERIC "6"
 // Retrieval info: PRIVATE: DIV_FACTOR2 NUMERIC "1"
-// Retrieval info: PRIVATE: DIV_FACTOR3 NUMERIC "61"
+// Retrieval info: PRIVATE: DIV_FACTOR3 NUMERIC "625"
 // Retrieval info: PRIVATE: DUTY_CYCLE0 STRING "50.00000000"
 // Retrieval info: PRIVATE: DUTY_CYCLE1 STRING "50.00000000"
 // Retrieval info: PRIVATE: DUTY_CYCLE2 STRING "50.00000000"
@@ -216,7 +216,7 @@ endmodule
 // Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE0 STRING "100.000000"
 // Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE1 STRING "50.000000"
 // Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE2 STRING "50.000000"
-// Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE3 STRING "14.754098"
+// Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE3 STRING "14.745600"
 // Retrieval info: PRIVATE: EXPLICIT_SWITCHOVER_COUNTER STRING "0"
 // Retrieval info: PRIVATE: EXT_FEEDBACK_RADIO STRING "0"
 // Retrieval info: PRIVATE: GLOCKED_COUNTER_EDIT_CHANGED STRING "1"
@@ -248,7 +248,7 @@ endmodule
 // Retrieval info: PRIVATE: MULT_FACTOR0 NUMERIC "25"
 // Retrieval info: PRIVATE: MULT_FACTOR1 NUMERIC "25"
 // Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "1"
-// Retrieval info: PRIVATE: MULT_FACTOR3 NUMERIC "75"
+// Retrieval info: PRIVATE: MULT_FACTOR3 NUMERIC "768"
 // Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
 // Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "100.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "50.00000000"
@@ -266,12 +266,12 @@ endmodule
 // Retrieval info: PRIVATE: PHASE_RECONFIG_INPUTS_CHECK STRING "0"
 // Retrieval info: PRIVATE: PHASE_SHIFT0 STRING "0.00000000"
 // Retrieval info: PRIVATE: PHASE_SHIFT1 STRING "0.00000000"
-// Retrieval info: PRIVATE: PHASE_SHIFT2 STRING "0.00000000"
+// Retrieval info: PRIVATE: PHASE_SHIFT2 STRING "-2.00000000"
 // Retrieval info: PRIVATE: PHASE_SHIFT3 STRING "0.00000000"
 // Retrieval info: PRIVATE: PHASE_SHIFT_STEP_ENABLED_CHECK STRING "0"
 // Retrieval info: PRIVATE: PHASE_SHIFT_UNIT0 STRING "deg"
 // Retrieval info: PRIVATE: PHASE_SHIFT_UNIT1 STRING "deg"
-// Retrieval info: PRIVATE: PHASE_SHIFT_UNIT2 STRING "deg"
+// Retrieval info: PRIVATE: PHASE_SHIFT_UNIT2 STRING "ns"
 // Retrieval info: PRIVATE: PHASE_SHIFT_UNIT3 STRING "deg"
 // Retrieval info: PRIVATE: PLL_ADVANCED_PARAM_CHECK STRING "0"
 // Retrieval info: PRIVATE: PLL_ARESET_CHECK STRING "1"
@@ -324,10 +324,10 @@ endmodule
 // Retrieval info: CONSTANT: CLK2_DIVIDE_BY NUMERIC "6"
 // Retrieval info: CONSTANT: CLK2_DUTY_CYCLE NUMERIC "50"
 // Retrieval info: CONSTANT: CLK2_MULTIPLY_BY NUMERIC "25"
-// Retrieval info: CONSTANT: CLK2_PHASE_SHIFT STRING "0"
-// Retrieval info: CONSTANT: CLK3_DIVIDE_BY NUMERIC "61"
+// Retrieval info: CONSTANT: CLK2_PHASE_SHIFT STRING "-2000"
+// Retrieval info: CONSTANT: CLK3_DIVIDE_BY NUMERIC "625"
 // Retrieval info: CONSTANT: CLK3_DUTY_CYCLE NUMERIC "50"
-// Retrieval info: CONSTANT: CLK3_MULTIPLY_BY NUMERIC "75"
+// Retrieval info: CONSTANT: CLK3_MULTIPLY_BY NUMERIC "768"
 // Retrieval info: CONSTANT: CLK3_PHASE_SHIFT STRING "0"
 // Retrieval info: CONSTANT: COMPENSATE_CLOCK STRING "CLK0"
 // Retrieval info: CONSTANT: INCLK0_INPUT_FREQUENCY NUMERIC "83333"
