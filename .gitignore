@@ -1,6 +1,7 @@
 output_files/
 *.bak
 *.qws
+*.rbf
 build_id.v
 db/
 greybox_tmp/
