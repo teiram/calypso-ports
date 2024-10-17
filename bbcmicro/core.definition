@@ -1,0 +1,4 @@
+CORE_ID=BBC
+PROJECT_NAME=bbc_calypso
+VERSION=1
+BITSTREAM_FILE=output_files/bbc_calypso.rbf
