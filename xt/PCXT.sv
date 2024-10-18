@@ -246,7 +246,7 @@ module PCXT
 		"P3O4,Video Output,CGA/Tandy,MDA;",
 		"P3OEG,Display,Full Color,Green,Amber,B&W,Red,Blue,Fuchsia,Purple;",
 		"P3Oh,Composite Blending,No,Yes;",
-		"P3Oi,Composite (DB15 green),Off,On;",
+		"P3Oi,Composite,Off,On;",
 		"P3Ol,VGA+Compos(1pin no.osd),Off,On;",
         "P3Og,EXPER.YPbPr,Off,On;",
 		//
@@ -1564,13 +1564,13 @@ module PCXT
 
     // osd_disable default is 0
     assign VGA_VS = osd_disable ? ~vga_vs : ~vga_vs_o;
-    assign VGA_HS = osd_disable ? ~vga_hs : ~vga_hs_o;
     assign VGA_DE = ~(HBlank | VBlank);
+    assign VGA_HS = composite_on ? ~(vga_hs | vga_vs) : osd_disable ? ~vga_hs : ~vga_hs_o;
 
     `ifdef NO_CREDITS
     assign VGA_R = composite_on ?                        8'd0 : raux4;
-    assign VGA_G = composite_on ?  {comp_video,comp_video[0]} : gaux4;
-    assign VGA_B = composite_on ?                        8'd0 : baux4;
+    assign VGA_G = composite_on ?  {2'b00, comp_video[6:5]} : gaux4;
+    assign VGA_B = composite_on ?  {2'b00 ,comp_video[4:3]} : baux4;
 
     `else
     assign VGA_R = pause_core ? pre2x_r : composite_on ?                        8'd0 : raux4;

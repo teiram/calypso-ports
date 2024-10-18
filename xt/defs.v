@@ -10,7 +10,7 @@
 
 // RELEASE MACROS			[M9Ks  63 / 66 ]  [98% LEs]
 `define EMBED_8088_ROM        	// (16 M9K)
-`define NO_MDA			// MDA video disabled
+//`define NO_MDA			// MDA video disabled
 // `define NO_ADLIB     		// Adlib. (4/9 M9K) 
 `define NO_CMSOUND   		// Game Blaster. For board with not enough Logic cells
 `define NO_CREDITS		// (10 M9K) Remove Credits screen. For boards with not enough BRAM 
