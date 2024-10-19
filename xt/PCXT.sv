@@ -24,9 +24,9 @@ module PCXT
     `endif        
         output     [7:0]   LED,
 
-        output [VGA_BITS-1:0] VGA_R,
-        output [VGA_BITS-1:0] VGA_G,
-        output [VGA_BITS-1:0] VGA_B,
+        output [3:0] VGA_R,
+        output [3:0] VGA_G,
+        output [3:0] VGA_B,
         output        VGA_HS,
         output        VGA_VS,
     
@@ -151,11 +151,8 @@ module PCXT
     localparam bit QSPI = 0;
     `endif
     
-    `ifdef VGA_8BIT
+
     localparam VGA_BITS = 8;
-    `else
-    localparam VGA_BITS = 4;
-    `endif
     
     `ifdef USE_HDMI
     localparam bit HDMI = 1;
@@ -312,7 +309,8 @@ module PCXT
 	wire a000h = ~status[51] & ~xtctl[6];
     wire composite_on = status[44];
     wire vga_composite = status[47];
-
+    assign forced_scandoubler = composite_on;
+    
     reg RESET_N = 1;
 	//debug
     `ifdef DEBUG2
@@ -391,7 +389,7 @@ module PCXT
 
 		.status         ( status        ),
 		.buttons        ( buttons       ),
-		.scandoubler_disable ( forced_scandoubler ),
+		//.scandoubler_disable ( forced_scandoubler ),
 
 		.rtc            ( rtc_data      ),
 
@@ -1012,7 +1010,7 @@ module PCXT
     reg splash_off;
     reg [24:0] splash_cnt = 0;
     reg [3:0] splash_cnt2 = 0;
-    reg splashscreen = 0;
+    reg splashscreen = 1;
 
     always @ (posedge clk_14_318)
     begin
@@ -1560,17 +1558,17 @@ module PCXT
     assign gaux4  = osd_disable ? {gaux2,gaux2[1:0]} : gaux3;
     assign baux4  = osd_disable ? {baux2,baux2[1:0]} : baux3;
 
-    //assign rgb_18b = {raux4[7:2],gaux4[7:2],baux4[7:2]};    // for composite real video output
+    assign rgb_18b = {raux4[7:2], gaux4[7:2], baux4[7:2]};    // for composite real video output
 
     // osd_disable default is 0
     assign VGA_VS = osd_disable ? ~vga_vs : ~vga_vs_o;
     assign VGA_DE = ~(HBlank | VBlank);
-    assign VGA_HS = composite_on ? ~(vga_hs | vga_vs) : osd_disable ? ~vga_hs : ~vga_hs_o;
+    assign VGA_HS = composite_on ? ~(vga_hs ^ vga_vs): osd_disable ? ~vga_hs : ~vga_hs_o;
 
     `ifdef NO_CREDITS
-    assign VGA_R = composite_on ?                        8'd0 : raux4;
-    assign VGA_G = composite_on ?  {2'b00, comp_video[6:5]} : gaux4;
-    assign VGA_B = composite_on ?  {2'b00 ,comp_video[4:3]} : baux4;
+    assign VGA_R = composite_on ?   4'd0                     : raux4[7:4];
+    assign VGA_G = composite_on ?  {2'b00, comp_video[4:3]}  : gaux4[7:4];
+    assign VGA_B = composite_on ?  {2'b00, comp_video[6:5]}  : baux4[7:4];
 
     `else
     assign VGA_R = pause_core ? pre2x_r : composite_on ?                        8'd0 : raux4;

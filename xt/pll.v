@@ -61,26 +61,26 @@ module pll (
 // synopsys translate_on
 `endif
 
-	wire [0:0] sub_wire2 = 1'h0;
-	wire [4:0] sub_wire3;
-	wire  sub_wire8;
-	wire  sub_wire0 = inclk0;
-	wire [1:0] sub_wire1 = {sub_wire2, sub_wire0};
-	wire [3:3] sub_wire7 = sub_wire3[3:3];
-	wire [2:2] sub_wire6 = sub_wire3[2:2];
-	wire [1:1] sub_wire5 = sub_wire3[1:1];
-	wire [0:0] sub_wire4 = sub_wire3[0:0];
-	wire  c0 = sub_wire4;
-	wire  c1 = sub_wire5;
-	wire  c2 = sub_wire6;
-	wire  c3 = sub_wire7;
-	wire  locked = sub_wire8;
+	wire [4:0] sub_wire0;
+	wire  sub_wire5;
+	wire [0:0] sub_wire8 = 1'h0;
+	wire [3:3] sub_wire4 = sub_wire0[3:3];
+	wire [2:2] sub_wire3 = sub_wire0[2:2];
+	wire [1:1] sub_wire2 = sub_wire0[1:1];
+	wire [0:0] sub_wire1 = sub_wire0[0:0];
+	wire  c0 = sub_wire1;
+	wire  c1 = sub_wire2;
+	wire  c2 = sub_wire3;
+	wire  c3 = sub_wire4;
+	wire  locked = sub_wire5;
+	wire  sub_wire6 = inclk0;
+	wire [1:0] sub_wire7 = {sub_wire8, sub_wire6};
 
 	altpll	altpll_component (
 				.areset (areset),
-				.inclk (sub_wire1),
-				.clk (sub_wire3),
-				.locked (sub_wire8),
+				.inclk (sub_wire7),
+				.clk (sub_wire0),
+				.locked (sub_wire5),
 				.activeclock (),
 				.clkbad (),
 				.clkena ({6{1'b1}}),
@@ -207,7 +207,7 @@ endmodule
 // Retrieval info: PRIVATE: DEVICE_SPEED_GRADE STRING "Any"
 // Retrieval info: PRIVATE: DIV_FACTOR0 NUMERIC "3"
 // Retrieval info: PRIVATE: DIV_FACTOR1 NUMERIC "6"
-// Retrieval info: PRIVATE: DIV_FACTOR2 NUMERIC "1"
+// Retrieval info: PRIVATE: DIV_FACTOR2 NUMERIC "6"
 // Retrieval info: PRIVATE: DIV_FACTOR3 NUMERIC "625"
 // Retrieval info: PRIVATE: DUTY_CYCLE0 STRING "50.00000000"
 // Retrieval info: PRIVATE: DUTY_CYCLE1 STRING "50.00000000"
@@ -247,16 +247,16 @@ endmodule
 // Retrieval info: PRIVATE: MIRROR_CLK3 STRING "0"
 // Retrieval info: PRIVATE: MULT_FACTOR0 NUMERIC "25"
 // Retrieval info: PRIVATE: MULT_FACTOR1 NUMERIC "25"
-// Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "1"
+// Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "25"
 // Retrieval info: PRIVATE: MULT_FACTOR3 NUMERIC "768"
 // Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
 // Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "100.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "50.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ2 STRING "50.00000000"
-// Retrieval info: PRIVATE: OUTPUT_FREQ3 STRING "14.74560000"
+// Retrieval info: PRIVATE: OUTPUT_FREQ3 STRING "14.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE1 STRING "0"
-// Retrieval info: PRIVATE: OUTPUT_FREQ_MODE2 STRING "1"
+// Retrieval info: PRIVATE: OUTPUT_FREQ_MODE2 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE3 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT0 STRING "MHz"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT1 STRING "MHz"
@@ -291,7 +291,7 @@ endmodule
 // Retrieval info: PRIVATE: SPREAD_FEATURE_ENABLED STRING "0"
 // Retrieval info: PRIVATE: SPREAD_FREQ STRING "50.000"
 // Retrieval info: PRIVATE: SPREAD_FREQ_UNIT STRING "KHz"
-// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.500"
+// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.000"
 // Retrieval info: PRIVATE: SPREAD_USE STRING "0"
 // Retrieval info: PRIVATE: SRC_SYNCH_COMP_RADIO STRING "0"
 // Retrieval info: PRIVATE: STICKY_CLK0 STRING "1"
