@@ -52,7 +52,7 @@ module Amstrad
 assign LED[0] = reset;
 assign LED[1] = hs;
 assign LED[2] = ioctl_download;
-assign LED[3] = phi_en_n;
+assign LED[3] = iorq;
 assign LED[4] = ~locked;
 assign LED[5] = ext_download;
 assign LED[6] = rom_download;
@@ -312,9 +312,9 @@ always_comb begin
         // Bank 1                                           00     40      47       3F
                 case(ioctl_addr[24:14])
                                 0,4: boot_a[22:14] = 9'h000; //OS
-                                1,5: boot_a[22:14] = 9'h100; //BASIC
-                                2,6: boot_a[22:14] = 9'h107; //AMSDOS
-                                3,7: boot_a[22:14] = 9'h0ff; //MF2
+                                1,5: boot_a[22:14] = 9'h040; //BASIC
+                                2,6: boot_a[22:14] = 9'h047; //AMSDOS
+                                3,7: boot_a[22:14] = 9'h03F; //MF2
 		  default: boot_wr = 0;
 		endcase
 

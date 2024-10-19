@@ -177,7 +177,7 @@ always @(posedge clk) begin
 		{MODE_NORMAL, STATE_START}:
 		if(ram_req_next | vram_req_next | tape_req_next) begin
 			{SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_ACTIVE;
-			SDRAM_A <= addr_next[19:8];
+			SDRAM_A <= addr_next[20:9];
 			SDRAM_BA <= tape_req_next ? 2'b10 : bank;
 			if(ram_req_next & wr_next) ram_dout <= din;
 		end else
@@ -185,7 +185,8 @@ always @(posedge clk) begin
 
 		{MODE_NORMAL, STATE_CONT}:
 		if(ram_req | vram_req | tape_req) begin
-			SDRAM_A <= {4'b0100, a[20], a[7:1]};
+			SDRAM_A <= {4'b0100, a[8:1]};
+            SDRAM_BA <= tape_req_next ? 2'b10 : bank;
 			{SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= wr ? CMD_WRITE : CMD_READ;
 			if (wr) SDRAM_DQ <= tape_req ? {tape_din, tape_din} : {din, din};
 			{SDRAM_DQMH,SDRAM_DQML} <= {~a[0] & wr, a[0] & wr};
