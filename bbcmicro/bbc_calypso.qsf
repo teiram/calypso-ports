@@ -193,6 +193,7 @@ set_location_assignment PLL_1 -to CLOCKS|altpll_component|auto_generated|pll1
 
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:beeb/fpga/mist/build_id.tcl"
 set_global_assignment -name SMART_RECOMPILE ON
+set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name QIP_FILE beeb/rtl/bbc.qip
 set_global_assignment -name VERILOG_FILE beeb/fpga/rtl/sigma_delta_dac.v
 set_global_assignment -name VERILOG_FILE beeb/fpga/rtl/audio.v

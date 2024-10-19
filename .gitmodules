@@ -40,3 +40,6 @@
 [submodule "xt/mist-modules"]
 	path = xt/mist-modules
 	url = https://github.com/mist-devel/mist-modules.git
+[submodule "oric/Oric_Mist_48K"]
+	path = oric/Oric_Mist_48K
+	url = https://github.com/rampa069/Oric_Mist_48K.git
