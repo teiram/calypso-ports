@@ -131,7 +131,7 @@ localparam bit QSPI = 0;
 `ifdef VGA_8BIT
 localparam VGA_BITS = 8;
 `else
-localparam VGA_BITS = 6;
+localparam VGA_BITS = 4;
 `endif
 
 `ifdef USE_HDMI
@@ -166,7 +166,7 @@ assign SDRAM2_nWE = 1;
 
 `include "build_id.v"
 
-assign LED[0] = ~ioctl_download & ~led_disk & cass_motor;
+assign LED[0] =  ~ioctl_download & ~led_disk & cass_motor;
 assign UART_TX = ~cass_motor;
 
 localparam TAP_MEM_START = 22'h20000;
