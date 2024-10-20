@@ -43,3 +43,6 @@
 [submodule "oric/Oric_Mist_48K"]
 	path = oric/Oric_Mist_48K
 	url = https://github.com/rampa069/Oric_Mist_48K.git
+[submodule "spectrum/ZX_Spectrum-128K_MIST"]
+	path = spectrum/ZX_Spectrum-128K_MIST
+	url = https://github.com/sorgelig/ZX_Spectrum-128K_MIST.git
