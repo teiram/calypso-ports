@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 //
 
-module c16_mist_calypso (
+module c16_calypso_top (
 	input         CLK12M,
 `ifdef USE_CLOCK_50
 	input         CLOCK_50,
@@ -125,7 +125,7 @@ localparam bit QSPI = 0;
 `ifdef VGA_8BIT
 localparam VGA_BITS = 8;
 `else
-localparam VGA_BITS = 6;
+localparam VGA_BITS = 4;
 `endif
 
 `ifdef USE_HDMI
@@ -927,17 +927,17 @@ C16 #(.INTERNAL_ROM(0)) c16 (
 wire pll_locked = pll_c16_locked;
 wire ntsc = ~c16_pal;
 
-// A PLL to derive the system clock from the MiSTs 27MHz
+// A PLL to derive the system clock from Calypso's 12Mhz
 wire pll_c1541_locked, clk32;
 pll_c1541 pll_c1541 (
-    .inclk0 ( CLOCK_27          ),
+    .inclk0 ( CLK12M          ),
     .c0     ( clk32             ),
     .locked ( pll_c1541_locked  )
 );
 
 wire pll_c16_locked, clk28;
 pll_c16 pll_c16 (
-    .inclk0(CLOCK_27),
+    .inclk0(CLK12M),
     .c0(clk28),
     .areset(pll_areset),
     .scanclk(pll_scanclk),

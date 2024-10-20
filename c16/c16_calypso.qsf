@@ -25,9 +25,9 @@ set_global_assignment -name REMOVE_REDUNDANT_LOGIC_CELLS ON
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
 set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:c64/build_id.tcl"
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:c16/build_id.tcl"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name SAVE_DISK_SPACE OFF
-set_global_assignment -name GENERATE_RBF_FILE ON
 
 # Fitter Assignments
 # ==================
@@ -291,4 +291,9 @@ set_global_assignment -name ENABLE_DRC_SETTINGS OFF
 set_location_assignment PLL_1 -to pll_c16|altpll_component|auto_generated|pll1
 set_global_assignment -name AUTO_SHIFT_REGISTER_RECOGNITION OFF
 set_global_assignment -name QIP_FILE c16_calypso.qip
+set_global_assignment -name QIP_FILE pll_c16.qip
+set_global_assignment -name QIP_FILE pll_c1541.qip
+set_global_assignment -name QIP_FILE rom_reconfig_pal.qip
+set_global_assignment -name QIP_FILE rom_reconfig_ntsc.qip
+set_global_assignment -name QIP_FILE pll_reconfig.qip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
