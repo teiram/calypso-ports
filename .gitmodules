@@ -46,3 +46,9 @@
 [submodule "spectrum/ZX_Spectrum-128K_MIST"]
 	path = spectrum/ZX_Spectrum-128K_MIST
 	url = https://github.com/sorgelig/ZX_Spectrum-128K_MIST.git
+[submodule "c16/c16"]
+	path = c16/c16
+	url = https://github.com/mist-devel/c16.git
+[submodule "vic20/VIC20_MiST"]
+	path = vic20/VIC20_MiST
+	url = https://github.com/mist-devel/VIC20_MiST.git
