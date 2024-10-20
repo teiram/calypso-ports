@@ -324,8 +324,7 @@ always @(posedge clk28) begin
 	if (c16_casD & ~c16_cas) c16_a_hi  <= c16_a;
 end
 
-sdram sdram (
-   // interface to the MT48LC16M16 chip
+sdram #(.MHZ(28)) sdram (
    .sd_data        ( SDRAM_DQ                  ),
    .sd_addr        ( SDRAM_A                   ),
    .sd_dqm         ( {SDRAM_DQMH, SDRAM_DQML}  ),

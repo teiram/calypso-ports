@@ -124,11 +124,11 @@ always @(posedge clk) begin
 		sd_dqm <= 2'b00;
 			
 		if(reset == 10) sd_addr <= 12'b010000000000;
-		else   			 sd_addr <= MODE;
+		else if(reset == 1) sd_addr <= MODE;
 
 		if(q == STATE_IDLE) begin
 			if(reset == 10)  sd_cmd <= CMD_PRECHARGE;
-                        if(reset <= 9 && reset > 1) sd_cmd <= CMD_AUTO_REFRESH;
+            if(reset <= 9 && reset > 1) sd_cmd <= CMD_AUTO_REFRESH;
 			if(reset ==  1)  sd_cmd <= CMD_LOAD_MODE;
 		end
 	end else begin
