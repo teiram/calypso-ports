@@ -757,7 +757,7 @@ end
 
 wire ioctl_internal_memory_wr =
     ioctl_reg_inject_state ||
-    (rom_download && (ioctl_target_addr[15:13] == 3'b101)) || // only char rom is internal
+    (rom_download && (ioctl_target_addr[15:13] == 3'b100)) || // only char rom is internal
     (prg_download && (ioctl_target_addr[15:10] == 6'b000000 ||
                       ioctl_target_addr[15:11] == 5'b00010 ||
                       ioctl_target_addr[15:11] == 5'b00011 ||
