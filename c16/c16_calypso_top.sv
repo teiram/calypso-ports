@@ -923,7 +923,7 @@ C16 #(.INTERNAL_ROM(0)) c16 (
 
 // the FPGATED uses two different clocks for NTSC and PAL mode.
 // Switching the clocks may crash the system. We might need to force a reset it.
-wire pll_locked = pll_c16_locked;
+wire pll_locked = pll_c16_locked & pll_c1541_locked;
 wire ntsc = ~c16_pal;
 
 // A PLL to derive the system clock from Calypso's 12Mhz
@@ -1053,7 +1053,7 @@ end
 // ---------------------------------------------------------------------------------
 
 wire led_disk;
-assign LED = !led_disk && cass_motor;
+assign LED[0] = !led_disk && cass_motor;
 
 wire c16_iec_atn_o;
 wire c16_iec_data_o;
