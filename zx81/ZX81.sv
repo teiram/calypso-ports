@@ -109,8 +109,17 @@ module zx8x_calypso
 	input         AUDIO_IN,
 `endif
 	input         UART_RX,
-	output        UART_TX
-
+	output        UART_TX,
+    
+    output        AUX_0,
+    output        AUX_1,
+    output        AUX_2,
+    output        AUX_3,
+    output        AUX_4,
+    output        AUX_5,
+    output        AUX_6,
+    output        AUX_7
+    
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -156,7 +165,7 @@ localparam bit USE_AUDIO_IN = 0;
 wire TAPE_SOUND=UART_RX;
 `endif
 
-assign LED[0]  = ioctl_download | tape_ready;
+assign LED[0]  = ~ioctl_download & ~tape_ready;
 
 `include "build_id.v"
 localparam CONF_STR = {
@@ -171,6 +180,7 @@ localparam CONF_STR = {
 	"O23,Stereo mix,none,25%,50%,100%;", 
 	"-;",
 	"O4,Model,ZX81,ZX80;",
+    "OL,Composite,No,Yes;",
 	"OHI,Slow mode speed,Original,NoWait,x2,x8;",
 	"OAB,Main RAM,16KB,32KB,48KB,1KB;",
 	"OG,Low RAM,Off,8KB;",
@@ -447,16 +457,6 @@ sdram ram
     .ready(ram_ready)
 );
 
-/*
-dpram #(.ADDRWIDTH(16)) ram
-(
-	.clock(clk_sys),
-	.address_a(ram_a),
-	.data_a(tapeloader ? tape_in_byte_r : cpu_dout),
-	.wren_a((~nWR & ~nMREQ & ram_e & ~ch81_e) | tapewrite_we),
-	.q_a(ram_out)
-);
-*/
 
 wire [12:0] rom_a = nRFSH ? addr[12:0] : { addr[12:9]+(addr[13] & ram_data_latch[7] & addr[8] & ~status[14]), ram_data_latch[5:0], row_counter };
 wire        rom_e = ~addr[14] & ~addr[13] & (~addr[12] | zx81) & low16k_e;
@@ -674,7 +674,7 @@ reg hsync2, vsync2;
 reg hblank, vblank;
 always @(posedge clk_sys) begin
 	reg [8:0] cnt;
-	reg [4:0] vreg;
+	reg [10:0] vreg;
 	reg       old_hsync;
 
 	if(ce_6m5) begin
@@ -689,20 +689,14 @@ always @(posedge clk_sys) begin
 
 		old_hsync <= hsync;
 		if(~old_hsync & hsync) begin
-			vreg <= {vreg[3:0], vsync};
+			vreg <= {vreg[9:0], vsync};
 			vblank <= |{vreg,vsync};
-			vsync2 <= vreg[2];
+			vsync2 <= vreg[2] & ~vreg[10]; //Get also rid of long vsync pulses
 			if(&vreg[3:2]) cnt <= 0;
 		end
+        
 	end
 end
-
-assign LED[1] = ~kbd_n;
-assign LED[2] = ~NMIlatch;
-assign LED[3] = ~nHALT;
-assign LED[5] = hsync;
-assign LED[7] = vsync;
-assign LED[6] = slow_mode;
 
 wire i,g,r,b;
 always_comb begin
@@ -714,7 +708,6 @@ always_comb begin
 		'b0100: {i,g,r,b} = attr[3:0];
 	endcase
 end
-
 
 reg VSync, HSync;
 always @(posedge clk_sys) begin
@@ -882,17 +875,29 @@ end
 	.B({b,{3{i & b}}}),
 	.HBlank(hblank),
 	.VBlank(vblank),
-	.VGA_R        (VGA_R      ),
-	.VGA_G        (VGA_G      ),
-	.VGA_B        (VGA_B      ),
-	.VGA_VS       (VGA_VS     ),
-	.VGA_HS       (VGA_HS     ),
+	.VGA_R        (vga_r      ),
+	.VGA_G        (vga_g      ),
+	.VGA_B        (vga_b      ),
+	.VGA_VS       (vga_vs     ),
+	.VGA_HS       (vga_hs     ),
 	.ce_divider   (1'b1       ),
-	.scandoubler_disable(scandoubler_disable),
+	.scandoubler_disable(status[21]),
 	.no_csync     (no_csync	),
 	.scanlines    (status[13:12]),
 	.ypbpr        (ypbpr      )
 	);
+
+reg vga_hs;
+reg vga_vs;
+reg [3:0] vga_r;
+reg [3:0] vga_g;
+reg [3:0] vga_b;
+    
+assign VGA_HS = status[21] ? ~(vga_hs ^ vga_vs) : vga_hs;
+assign VGA_VS = status[21] ? 1'b0 : vga_vs;
+assign VGA_R =  status[21] ? 4'd0 : vga_r;
+assign VGA_G = status[21] ? {2'b00, vga_r[1] | vga_g[1] | vga_b[1], vga_r[0] | vga_g[0] | vga_g[0]} : vga_g;
+assign VGA_B = status[21] ? {2'b00, vga_r[3] | vga_g[3] | vga_b[3], vga_r[2] | vga_g[2] | vga_b[2]} : vga_b;
 
 `ifdef USE_HDMI
 i2c_master #(52_000_000) i2c_master (
