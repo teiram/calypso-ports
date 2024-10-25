@@ -52,9 +52,6 @@
 [submodule "vic20/VIC20_MiST"]
 	path = vic20/VIC20_MiST
 	url = https://github.com/mist-devel/VIC20_MiST.git
-[submodule "zx8x/ZX8X_MiST"]
-	path = zx8x/ZX8X_MiST
-	url = https://github.com/gyurco/ZX8X_MiST.git
 [submodule "zx8x-bm/Sinclair_ZX8X"]
 	path = zx8x-bm/Sinclair_ZX8X
 	url = https://github.com/BigMist/Sinclair_ZX8X.git
