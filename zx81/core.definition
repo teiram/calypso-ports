@@ -1,0 +1,4 @@
+CORE_ID=ZX81
+PROJECT_NAME=zx8x_calypso
+VERSION=0.91
+BITSTREAM_FILE=output_files/zx8x_calypso.rbf
