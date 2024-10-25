@@ -1,0 +1,4 @@
+CORE_ID=VIC20
+PROJECT_NAME=vic20_calypso
+VERSION=1
+BITSTREAM_FILE=output_files/vic20_calypso.rbf
