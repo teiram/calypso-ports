@@ -108,9 +108,9 @@ set_location_assignment PIN_P11 -to EAR
 ####################################
 # I2S
 ####################################
-set_location_assignment PIN_D16 -to I2S_LCK
+set_location_assignment PIN_D16 -to I2S_LRCK
 set_location_assignment PIN_D15 -to I2S_BCK
-set_location_assignment PIN_C15 -to I2S_DIN
+set_location_assignment PIN_C15 -to I2S_DATA
 
 
 ####################################
@@ -257,7 +257,7 @@ set_global_assignment -name ENABLE_SIGNALTAP OFF
 set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SMART_RECOMPILE ON
 
-set_global_assignment -name QIP_FILE "Amstrad_MiST/mist-modules/mist.qip"
+set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
 set_global_assignment -name VERILOG_FILE Amstrad_MiST/sigma_delta_dac.v
 set_global_assignment -name QIP_FILE Amstrad_MiST/T80/T80.qip
 set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_MiST/GA40010/ga40010.sv
@@ -277,7 +277,7 @@ set_global_assignment -name VERILOG_FILE Amstrad_MiST/kempston_mouse.v
 set_global_assignment -name VERILOG_FILE Amstrad_MiST/UM6845R.v
 set_global_assignment -name VHDL_FILE Amstrad_MiST/YM2149.vhd
 set_global_assignment -name VHDL_FILE Amstrad_MiST/vol_table_array.vhd
-set_global_assignment -name VERILOG_FILE Amstrad_MiST/Amstrad_MMU.v
+set_global_assignment -name VERILOG_FILE Amstrad_MMU.v
 set_global_assignment -name VERILOG_FILE Amstrad_MiST/Amstrad_motherboard.v
 set_global_assignment -name SYSTEMVERILOG_FILE Amstrad.sv
 set_global_assignment -name VHDL_FILE Amstrad_MiST/tzxplayer.vhd

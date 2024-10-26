@@ -45,7 +45,11 @@ module Amstrad
 	inout  [15:0] SDRAM_DQ,
 	output  [3:0] VGA_B,
 	output  [3:0] VGA_G,
-	output  [3:0] VGA_R
+	output  [3:0] VGA_R,
+    output        I2S_BCK,
+	output        I2S_LRCK,
+	output        I2S_DATA
+    
 );
 
 //////////////////////////////////////////////////////////////////////////
@@ -259,7 +263,7 @@ always @(posedge clk_sys) begin
 
 	old_wr <= ioctl_wr;
 	if((rom_download | ext_download) & old_wr & ~ioctl_wr) begin
-		if(boot_a[22]) rom_map[boot_a[21:14]] <= 1;
+		if(boot_a[20]) rom_map[boot_a[19:14]] <= 1;
 		if(combo && &boot_a[13:0]) begin
 			combo <= 0;
 			page  <= 9'h1FF;
@@ -348,7 +352,7 @@ sdram sdram
 
 	.oe  (reset ? 1'b0      : mem_rd & ~mf2_ram_en),
 	.we  (reset ? boot_wr   : mem_wr & ~mf2_ram_en & ~mf2_rom_en),
-	.addr(reset ? boot_a    : mf2_rom_en ? { 9'h0ff, cpu_addr[13:0] }: ram_a),
+	.addr(reset ? boot_a    : mf2_rom_en ? { 9'h03f, cpu_addr[13:0] }: ram_a),
 	.bank(reset ? boot_bank : { 1'b0, model } ),
 	.din (reset ? boot_dout : cpu_dout),
 	.dout(ram_dout),
@@ -741,7 +745,7 @@ color_mix color_mix
 	.R_out(R)
 );
 
-mist_video #(.SD_HCNT_WIDTH(10), .OSD_X_OFFSET(10'd18), .COLOR_DEPTH(4)) mist_video (
+mist_video #(.SD_HCNT_WIDTH(10), .OSD_X_OFFSET(10'd18), .COLOR_DEPTH(6), .OUT_COLOR_DEPTH(4)) mist_video (
 	.clk_sys     ( clk_sys    ),
 
 	// OSD SPI interface
@@ -782,7 +786,9 @@ mist_video #(.SD_HCNT_WIDTH(10), .OSD_X_OFFSET(10'd18), .COLOR_DEPTH(4)) mist_vi
 	.VGA_HS      ( VGA_HS     )
 );
 
+
 //////////////////////////////////////////////////////////////////////
+/*
 reg AUDIO_L;
 reg AUDIO_R;
 sigma_delta_dac #(10) dac_l
@@ -800,7 +806,22 @@ sigma_delta_dac #(10) dac_r
 	.DACin({1'b0, audio_r} + {1'b0, playcity_audio_r} + (st_tape_sound ? {tape_rec, tape_play, 6'd0} : 0)),
 	.DACout(AUDIO_R)
 );
+*/
 
+wire [31:0] clk_rate =  32'd64_000_000;
+
+i2s i2s (
+	.reset(reset),
+	.clk(clk_sys),
+	.clk_rate(clk_rate),
+
+	.sclk(I2S_BCK),
+	.lrclk(I2S_LRCK),
+	.sdata(I2S_DATA),
+
+	.left_chan ({1'b0, audio_l} + {1'b0, playcity_audio_l} + (st_tape_sound ? {tape_rec, tape_play, 6'd0} : 0)),
+	.right_chan({1'b0, audio_r} + {1'b0, playcity_audio_r} + (st_tape_sound ? {tape_rec, tape_play, 6'd0} : 0))
+);
 //////////////////////////////////////////////////////////////////////
 
 localparam ear_autostop_time = 5 * 64000000; // 5 sec

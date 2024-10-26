@@ -1,9 +1,30 @@
+//
+// sdram.v
+//
+// sdram controller implementation for Calypso (Winbond W9864G6JT)
+//
+// Based on sdram module by Till Harbaum
+// 
+// This source file is free software: you can redistribute it and/or modify 
+// it under the terms of the GNU General Public License as published 
+// by the Free Software Foundation, either version 3 of the License, or 
+// (at your option) any later version. 
+// 
+// This source file is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of 
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License 
+// along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+//
+
 module sdram
 (
 
-	// interface to the MT48LC16M16 chip
+	// interface to the W9864G6JT chip
 	inout  reg [15:0] SDRAM_DQ,   // 16 bit bidirectional data bus
-	output reg [11:0] SDRAM_A,    // 13 bit multiplexed address bus
+	output reg [11:0] SDRAM_A,    // 12 bit multiplexed address bus
 	output reg        SDRAM_DQML, // byte mask
 	output reg        SDRAM_DQMH, // byte mask
 	output reg  [1:0] SDRAM_BA,   // two banks
@@ -21,7 +42,7 @@ module sdram
 	input       [1:0] bank,
 	input       [7:0] din,			// data input from chipset/cpu
 	output      [7:0] dout,			// data output to chipset/cpu
-	input      [22:0] addr,       // Restrict to a bank. 8MB total, 1MB@16 per bank: 20 + 1 bit
+	input      [22:0] addr,       // 23 bit byte address
 	input             oe,         // cpu/chipset requests read
 	input             we,         // cpu/chipset requests write
 
@@ -113,29 +134,23 @@ localparam MODE_RESET  = 2'b01;
 localparam MODE_LDM    = 2'b10;
 localparam MODE_PRE    = 2'b11;
 
-localparam RST_COUNT =  11'd1610; //11'd10 (conf cycles) + (11'd25 * 64Mhz)
-
 // initialization 
 reg [1:0] mode;
 always @(posedge clk) begin
-	reg [10:0] reset = RST_COUNT;
+	reg [7:0] reset=8'd200;
 	reg init_old=0;
 	init_old <= init;
 
-	if(init_old & ~init) reset <= RST_COUNT;
-	else if (q == STATE_LAST) begin
+	if(init_old & ~init) reset <= 8'd200;
+	else if(q == STATE_LAST) begin
 		if(reset != 0) begin
-			reset <= reset - 11'd1;
-			if(reset == 10) begin
-				mode <= MODE_PRE;
-			end
-			if(reset <= 9 && reset > 1) begin
-				mode <= MODE_NORMAL;
-			end
-			if(reset == 1) begin
-				mode <= MODE_LDM;
-			end
+			reset <= reset - 8'd1;
+			if(reset == 10)     mode <= MODE_PRE;
+            if(reset < 10 && reset > 1) mode <= MODE_NORMAL;
+			else if(reset == 1) mode <= MODE_LDM;
+			else                mode <= MODE_RESET;
 		end
+		else mode <= MODE_NORMAL;
 	end
 end
 
@@ -159,8 +174,7 @@ always @(posedge clk) begin
 	sdram_din <= SDRAM_DQ;
 	SDRAM_DQ <= 16'bZZZZZZZZZZZZZZZZ;
 	{SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_NOP;
-   {SDRAM_DQMH,SDRAM_DQML} <= 2'b11;
-	
+
 	case ({mode,q})
 		{MODE_LDM, STATE_START}:
 		begin
@@ -186,10 +200,9 @@ always @(posedge clk) begin
 		{MODE_NORMAL, STATE_CONT}:
 		if(ram_req | vram_req | tape_req) begin
 			SDRAM_A <= {4'b0100, a[8:1]};
-            SDRAM_BA <= tape_req_next ? 2'b10 : bank;
 			{SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= wr ? CMD_WRITE : CMD_READ;
 			if (wr) SDRAM_DQ <= tape_req ? {tape_din, tape_din} : {din, din};
-			{SDRAM_DQMH,SDRAM_DQML} <= {~a[0] & wr, a[0] & wr};
+			{SDRAM_DQMH,SDRAM_DQML} <= {~a[0] & wr,a[0] & wr};
 		end
 
 		{MODE_NORMAL, STATE_READ}:
