@@ -1,10 +1,8 @@
 //
 // sdram.v
 //
-// sdram controller implementation for the Calypso board
-// 
-// Based on work by Till Harbaum <till@harbaum.org> 
-// 
+// Based on the version for MiST by Till Harbaum <till@harbaum.org> Copyright (c) 2015  
+// Adapted for the WINBOND W9864G6JT
 // This source file is free software: you can redistribute it and/or modify 
 // it under the terms of the GNU General Public License as published 
 // by the Free Software Foundation, either version 3 of the License, or 
@@ -21,7 +19,6 @@
 
 module sdram (
 
-	// interface to the winbond W9864G6JT chip
 	inout  reg [15:0]	sd_data,    // 16 bit bidirectional data bus
 	output reg [11:0]	sd_addr,    // 12 bit multiplexed address bus
 	output reg [1:0] 	sd_dqm,     // two byte masks
@@ -78,18 +75,14 @@ end
 // ---------------------------------------------------------------------
 // --------------------------- startup/reset ---------------------------
 // ---------------------------------------------------------------------
-parameter  MHZ = 16'd80; // 80 MHz default clock, set it to proper value to calculate refresh rate
-// 64ms/4096 rows = 15.6us
-localparam RFRSH_CYCLES = 16'd156 * MHZ / 10;
-localparam RST_COUNT = 11'd10 + 11'd25 * MHZ;
 
 // wait 1ms (32 clkref cycles) after FPGA config is done before going
 // into normal operation. Initialize the ram in the last 16 reset cycles (cycles 15-0)
-reg [10:0] reset = RST_COUNT;
+reg [6:0] reset = 7'd100;
 always @(posedge clk, posedge init) begin
-	if(init)	reset <= RST_COUNT;
+	if(init)	reset <= 7'd100;
 	else if((q == STATE_LAST) && (reset != 0))
-		reset <= reset - 11'd1;
+		reset <= reset - 7'd1;
 end
 
 // ---------------------------------------------------------------------
@@ -124,20 +117,20 @@ always @(posedge clk) begin
 		sd_dqm <= 2'b00;
 			
 		if(reset == 10) sd_addr <= 12'b010000000000;
-		else if(reset == 1) sd_addr <= MODE;
+		else   			 sd_addr <= MODE;
 
 		if(q == STATE_IDLE) begin
 			if(reset == 10)  sd_cmd <= CMD_PRECHARGE;
-            if(reset <= 9 && reset > 1) sd_cmd <= CMD_AUTO_REFRESH;
+            if(reset < 10 && reset > 1) sd_cmd <= CMD_AUTO_REFRESH;
 			if(reset ==  1)  sd_cmd <= CMD_LOAD_MODE;
 		end
 	end else begin
 		if(q <= STATE_CMD_START) begin	
-			sd_addr <= addr[19:8];
+			sd_addr <= { addr[19:15], addr[6:0] };
 			sd_ba <= addr[21:20];
 			sd_dqm <= { !ds[1], !ds[0] };
 		end else
-			sd_addr <= { 4'b0100, addr[7:0]};
+			sd_addr <= { 4'b0100, addr[14:7]};
 	
 		if(q == STATE_IDLE) begin
 			if(we || oe) sd_cmd <= CMD_ACTIVE;
