@@ -1,0 +1,4 @@
+CORE_ID=amstrad
+PROJECT_NAME=Amstrad
+VERSION=1
+BITSTREAM_FILE=output_files/Amstrad.rbf
