@@ -104,8 +104,7 @@ module c16_calypso_top (
 	input         AUDIO_IN,
 `endif
 	input         UART_RX,
-	output        UART_TX
-
+	output        UART_TX 
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -324,7 +323,7 @@ always @(posedge clk28) begin
 	if (c16_casD & ~c16_cas) c16_a_hi  <= c16_a;
 end
 
-sdram #(.MHZ(28)) sdram (
+sdram sdram (
    .sd_data        ( SDRAM_DQ                  ),
    .sd_addr        ( SDRAM_A                   ),
    .sd_dqm         ( {SDRAM_DQMH, SDRAM_DQML}  ),
