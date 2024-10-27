@@ -64,3 +64,9 @@
 [submodule "amstrad-cpc/mist-modules"]
 	path = amstrad-cpc/mist-modules
 	url = https://github.com/mist-devel/mist-modules.git
+[submodule "pcw/Amstrad_PCW"]
+	path = pcw/Amstrad_PCW
+	url = https://github.com/BigMist/Amstrad_PCW.git
+[submodule "ql/ql"]
+	path = ql/ql
+	url = https://github.com/mist-devel/ql.git
