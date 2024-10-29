@@ -70,3 +70,12 @@
 [submodule "ql/ql"]
 	path = ql/ql
 	url = https://github.com/mist-devel/ql.git
+[submodule "msx/MSX_MiST"]
+	path = msx2/MSX_MiST
+	url = https://github.com/mist-devel/MSX_MiST.git
+[submodule "msx/mist-modules"]
+	path = msx2/mist-modules
+	url = https://github.com/mist-devel/mist-modules.git
+[submodule "msx/msx1fpga"]
+	path = msx1/msx1fpga
+	url = https://github.com/BigMist/msx1fpga.git
