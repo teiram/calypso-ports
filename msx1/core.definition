@@ -1,0 +1,4 @@
+CORE_ID=MSX1
+PROJECT_NAME=msx1_calypso
+VERSION=1
+BITSTREAM_FILE=output_files/msx1_calypso.rbf
