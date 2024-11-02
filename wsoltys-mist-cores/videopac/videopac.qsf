@@ -279,7 +279,7 @@ set_global_assignment -name VERILOG_FILE "../mist-cores/fpga_videopac/src/board/
 set_global_assignment -name VERILOG_FILE "../mist-cores/fpga_videopac/src/board/mist/osd.v"
 set_global_assignment -name VERILOG_FILE "../mist-cores/fpga_videopac/src/board/mist/user_io.v"
 set_global_assignment -name SYSTEMVERILOG_FILE "../mist-cores/fpga_videopac/src/board/mist/rgb2ypbpr.sv"
-set_global_assignment -name VERILOG_FILE "mist-modules/i2s.v"
+set_global_assignment -name VERILOG_FILE "../mist-modules/i2s.v"
 
 set_global_assignment -name VHDL_FILE "../mist-cores/fpga_videopac/src/board/misc/vp_keymap.vhd"
 set_global_assignment -name VHDL_FILE "../mist-cores/fpga_videopac/src/board/misc/ps2/key_slice.vhd"
