@@ -82,3 +82,6 @@
 [submodule "pcw/T80"]
 	path = pcw/T80
 	url = https://github.com/mist-devel/T80.git
+[submodule "wsoltys-mist-cores/videopac/mist-modules"]
+	path = wsoltys-mist-cores/videopac/mist-modules
+	url = https://github.com/mist-devel/mist-modules.git
