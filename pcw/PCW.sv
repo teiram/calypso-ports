@@ -293,7 +293,7 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD
 );
 
 
-wire reset = ~locked | status[0]|buttons[1];
+wire reset = ~locked | status[0] | buttons[1];
 
 // signals from loader
 logic loader_wr;		
@@ -357,9 +357,6 @@ begin
 	end
 end
 
-assign AUX_0 = loader_ce;
-assign AUX_1 = loader_download;
-assign AUX_2 = loader_wr;
 
 // Rom containing boot rom code to transfer to address 0
 boot_loader boot_loader
@@ -371,6 +368,9 @@ boot_loader boot_loader
 
 wire tmpled;
 assign LED[0] = ~tmpled;
+assign LED[1] = reset;
+assign LED[2] = reset_ne;
+assign LED[3] = loader_download;
 
 pcw_core pcw_core
 (

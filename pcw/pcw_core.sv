@@ -98,6 +98,9 @@ module pcw_core(
 	output logic [7:0] sd_buff_din,
 	input  wire        sd_dout_strobe,
     
+    output AUX_0,
+    output AUX_1,
+    output AUX_2,
     output AUX_3,
     output AUX_4,
     output AUX_5,
@@ -105,11 +108,14 @@ module pcw_core(
     output AUX_7
     );
 
-    assign AUX_3 = GCLK;
-    assign AUX_4 = WAIT_n;
-    assign AUX_5 = cpum1;
-    assign AUX_6 = dn_go;
-    assign AUX_7 = vsync;
+    assign AUX_0 = cpu_ce_p;
+    assign AUX_1 = cpum1;
+    assign AUX_2 = WAIT_n;
+    assign AUX_3 = m1cycle;
+    assign AUX_4 = cpu_ram_addr[0];
+    assign AUX_5 = cpu_ram_addr[1];
+    assign AUX_6 = cpu_ram_addr[2];
+    assign AUX_7 = cpu_ram_addr[3];
     
     // Joystick types
     localparam JOY_NONE         = 3'b000;
@@ -141,35 +147,21 @@ module pcw_core(
     logic [9:0] audio;
     logic speaker_enable = 1'b0;
 
-    // dpram addressing
-    logic [16:0] ram_a_addr;
-    logic [20:0] ram_b_addr/* synthesis keep */;
-    logic [7:0] ram_a_dout;
-    logic [7:0] ram_b_dout/* synthesis keep */;
+    logic [16:0] vid_ram_addr;
+    logic [20:0] cpu_ram_addr/* synthesis keep */;
+    reg [7:0] vid_ram_dout;
+    reg [7:0] cpu_ram_dout;
     
     // cpu control
     logic [15:0] cpua;
     logic [7:0] cpudo;
     logic [7:0] cpudi;
     logic cpuwr,cpurd,cpumreq,cpuiorq,cpum1;
-    logic cpuclk, cpuclk_r;
     logic romrd,ramrd,ramwr;
     logic ior,iow,memr,memw;
 
 
     
-    // Generate fractional CPU clock
-    reg [15:0] cnt;
-    always @(posedge clk_sys)
-    begin
-        case(overclock)
-            2'b00: {cpuclk, cnt} <= cnt + 16'h1000;  // 1x4Mhz - divide by 16: (2^16)/16   = 0x1000
-            2'b01: {cpuclk, cnt} <= cnt + 16'h2000;  // 2x4Mhz - divide by  8: (2^16)/8    = 0x2000
-            2'b10: {cpuclk, cnt} <= cnt + 16'h4000;  // 4x4Mhz - divide by  4: (2^16)/4    = 0x4000
-            2'b11: {cpuclk, cnt} <= cnt + 16'h8000;  // 8x4Mhz - divide by  2: (2^16)/2    = 0x8000
-        endcase
-    end
-    	 
     // Generate fractional Disk clock, capped at 4x
     reg [15:0] dcnt;
     logic disk_clk;
@@ -191,21 +183,66 @@ module pcw_core(
         {snd_clk, scnt} <= scnt + 16'h0400;  // divide by 64 = 1Mhz
     end 
 
-    // Gated clock which can be disabled during ROM download
-    logic GCLK;
-    assign GCLK = dn_go ? 1'b0 : cpuclk;
-
-    // WAIT signal after M1
-    reg [1:0] m1_vals;
-    wire WAIT_n;
-    reg cpuclk_last;
+    reg [3:0] cnt;
+    reg cpu_ce_p;
+    reg cpu_ce_n;
+    reg cpu_ce_g_p;
+    reg cpu_ce_g_n;
     always @(posedge clk_sys)
     begin
-        cpuclk_last <= cpuclk;
-        if (cpuclk_last && ~cpuclk) m1_vals <= {m1_vals[0], cpum1};
-        WAIT_n <= m1_vals[1];
+      cnt <= cnt + 1'd1;
+      cpu_ce_p <= ~cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
+      cpu_ce_n <=  cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
     end
-    
+ 
+    assign cpu_ce_g_p = dn_go ? 1'b0 : cpu_ce_p;
+    assign cpu_ce_g_n = dn_go ? 1'b0 : cpu_ce_n;
+    reg [1:0] tstate;
+    reg WAIT_n;
+    reg m1cycle;
+    reg video_read;
+    reg sdram_refresh;
+    wire rfsh;
+    reg cpu_ce_g_p_last;
+    reg cpu_ce_g_n_last;
+    reg cpum1_last;
+
+    always @(posedge clk_sys)
+    begin
+        cpu_ce_g_p_last <= cpu_ce_g_p;
+        cpu_ce_g_n_last <= cpu_ce_g_n;
+        if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
+            //cpu clock positive edge. Transition t-state
+            //Sample M1 on positive edges (it must not be set yet on positive edge of T1)
+            cpum1_last <= cpum1;
+            if (cpum1_last && ~cpum1) begin
+                // /M1 gets active, we are on T2 rising edge of an M1 cycle. Next state must be T2
+                tstate <= 1; //Sync with CPU on M1 (next state on rising edge: T2)
+                m1cycle <= 1;
+            end else tstate <= tstate + 1;
+            if (video_read) vid_ram_dout <= sdram_dout;
+            //Latch data for cpu on M1 cicle T2 or any other cycle T3 (stretched via WAIT)
+            else if ((~cpum1 && tstate == 2'b01) || (cpum1 && tstate == 2'b10)) cpu_ram_dout <= sdram_dout;
+        end
+        if (tstate == 2'b11) m1cycle <= 0; //Reset m1cycle at the end of the machine cycle
+    end
+    assign WAIT_n = ~(~m1cycle && tstate == 2'b01); //Wait state on T2 of non M1 machine cycles
+    assign sdram_refresh =  tstate == 2'b10 && m1cycle; //Refresh on T3 of any M1 machine cycle
+    assign video_read = tstate == 2'b11;
+    // Video reads could happen on T3 now:
+    //   - We stretch non M1 cycles to 4 T states
+    // Memory refresh may happen on T3 of M1 cycles. That gives us 250ns, what is more than enough 
+    // an SDRAM AUTO_REFRESH cycle. Expose a refresh signal on the SDRAM controller
+    // TODO: How to sync the video_controller?
+    /*
+    always @(posedge clk_sys) 
+    begin
+        if (~cpuclk_last && cpuclk) begin
+            if (video_read) vid_ram_dout <= sdram_dout;
+            else if (tstate == 2'b11) cpu_ram_dout <= sdram_dout;
+        end
+    end
+    */
     // CPU register debugging for Signal Tap
     logic [15:0] PC /* synthesis keep */; 
     logic [15:0] SP /* synthesis keep */;
@@ -221,6 +258,7 @@ module pcw_core(
     logic C /* synthesis keep */;
 
     // Used for CPU debugging in SignalTap
+    /*
     z80_debugger debugger(
         .*,
         .ce(GCLK),
@@ -234,7 +272,7 @@ module pcw_core(
         .dir_set(cpu_reg_set),
         .dir_out(cpu_reg_out)
     );
-
+    */
     // Generate CPU positive and negative edges (delayed 1 clk_sys)
     //logic cpu_pe, cpu_ne;
     //edge_det cpu_edge_det(.clk_sys(clk_sys), .signal(cpuclk), .pos_edge(cpu_pe), .neg_edge(cpu_ne));
@@ -245,18 +283,16 @@ module pcw_core(
     assign memr = cpurd | cpumreq;
     assign memw = cpuwr | cpumreq;
     logic kbd_sel /* synthesis keep */;
-    assign kbd_sel = ram_b_addr[20:4]==17'b00000111111111111 && memr==1'b0 ? 1'b1 : 1'b0;
+    assign kbd_sel = cpu_ram_addr[20:4]==17'b00000111111111111 && memr==1'b0 ? 1'b1 : 1'b0;
     logic daisy_sel;
     assign daisy_sel = ((cpua[7:0]==8'hfc || cpua[7:0]==8'hfd) & model) && (~ior | ~iow)? 1'b1 : 1'b0;
-    //wire WAIT_n = cpumreq; //Is this a proper contention implementation?
-	 //wire WAIT_n = video_req | (sdram_access ? ram_ready : 1'b1);
 	 
     // Create processor instance
     T80pa cpu(
        	.RESET_n(~reset),
         .CLK(clk_sys),
-        .CEN_p(GCLK),
-        .CEN_n(1'b1),
+        .CEN_p(cpu_ce_g_p),
+        .CEN_n(cpu_ce_g_n),
         .M1_n(cpum1),
         .WAIT_n(WAIT_n),
         .MREQ_n(cpumreq),
@@ -265,10 +301,11 @@ module pcw_core(
         .INT_n(int_sig),
         .RD_n(cpurd),
         .WR_n(cpuwr),
+        .RFSH_n(rfsh),
         .A(cpua),
         .DI(cpudi),
         .DO(cpudo),
-		  .REG(cpu_reg),
+		.REG(cpu_reg),
         .DIR(cpu_reg_out),
         .DIRSet(cpu_reg_set)  
     );
@@ -325,7 +362,7 @@ module pcw_core(
             end
         end
         else begin
-            cpudi = kbd_sel ? kbd_data : ram_b_dout;
+            cpudi = kbd_sel ? kbd_data : cpu_ram_dout;
         end
     end
 
@@ -582,53 +619,28 @@ module pcw_core(
     always_comb
     begin
         case(cpua[15:14])
-            2'b00: ram_b_addr = portF0[7] ? pcw_ram_b_addr : ~memw ? {3'b0,cpc_write_ram_b_addr} : {3'b0,cpc_read_ram_b_addr}; 
-            2'b01: ram_b_addr = portF1[7] ? pcw_ram_b_addr : ~memw ? {3'b0,cpc_write_ram_b_addr} : {3'b0,cpc_read_ram_b_addr}; 
-            2'b10: ram_b_addr = portF2[7] ? pcw_ram_b_addr : ~memw ? {3'b0,cpc_write_ram_b_addr} : {3'b0,cpc_read_ram_b_addr}; 
-            2'b11: ram_b_addr = portF3[7] ? pcw_ram_b_addr : ~memw ? {3'b0,cpc_write_ram_b_addr} : {3'b0,cpc_read_ram_b_addr}; 
+            2'b00: cpu_ram_addr = portF0[7] ? pcw_ram_b_addr : ~memw ? {3'b0,cpc_write_ram_b_addr} : {3'b0,cpc_read_ram_b_addr}; 
+            2'b01: cpu_ram_addr = portF1[7] ? pcw_ram_b_addr : ~memw ? {3'b0,cpc_write_ram_b_addr} : {3'b0,cpc_read_ram_b_addr}; 
+            2'b10: cpu_ram_addr = portF2[7] ? pcw_ram_b_addr : ~memw ? {3'b0,cpc_write_ram_b_addr} : {3'b0,cpc_read_ram_b_addr}; 
+            2'b11: cpu_ram_addr = portF3[7] ? pcw_ram_b_addr : ~memw ? {3'b0,cpc_write_ram_b_addr} : {3'b0,cpc_read_ram_b_addr}; 
         endcase
     end
 
-    // DPRAM - Only support 256K of memory while using dpram
-    // Addresses are made up of 4 bits of page number and 14 bits of offset
-    // Port A is used for display memory access but can only access 128k
-    logic [7:0] dpram_b_dout;
-    /*
-    dpram #(.DATA(8), .ADDR(17)) main_mem(
-        // Port A is used for display memory access
-        .a_clk(clk_sys),
-        .a_wr(1'b0),        // Video never writes to display memory
-        .a_addr({1'b0,ram_a_addr}),
-        .a_din('b0),
-        .a_dout(ram_a_dout),
-
-        // Port B - used for CPU and download access
-        .b_clk(clk_sys),
-        .b_wr(dn_go ? dn_wr : ~memw & ~|ram_b_addr[20:17]),
-        .b_addr(dn_go ? dn_addr[16:0] : ram_b_addr[16:0]),
-        .b_din(dn_go ? dn_data : cpudo),
-        .b_dout(dpram_b_dout)
-    );
-    */
-    logic ram_ready = 1'b1;
-    logic [7:0] sdram_b_dout;
+    logic [7:0] sdram_dout;
     sdram sdram
     (
         .*,
         .init(~locked),
         .clk(clk_sys),
-        .clkref(1'b0),
+        .clkref(cpu_ce_p),
         .bank(2'b0),
-        .dout(sdram_b_dout),
+        .dout(sdram_dout),
         .din (dn_go ? dn_data : cpudo),
-        .addr(dn_go ? dn_addr[16:0] : (vblank | hblank) ? ram_b_addr : {1'b0, ram_a_addr}),
+        .addr(dn_go ? dn_addr[16:0] : video_read ? {1'b0, vid_ram_addr} : cpu_ram_addr),
         .we(dn_go ? dn_wr : ~memw),
-        .oe(video_req | ~memr)
+        .oe(~memr | video_read)
     );
 
-    wire sdram_access = 1'b1;
-    assign ram_b_dout = sdram_b_dout;
-    assign ram_a_dout = sdram_b_dout;
     // Edge detectors for moving fake pixel line using F9 and F10 keys
     logic line_up_pe, line_down_pe, toggle_pe;
     edge_det line_up_edge_det(.clk_sys(clk_sys), .signal(line_up), .pos_edge(line_up_pe));
@@ -662,7 +674,7 @@ module pcw_core(
     logic [211:0] cpu_reg = 'b0;
     logic [211:0] cpu_reg_out;
     logic [7:0] ypos;
-    logic video_req;
+
     // Video output controller
     video_controller video(
         .reset(reset),
@@ -676,8 +688,8 @@ module pcw_core(
         .fake_end(fake_end),
         .ypos(ypos),
 
-        .vid_addr(ram_a_addr),
-        .din(ram_a_dout),
+        .vid_addr(vid_ram_addr),
+        .din(vid_ram_dout),
 
         .colour(colour),
         .ce_pix(ce_pix),
@@ -685,8 +697,7 @@ module pcw_core(
         .vsync(vsync),
         .hb(hblank),
         .vb(vblank),
-        .timer_int(vid_timer),
-        .video_req(video_req)
+        .timer_int(vid_timer)
     );
 
     // Head over heals duplicate writes to 0xc000-c1ff for debugging
@@ -771,7 +782,7 @@ module pcw_core(
     fake_daisy daisy(
         .reset(reset),
         .clk_sys(clk_sys),
-        .ce(cpuclk),
+        .ce(cpu_ce_g_p),
         .sel(daisy_sel),
         .address({cpua[8],cpua[0]}),
         .wr(~iow),

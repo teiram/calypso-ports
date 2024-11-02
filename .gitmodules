@@ -79,3 +79,6 @@
 [submodule "msx/msx1fpga"]
 	path = msx1/msx1fpga
 	url = https://github.com/BigMist/msx1fpga.git
+[submodule "pcw/T80"]
+	path = pcw/T80
+	url = https://github.com/mist-devel/T80.git
