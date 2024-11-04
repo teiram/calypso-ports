@@ -321,10 +321,8 @@ assign loader_ce = counter_ce[3];
 logic [15:0] read_addr;
 logic [7:0] read_data;
 reg loader_ce_last;
-always @(posedge clk_sys)
-begin
-	if(reset_ne)
-	begin
+always @(posedge clk_sys) begin
+	if(reset_ne) begin
 		read_addr <= 'b0;
 		loader_addr <= 'b0;
 		loader_wr <= 1'b0;
@@ -334,26 +332,24 @@ begin
 	end
 	else begin
         loader_ce_last <= loader_ce;
-		if(loader_download & ~loader_ce_last & loader_ce) 
-		begin
-			if(~loader_wr) 
-			begin
-				// Transfer loaded byte to loader
-				loader_data <= read_data;
-				loader_wr <= 1'b1;
-			end
-			else begin
-				loader_wr <= 1'b0;
-				loader_addr <= loader_addr + 'd1;
-				read_addr <= read_addr + 'd1;
-				if(read_addr >= BOOT_ROM_END)
-				begin
-					loader_download <= 1'b0;
-					execute_enable <= 1'b1;
-				end
-			end
-		end		
-		if(execute_enable) execute_enable <= 1'b0;
+		if (~loader_ce_last & loader_ce) begin
+            if (loader_download) begin
+                if (~loader_wr) begin
+                    // Transfer loaded byte to loader
+                    loader_data <= read_data;
+                    loader_wr <= 1'b1;
+                end else begin
+                    loader_wr <= 1'b0;
+                    loader_addr <= loader_addr + 1'd1;
+                    read_addr <= read_addr + 1'd1;
+                    if (read_addr >= BOOT_ROM_END) begin
+                        loader_download <= 1'b0;
+                        execute_enable <= 1'b1;
+                    end
+                end
+            end
+            if (execute_enable) execute_enable <= 1'b0;
+        end
 	end
 end
 

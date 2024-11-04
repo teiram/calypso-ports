@@ -108,14 +108,14 @@ module pcw_core(
     output AUX_7
     );
 
-    assign AUX_0 = cpu_ce_p;
-    assign AUX_1 = cpum1;
+    assign AUX_0 = cpu_ce_g_p;
+    assign AUX_1 = cpu_ce_g_n;
     assign AUX_2 = WAIT_n;
     assign AUX_3 = m1cycle;
-    assign AUX_4 = cpu_ram_addr[0];
-    assign AUX_5 = cpu_ram_addr[1];
-    assign AUX_6 = cpu_ram_addr[2];
-    assign AUX_7 = cpu_ram_addr[3];
+    assign AUX_4 = ~memw;
+    assign AUX_5 = ~memr;
+    assign AUX_6 = video_read;
+    assign AUX_7 = sdram_refresh;
     
     // Joystick types
     localparam JOY_NONE         = 3'b000;
@@ -220,9 +220,9 @@ module pcw_core(
                 tstate <= 1; //Sync with CPU on M1 (next state on rising edge: T2)
                 m1cycle <= 1;
             end else tstate <= tstate + 1;
-            if (video_read) vid_ram_dout <= sdram_dout;
+            if (tstate == 2'b11) vid_ram_dout <= sdram_dout;
             //Latch data for cpu on M1 cicle T2 or any other cycle T3 (stretched via WAIT)
-            else if ((~cpum1 && tstate == 2'b01) || (cpum1 && tstate == 2'b10)) cpu_ram_dout <= sdram_dout;
+            else if ((m1cycle && tstate == 2'b01) || (~m1cycle && tstate == 2'b10)) cpu_ram_dout <= sdram_dout;
         end
         if (tstate == 2'b11) m1cycle <= 0; //Reset m1cycle at the end of the machine cycle
     end
@@ -633,7 +633,7 @@ module pcw_core(
         .init(~locked),
         .clk(clk_sys),
         .clkref(cpu_ce_p),
-        .bank(2'b0),
+        .bank(2'b00),
         .dout(sdram_dout),
         .din (dn_go ? dn_data : cpudo),
         .addr(dn_go ? dn_addr[16:0] : video_read ? {1'b0, vid_ram_addr} : cpu_ram_addr),
