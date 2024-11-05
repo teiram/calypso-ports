@@ -108,14 +108,14 @@ module pcw_core(
     output AUX_7
     );
 
-    assign AUX_0 = cpu_ce_g_p;
-    assign AUX_1 = cpu_ce_g_n;
+    assign AUX_0 = cpu_ce_p;
+    assign AUX_1 = m1cycle;
     assign AUX_2 = WAIT_n;
-    assign AUX_3 = m1cycle;
-    assign AUX_4 = ~memw;
-    assign AUX_5 = ~memr;
-    assign AUX_6 = video_read;
-    assign AUX_7 = sdram_refresh;
+    assign AUX_3 = cpum1;
+    assign AUX_4 = tstate == 2'b00;
+    assign AUX_5 = tstate == 2'b01;
+    assign AUX_6 = tstate == 2'b10;
+    assign AUX_7 = tstate == 2'b11;
     
     // Joystick types
     localparam JOY_NONE         = 3'b000;
@@ -190,11 +190,11 @@ module pcw_core(
     reg cpu_ce_g_n;
     always @(posedge clk_sys)
     begin
-      cnt <= cnt + 1'd1;
-      cpu_ce_p <= ~cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
-      cpu_ce_n <=  cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
+      cnt <= cnt + 4'd1;
     end
- 
+    assign cpu_ce_p = ~cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
+    assign cpu_ce_n = cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
+    
     assign cpu_ce_g_p = dn_go ? 1'b0 : cpu_ce_p;
     assign cpu_ce_g_n = dn_go ? 1'b0 : cpu_ce_n;
     reg [1:0] tstate;
@@ -211,19 +211,16 @@ module pcw_core(
     begin
         cpu_ce_g_p_last <= cpu_ce_g_p;
         cpu_ce_g_n_last <= cpu_ce_g_n;
-        if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
-            //cpu clock positive edge. Transition t-state
-            //Sample M1 on positive edges (it must not be set yet on positive edge of T1)
-            cpum1_last <= cpum1;
-            if (cpum1_last && ~cpum1) begin
-                // /M1 gets active, we are on T2 rising edge of an M1 cycle. Next state must be T2
-                tstate <= 1; //Sync with CPU on M1 (next state on rising edge: T2)
-                m1cycle <= 1;
-            end else tstate <= tstate + 1;
-            if (tstate == 2'b11) vid_ram_dout <= sdram_dout;
-            //Latch data for cpu on M1 cicle T2 or any other cycle T3 (stretched via WAIT)
-            else if ((m1cycle && tstate == 2'b01) || (~m1cycle && tstate == 2'b10)) cpu_ram_dout <= sdram_dout;
+        cpum1_last <= cpum1;
+        if (cpum1_last && ~cpum1) begin
+            tstate <= 1;
+            m1cycle <= 1;
+        end else if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
+            tstate <= tstate + 1;
         end
+        if (tstate == 2'b00) vid_ram_dout <= sdram_dout;
+            //Latch data for cpu on M1 cicle T2 (end, on rising to T3) or any other cycle T3 (rising to T4) (stretched via WAIT)
+        else if ((m1cycle && tstate == 2'b01) || (~m1cycle && tstate == 2'b10)) cpu_ram_dout <= sdram_dout;
         if (tstate == 2'b11) m1cycle <= 0; //Reset m1cycle at the end of the machine cycle
     end
     assign WAIT_n = ~(~m1cycle && tstate == 2'b01); //Wait state on T2 of non M1 machine cycles
@@ -636,9 +633,12 @@ module pcw_core(
         .bank(2'b00),
         .dout(sdram_dout),
         .din (dn_go ? dn_data : cpudo),
-        .addr(dn_go ? dn_addr[16:0] : video_read ? {1'b0, vid_ram_addr} : cpu_ram_addr),
+ //       .addr(dn_go ? dn_addr[16:0] : video_read ? {1'b0, vid_ram_addr} : cpu_ram_addr),
+        .addr(dn_go ? dn_addr[16:0] : cpu_ram_addr),
+
         .we(dn_go ? dn_wr : ~memw),
-        .oe(~memr | video_read)
+ //       .oe(~memr | video_read)
+        .oe(~memr)
     );
 
     // Edge detectors for moving fake pixel line using F9 and F10 keys

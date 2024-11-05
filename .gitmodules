@@ -82,3 +82,6 @@
 [submodule "pcw/T80"]
 	path = pcw/T80
 	url = https://github.com/mist-devel/T80.git
+[submodule "intellivision/Intv_DeMiSTified"]
+	path = intellivision/Intv_DeMiSTified
+	url = https://github.com/robinsonb5/Intv_DeMiSTified.git

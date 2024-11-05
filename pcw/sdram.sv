@@ -140,7 +140,7 @@ localparam CMD_AUTO_REFRESH    = 4'b0001;
 localparam CMD_LOAD_MODE       = 4'b0000;
 
 wire [7:0] ram_dout = a[0] ? i[15:8] : i[7:0];
-assign dout = oe ? ram_dout : 8'h55;
+assign dout = oe ? ram_dout : 8'h00;
 
 // SDRAM state machines
 always @(posedge clk) begin
