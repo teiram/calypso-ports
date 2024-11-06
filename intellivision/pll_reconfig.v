@@ -34,7 +34,7 @@
 //https://fpgasoftware.intel.com/eula.
 
 
-//altpll_reconfig CBX_AUTO_BLACKBOX="ALL" device_family="Cyclone 10 LP" init_from_rom="NO" scan_init_file="/home/mteira/src/cyc1000/software/calypso-ports/intellivision/pll_pal.mif" busy clock counter_param counter_type data_in data_out pll_areset pll_areset_in pll_configupdate pll_scanclk pll_scanclkena pll_scandata pll_scandataout pll_scandone read_param reconfig reset reset_rom_address rom_address_out rom_data_in write_from_rom write_param write_rom_ena
+//altpll_reconfig CBX_AUTO_BLACKBOX="ALL" device_family="Cyclone 10 LP" init_from_rom="NO" scan_init_file="./pll_pal.mif" busy clock counter_param counter_type data_in data_out pll_areset pll_areset_in pll_configupdate pll_scanclk pll_scanclkena pll_scandata pll_scandataout pll_scandone read_param reconfig reset reset_rom_address rom_address_out rom_data_in write_from_rom write_param write_rom_ena
 //VERSION_BEGIN 22.1 cbx_altera_syncram_nd_impl 2023:07:20:14:03:03:SC cbx_altpll_reconfig 2023:07:20:14:03:03:SC cbx_altsyncram 2023:07:20:14:03:03:SC cbx_cycloneii 2023:07:20:14:03:03:SC cbx_lpm_add_sub 2023:07:20:14:03:03:SC cbx_lpm_compare 2023:07:20:14:03:03:SC cbx_lpm_counter 2023:07:20:14:03:03:SC cbx_lpm_decode 2023:07:20:14:03:02:SC cbx_lpm_mux 2023:07:20:14:03:03:SC cbx_mgl 2023:07:20:14:14:26:SC cbx_nadder 2023:07:20:14:03:03:SC cbx_stratix 2023:07:20:14:03:03:SC cbx_stratixii 2023:07:20:14:03:03:SC cbx_stratixiii 2023:07:20:14:03:03:SC cbx_stratixv 2023:07:20:14:03:03:SC cbx_util_mgl 2023:07:20:14:03:03:SC  VERSION_END
 // synthesis VERILOG_INPUT_VERSION VERILOG_2001
 // altera message_off 10463
@@ -359,7 +359,7 @@ module  pll_reconfig_pllrcfg_8rb1
 	`endif
 	);
 	defparam
-		altsyncram4.init_file = "/home/mteira/src/cyc1000/software/calypso-ports/intellivision/pll_pal.mif",
+		altsyncram4.init_file = "./pll_pal.mif",
 		altsyncram4.numwords_a = 144,
 		altsyncram4.operation_mode = "SINGLE_PORT",
 		altsyncram4.width_a = 1,
@@ -1553,7 +1553,7 @@ module pll_reconfig (
 				.rom_address_out (sub_wire7),
 				.write_rom_ena (sub_wire8))/* synthesis synthesis_clearbox=2
 	 clearbox_macroname = altpll_reconfig
-	 clearbox_defparam = "init_from_external_rom_checkbox_checked=YES;init_from_rom=NO;intended_device_family=Cyclone 10 LP;scan_init_file=/home/mteira/src/cyc1000/software/calypso-ports/intellivision/pll_pal.mif;" */;
+	 clearbox_defparam = "init_from_external_rom_checkbox_checked=YES;init_from_rom=NO;intended_device_family=Cyclone 10 LP;scan_init_file=./pll_pal.mif;" */;
 
 endmodule
 
@@ -1561,14 +1561,14 @@ endmodule
 // CNX file retrieval info
 // ============================================================
 // Retrieval info: PRIVATE: CHAIN_TYPE NUMERIC "0"
-// Retrieval info: PRIVATE: INIT_FILE_NAME STRING "/home/mteira/src/cyc1000/software/calypso-ports/intellivision/pll_pal.mif"
+// Retrieval info: PRIVATE: INIT_FILE_NAME STRING "./pll_pal.mif"
 // Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone 10 LP"
 // Retrieval info: PRIVATE: SYNTH_WRAPPER_GEN_POSTFIX STRING "0"
 // Retrieval info: PRIVATE: USE_INIT_FILE STRING "1"
 // Retrieval info: CONSTANT: INIT_FROM_EXTERNAL_ROM_CHECKBOX_CHECKED STRING "YES"
 // Retrieval info: CONSTANT: INIT_FROM_ROM STRING "NO"
 // Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone 10 LP"
-// Retrieval info: CONSTANT: SCAN_INIT_FILE STRING "/home/mteira/src/cyc1000/software/calypso-ports/intellivision/pll_pal.mif"
+// Retrieval info: CONSTANT: SCAN_INIT_FILE STRING "./pll_pal.mif"
 // Retrieval info: USED_PORT: busy 0 0 0 0 OUTPUT NODEFVAL "busy"
 // Retrieval info: USED_PORT: clock 0 0 0 0 INPUT NODEFVAL "clock"
 // Retrieval info: USED_PORT: counter_param 0 0 3 0 INPUT NODEFVAL "counter_param[2..0]"

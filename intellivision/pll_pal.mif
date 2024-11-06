@@ -19,7 +19,7 @@
 --    Device Speed Grade: -
 --    PLL Scan Chain: Fast PLL (144 bits)
 --    File Name: /home/mteira/src/cyc1000/software/calypso-ports/intellivision/pll_pal.mif
---    Generated: Tue Nov  5 18:02:29 2024
+--    Generated: Wed Nov  6 21:25:07 2024
 
 WIDTH=1;
 DEPTH=144;
