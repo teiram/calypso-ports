@@ -188,12 +188,12 @@ module pcw_core(
     reg cpu_ce_n;
     reg cpu_ce_g_p;
     reg cpu_ce_g_n;
-    always @(posedge clk_sys)
+    always @(negedge clk_sys)
     begin
       cnt <= cnt + 4'd1;
     end
     assign cpu_ce_p = ~cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
-    assign cpu_ce_n = cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
+    assign cpu_ce_n =  cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
     
     assign cpu_ce_g_p = dn_go ? 1'b0 : cpu_ce_p;
     assign cpu_ce_g_n = dn_go ? 1'b0 : cpu_ce_n;
@@ -201,7 +201,7 @@ module pcw_core(
     reg WAIT_n;
     reg m1cycle;
     reg video_read;
-    reg sdram_refresh;
+    reg [20:0] sdram_addr;
     wire rfsh;
     reg cpu_ce_g_p_last;
     reg cpu_ce_g_n_last;
@@ -213,33 +213,24 @@ module pcw_core(
         cpu_ce_g_n_last <= cpu_ce_g_n;
         cpum1_last <= cpum1;
         if (cpum1_last && ~cpum1) begin
-            tstate <= 1;
+            tstate <= 0;
             m1cycle <= 1;
         end else if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
             tstate <= tstate + 1;
+            case (tstate)
+                2'b00:  sdram_addr <= cpu_ram_addr;
+                2'b01:  cpu_ram_dout <= sdram_dout;
+                2'b10:  sdram_addr <= {1'b0, vid_ram_addr};
+                2'b11:  begin
+                    vid_ram_dout <= sdram_dout;
+                    m1cycle <= 0;
+                end
+            endcase
         end
-        if (tstate == 2'b00) vid_ram_dout <= sdram_dout;
-            //Latch data for cpu on M1 cicle T2 (end, on rising to T3) or any other cycle T3 (rising to T4) (stretched via WAIT)
-        else if ((m1cycle && tstate == 2'b01) || (~m1cycle && tstate == 2'b10)) cpu_ram_dout <= sdram_dout;
-        if (tstate == 2'b11) m1cycle <= 0; //Reset m1cycle at the end of the machine cycle
     end
-    assign WAIT_n = ~(~m1cycle && tstate == 2'b01); //Wait state on T2 of non M1 machine cycles
-    assign sdram_refresh =  tstate == 2'b10 && m1cycle; //Refresh on T3 of any M1 machine cycle
+    assign WAIT_n = ~(~m1cycle && (~memr | ~memw) && tstate == 2'b01); //Wait state on T2 of read/write cycles
     assign video_read = tstate == 2'b11;
-    // Video reads could happen on T3 now:
-    //   - We stretch non M1 cycles to 4 T states
-    // Memory refresh may happen on T3 of M1 cycles. That gives us 250ns, what is more than enough 
-    // an SDRAM AUTO_REFRESH cycle. Expose a refresh signal on the SDRAM controller
-    // TODO: How to sync the video_controller?
-    /*
-    always @(posedge clk_sys) 
-    begin
-        if (~cpuclk_last && cpuclk) begin
-            if (video_read) vid_ram_dout <= sdram_dout;
-            else if (tstate == 2'b11) cpu_ram_dout <= sdram_dout;
-        end
-    end
-    */
+
     // CPU register debugging for Signal Tap
     logic [15:0] PC /* synthesis keep */; 
     logic [15:0] SP /* synthesis keep */;
@@ -624,8 +615,7 @@ module pcw_core(
     end
 
     logic [7:0] sdram_dout;
-    sdram sdram
-    (
+    sdram sdram (
         .*,
         .init(~locked),
         .clk(clk_sys),
@@ -633,12 +623,9 @@ module pcw_core(
         .bank(2'b00),
         .dout(sdram_dout),
         .din (dn_go ? dn_data : cpudo),
- //       .addr(dn_go ? dn_addr[16:0] : video_read ? {1'b0, vid_ram_addr} : cpu_ram_addr),
-        .addr(dn_go ? dn_addr[16:0] : cpu_ram_addr),
-
+        .addr(dn_go ? dn_addr[16:0] : sdram_addr),
         .we(dn_go ? dn_wr : ~memw),
- //       .oe(~memr | video_read)
-        .oe(~memr)
+        .oe(~memr | video_read)
     );
 
     // Edge detectors for moving fake pixel line using F9 and F10 keys
