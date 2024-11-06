@@ -129,7 +129,7 @@ localparam CONF_STR = {
     "P1OA,Voice,On,Off;",
     "P1O58,MAP,Auto,0,1,2,3,4,5,6,7,8,9;",
     "P2,Video;",
-    "P2OB,Video standard,NTSC,PAL;",
+    "P2OB,Video standard,PAL,NTSC;",
     "P2OCD,Scanlines,Off,25%,50%,75%;",
     "P2OE,Composite blend,Off,On;",
     "O1,Swap Joystick,Off,On;",
@@ -211,7 +211,7 @@ data_io data_io (
 
 wire [1:0] scanlines = status[13:12];
 wire blend = status[14];
-wire pal     = status[11];
+wire ntsc  = status[11];
 wire swap    = status[1];
 wire ecs     = status[9];
 wire ivoice  =!status[10];
@@ -243,7 +243,7 @@ intv_core intv_core
 (
     .clksys(clk_sys),
     .pll_locked(pll_locked),
-    .pal(pal),
+    .pal(~ntsc),
     .swap(swap),
     .ecs(ecs),
     .ivoice(ivoice),
@@ -347,7 +347,7 @@ dacwrap dac (
 i2s i2s (
 	.reset(1'b0),
 	.clk(clk_sys),
-	.clk_rate(pal ? 32'd48_000_000 : 32'd42_954_540),
+	.clk_rate(ntsc ? 32'd42_954_540 : 32'd48_000_000),
 
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
@@ -403,7 +403,7 @@ wire clk_vid;
 
 clocks clocks (
 	.clk_i(CLK12M),
-	.pal(pal),
+	.pal(~ntsc),
 	.clk_sys(clk_sys),
 	.clk_sdram(SDRAM_CLK),
 	.locked(pll_locked)
