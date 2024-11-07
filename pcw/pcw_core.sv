@@ -109,13 +109,13 @@ module pcw_core(
     );
 
     assign AUX_0 = cpu_ce_p;
-    assign AUX_1 = m1cycle;
-    assign AUX_2 = WAIT_n;
-    assign AUX_3 = cpum1;
-    assign AUX_4 = tstate == 2'b00;
-    assign AUX_5 = tstate == 2'b01;
-    assign AUX_6 = tstate == 2'b10;
-    assign AUX_7 = tstate == 2'b11;
+    assign AUX_1 = cpum1;
+    assign AUX_2 = cpu_ram_dout[0];
+    assign AUX_3 = cpu_ram_dout[1];
+    assign AUX_4 = cpu_ram_dout[2];
+    assign AUX_5 = cpu_ram_dout[3];
+    assign AUX_6 = cpu_ram_dout[4];
+    assign AUX_7 = cpu_ram_dout[5];
     
     // Joystick types
     localparam JOY_NONE         = 3'b000;
@@ -188,6 +188,7 @@ module pcw_core(
     reg cpu_ce_n;
     reg cpu_ce_g_p;
     reg cpu_ce_g_n;
+    wire clkref = cnt[3];
     always @(negedge clk_sys)
     begin
       cnt <= cnt + 4'd1;
@@ -228,7 +229,7 @@ module pcw_core(
             endcase
         end
     end
-    assign WAIT_n = ~(~m1cycle && (~memr | ~memw) && tstate == 2'b01); //Wait state on T2 of read/write cycles
+    assign WAIT_n = ~(~m1cycle && ~cpumreq && tstate == 2'b01); //Wait state on T2 of read/write cycles
     assign video_read = tstate == 2'b11;
 
     // CPU register debugging for Signal Tap
@@ -619,7 +620,7 @@ module pcw_core(
         .*,
         .init(~locked),
         .clk(clk_sys),
-        .clkref(cpu_ce_p),
+        .clkref(clkref),
         .bank(2'b00),
         .dout(sdram_dout),
         .din (dn_go ? dn_data : cpudo),
