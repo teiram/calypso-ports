@@ -109,13 +109,13 @@ module pcw_core(
     );
 
     assign AUX_0 = cpu_ce_p;
-    assign AUX_1 = cpum1;
-    assign AUX_2 = cpu_ram_dout[0];
-    assign AUX_3 = cpu_ram_dout[1];
-    assign AUX_4 = cpu_ram_dout[2];
-    assign AUX_5 = cpu_ram_dout[3];
-    assign AUX_6 = cpu_ram_dout[4];
-    assign AUX_7 = cpu_ram_dout[5];
+    assign AUX_1 = clkref;
+    assign AUX_2 = cpum1;
+    assign AUX_3 = WAIT_n;
+    assign AUX_4 = memr;
+    assign AUX_5 = memw;
+    assign AUX_6 = cpumreq;
+    assign AUX_7 = nmi_sig;
     
     // Joystick types
     localparam JOY_NONE         = 3'b000;
@@ -188,7 +188,7 @@ module pcw_core(
     reg cpu_ce_n;
     reg cpu_ce_g_p;
     reg cpu_ce_g_n;
-    wire clkref = cnt[3];
+    wire clkref = ~cnt[3];
     always @(negedge clk_sys)
     begin
       cnt <= cnt + 4'd1;
@@ -219,6 +219,7 @@ module pcw_core(
         end else if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
             tstate <= tstate + 1;
             case (tstate)
+                // This happens at the end of the tstate, right on the next transition
                 2'b00:  sdram_addr <= cpu_ram_addr;
                 2'b01:  cpu_ram_dout <= sdram_dout;
                 2'b10:  sdram_addr <= {1'b0, vid_ram_addr};
@@ -231,6 +232,19 @@ module pcw_core(
     end
     assign WAIT_n = ~(~m1cycle && ~cpumreq && tstate == 2'b01); //Wait state on T2 of read/write cycles
     assign video_read = tstate == 2'b11;
+    logic [7:0] sdram_dout;
+    sdram sdram (
+        .*,
+        .init(~locked),
+        .clk(clk_sys),
+        .clkref(clkref),
+        .bank(2'b00),
+        .dout(sdram_dout),
+        .din (dn_go ? dn_data : cpudo),
+        .addr(dn_go ? dn_addr[16:0] : sdram_addr),
+        .we(dn_go ? dn_wr : ~memw),
+        .oe(~memr | video_read)
+    );
 
     // CPU register debugging for Signal Tap
     logic [15:0] PC /* synthesis keep */; 
@@ -615,19 +629,6 @@ module pcw_core(
         endcase
     end
 
-    logic [7:0] sdram_dout;
-    sdram sdram (
-        .*,
-        .init(~locked),
-        .clk(clk_sys),
-        .clkref(clkref),
-        .bank(2'b00),
-        .dout(sdram_dout),
-        .din (dn_go ? dn_data : cpudo),
-        .addr(dn_go ? dn_addr[16:0] : sdram_addr),
-        .we(dn_go ? dn_wr : ~memw),
-        .oe(~memr | video_read)
-    );
 
     // Edge detectors for moving fake pixel line using F9 and F10 keys
     logic line_up_pe, line_down_pe, toggle_pe;
