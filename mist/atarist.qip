@@ -3,7 +3,7 @@ set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) MiSTery/at
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) MiSTery/atarist/viking.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) MiSTery/atarist/ste_joypad.v]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) MiSTery/atarist/stBlitter.sv]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) MiSTery/atarist/sdram.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sdram.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) MiSTery/atarist/mste_ctrl.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) MiSTery/atarist/mfp.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) MiSTery/atarist/mfp_timer.v]
