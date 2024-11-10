@@ -1,0 +1,4 @@
+CORE_ID=intellivision
+PROJECT_NAME=intv
+VERSION=0.1
+BITSTREAM_FILE=output_files/intv.rbf

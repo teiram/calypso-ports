@@ -1,0 +1,4 @@
+CORE_ID=mist
+PROJECT_NAME=mist
+VERSION=0.2
+BITSTREAM_FILE=output_files/mist.rbf

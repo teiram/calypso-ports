@@ -55,9 +55,6 @@
 [submodule "zx8x-bm/Sinclair_ZX8X"]
 	path = zx81/Sinclair_ZX8X
 	url = https://github.com/BigMist/Sinclair_ZX8X.git
-[submodule "pcw/Amstrad-PCW_MiSTer"]
-	path = pcw/Amstrad-PCW_MiSTer
-	url = https://github.com/MiSTer-devel/Amstrad-PCW_MiSTer.git
 [submodule "pcw/mist-modules"]
 	path = pcw/mist-modules
 	url = https://github.com/mist-devel/mist-modules.git
