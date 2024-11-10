@@ -1,4 +1,4 @@
 CORE_ID=archimedes
 PROJECT_NAME=archimedes_calypso
-VERSION=1
+VERSION=0.1
 BITSTREAM_FILE=output_files/archimedes_calypso.rbf

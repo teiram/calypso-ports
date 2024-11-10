@@ -13,4 +13,4 @@ Additionally, you can provide the following files:
 - FLOPPY1.AFD. Will be mounted as second floppy drive.
 - ARCHIE1.HDF. Will be mounted as first IDE drive
 - ARCHIE2.HDF. WIll be mounted as second IDE drive.
-- CMOS.RAM. Not sure if this is relevant of not for the core behavior.
+- CMOS.RAM. Not sure if this is relevant or not for the core behavior.

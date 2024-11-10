@@ -1,7 +1,9 @@
 # Information
 Amstrad CPC port based on the [MiST Core](https://github.com/sorgelig/Amstrad_MiST)
 # Current status
-Not working. The core doesn't even start video. It seems the CRTC is disabling the sync signals, maybe some initialization problem or bad SDRAM setup so that ROM is not stored/running properly.
+No known issues at this point.
+# Limitations
+SDRAM layout was reduced from the original port, to cope with more limited SDRAM on the Cyc 1000
 # How to run
 A customized AMSTRAD.ROM file have to be provided in the SD card root folder, with the following layout:
 

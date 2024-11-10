@@ -1,0 +1,4 @@
+CORE_ID=oric
+PROJECT_NAME=Oric_calypso
+VERSION=0.1
+BITSTREAM_FILE=output_files/Oric_calypso.rbf

@@ -1,5 +1,5 @@
 CORE_ID=videopac
 PROJECT_NAME=videopac
-VERSION=1
+VERSION=0.1
 BITSTREAM_FILE=output_files/videopac.rbf
 EXTRA_SUBMODULES=../mist-cores ../mist-modules

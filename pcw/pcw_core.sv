@@ -109,13 +109,13 @@ module pcw_core(
     );
 
     assign AUX_0 = cpu_ce_p;
-    assign AUX_1 = cpum1;
-    assign AUX_2 = WAIT_n;
-    assign AUX_3 = m1cycle;
-    assign AUX_4 = cpu_ram_addr[0];
-    assign AUX_5 = cpu_ram_addr[1];
-    assign AUX_6 = cpu_ram_addr[2];
-    assign AUX_7 = cpu_ram_addr[3];
+    assign AUX_1 = clkref;
+    assign AUX_2 = cpum1;
+    assign AUX_3 = WAIT_n;
+    assign AUX_4 = memr;
+    assign AUX_5 = memw;
+    assign AUX_6 = cpumreq;
+    assign AUX_7 = nmi_sig;
     
     // Joystick types
     localparam JOY_NONE         = 3'b000;
@@ -188,20 +188,21 @@ module pcw_core(
     reg cpu_ce_n;
     reg cpu_ce_g_p;
     reg cpu_ce_g_n;
-    always @(posedge clk_sys)
+    wire clkref = ~cnt[3];
+    always @(negedge clk_sys)
     begin
-      cnt <= cnt + 1'd1;
-      cpu_ce_p <= ~cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
-      cpu_ce_n <=  cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
+      cnt <= cnt + 4'd1;
     end
- 
+    assign cpu_ce_p = ~cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
+    assign cpu_ce_n =  cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
+    
     assign cpu_ce_g_p = dn_go ? 1'b0 : cpu_ce_p;
     assign cpu_ce_g_n = dn_go ? 1'b0 : cpu_ce_n;
     reg [1:0] tstate;
     reg WAIT_n;
     reg m1cycle;
     reg video_read;
-    reg sdram_refresh;
+    reg [20:0] sdram_addr;
     wire rfsh;
     reg cpu_ce_g_p_last;
     reg cpu_ce_g_n_last;
@@ -211,38 +212,40 @@ module pcw_core(
     begin
         cpu_ce_g_p_last <= cpu_ce_g_p;
         cpu_ce_g_n_last <= cpu_ce_g_n;
-        if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
-            //cpu clock positive edge. Transition t-state
-            //Sample M1 on positive edges (it must not be set yet on positive edge of T1)
-            cpum1_last <= cpum1;
-            if (cpum1_last && ~cpum1) begin
-                // /M1 gets active, we are on T2 rising edge of an M1 cycle. Next state must be T2
-                tstate <= 1; //Sync with CPU on M1 (next state on rising edge: T2)
-                m1cycle <= 1;
-            end else tstate <= tstate + 1;
-            if (video_read) vid_ram_dout <= sdram_dout;
-            //Latch data for cpu on M1 cicle T2 or any other cycle T3 (stretched via WAIT)
-            else if ((~cpum1 && tstate == 2'b01) || (cpum1 && tstate == 2'b10)) cpu_ram_dout <= sdram_dout;
+        cpum1_last <= cpum1;
+        if (cpum1_last && ~cpum1) begin
+            tstate <= 0;
+            m1cycle <= 1;
+        end else if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
+            tstate <= tstate + 1;
+            case (tstate)
+                // This happens at the end of the tstate, right on the next transition
+                2'b00:  sdram_addr <= cpu_ram_addr;
+                2'b01:  cpu_ram_dout <= sdram_dout;
+                2'b10:  sdram_addr <= {1'b0, vid_ram_addr};
+                2'b11:  begin
+                    vid_ram_dout <= sdram_dout;
+                    m1cycle <= 0;
+                end
+            endcase
         end
-        if (tstate == 2'b11) m1cycle <= 0; //Reset m1cycle at the end of the machine cycle
     end
-    assign WAIT_n = ~(~m1cycle && tstate == 2'b01); //Wait state on T2 of non M1 machine cycles
-    assign sdram_refresh =  tstate == 2'b10 && m1cycle; //Refresh on T3 of any M1 machine cycle
+    assign WAIT_n = ~(~m1cycle && ~cpumreq && tstate == 2'b01); //Wait state on T2 of read/write cycles
     assign video_read = tstate == 2'b11;
-    // Video reads could happen on T3 now:
-    //   - We stretch non M1 cycles to 4 T states
-    // Memory refresh may happen on T3 of M1 cycles. That gives us 250ns, what is more than enough 
-    // an SDRAM AUTO_REFRESH cycle. Expose a refresh signal on the SDRAM controller
-    // TODO: How to sync the video_controller?
-    /*
-    always @(posedge clk_sys) 
-    begin
-        if (~cpuclk_last && cpuclk) begin
-            if (video_read) vid_ram_dout <= sdram_dout;
-            else if (tstate == 2'b11) cpu_ram_dout <= sdram_dout;
-        end
-    end
-    */
+    logic [7:0] sdram_dout;
+    sdram sdram (
+        .*,
+        .init(~locked),
+        .clk(clk_sys),
+        .clkref(clkref),
+        .bank(2'b00),
+        .dout(sdram_dout),
+        .din (dn_go ? dn_data : cpudo),
+        .addr(dn_go ? dn_addr[16:0] : sdram_addr),
+        .we(dn_go ? dn_wr : ~memw),
+        .oe(~memr | video_read)
+    );
+
     // CPU register debugging for Signal Tap
     logic [15:0] PC /* synthesis keep */; 
     logic [15:0] SP /* synthesis keep */;
@@ -626,20 +629,6 @@ module pcw_core(
         endcase
     end
 
-    logic [7:0] sdram_dout;
-    sdram sdram
-    (
-        .*,
-        .init(~locked),
-        .clk(clk_sys),
-        .clkref(cpu_ce_p),
-        .bank(2'b0),
-        .dout(sdram_dout),
-        .din (dn_go ? dn_data : cpudo),
-        .addr(dn_go ? dn_addr[16:0] : video_read ? {1'b0, vid_ram_addr} : cpu_ram_addr),
-        .we(dn_go ? dn_wr : ~memw),
-        .oe(~memr | video_read)
-    );
 
     // Edge detectors for moving fake pixel line using F9 and F10 keys
     logic line_up_pe, line_down_pe, toggle_pe;

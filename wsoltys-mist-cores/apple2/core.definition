@@ -1,5 +1,5 @@
 CORE_ID=apple2
 PROJECT_NAME=apple2
-VERSION=1
+VERSION=0.1
 BITSTREAM_FILE=output_files/apple2.rbf
 EXTRA_SUBMODULES=../mist-modules ../mist-cores

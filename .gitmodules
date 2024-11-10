@@ -55,9 +55,6 @@
 [submodule "zx8x-bm/Sinclair_ZX8X"]
 	path = zx81/Sinclair_ZX8X
 	url = https://github.com/BigMist/Sinclair_ZX8X.git
-[submodule "pcw/Amstrad-PCW_MiSTer"]
-	path = pcw/Amstrad-PCW_MiSTer
-	url = https://github.com/MiSTer-devel/Amstrad-PCW_MiSTer.git
 [submodule "pcw/mist-modules"]
 	path = pcw/mist-modules
 	url = https://github.com/mist-devel/mist-modules.git
@@ -82,3 +79,9 @@
 [submodule "pcw/T80"]
 	path = pcw/T80
 	url = https://github.com/mist-devel/T80.git
+[submodule "intellivision/Intv_DeMiSTified"]
+	path = intellivision/Intv_DeMiSTified
+	url = https://github.com/robinsonb5/Intv_DeMiSTified.git
+[submodule "mist/MiSTery"]
+	path = mist/MiSTery
+	url = https://github.com/gyurco/MiSTery.git

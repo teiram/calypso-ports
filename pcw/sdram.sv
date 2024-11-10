@@ -57,7 +57,7 @@ localparam CAS_LATENCY    = 3'd2;   // 2/3 allowed
 localparam OP_MODE        = 2'b00;  // only 00 (standard operation) allowed
 localparam NO_WRITE_BURST = 1'b1;   // 0= write burst enabled, 1=only single access write
 
-localparam MODE = { 2'b000, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, BURST_LENGTH}; 
+localparam MODE = { 2'b00, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, BURST_LENGTH}; 
 
 localparam STATE_IDLE  = 3'd0;   // first state in cycle
 localparam STATE_START = 3'd1;   // state in which a new command can be started
@@ -140,7 +140,7 @@ localparam CMD_AUTO_REFRESH    = 4'b0001;
 localparam CMD_LOAD_MODE       = 4'b0000;
 
 wire [7:0] ram_dout = a[0] ? i[15:8] : i[7:0];
-assign dout = oe ? ram_dout : 8'h55;
+assign dout = oe ? ram_dout : 8'h00;
 
 // SDRAM state machines
 always @(posedge clk) begin
