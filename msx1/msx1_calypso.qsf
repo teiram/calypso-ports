@@ -313,6 +313,7 @@ set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
 set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
 
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:msx1fpga/Mist/build_id.tcl"
 set_global_assignment -name QIP_FILE msx1fpga/rtl/video/f18a/f18a.qip
 set_global_assignment -name SDC_FILE constraints.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE msx1fpga/Mist/sd_card.sv
