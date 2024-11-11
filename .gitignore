@@ -3,6 +3,7 @@ output_files/
 *.qws
 *.rbf
 *.cdf
+*.sopcinfo
 build_id.v
 db/
 greybox_tmp/
