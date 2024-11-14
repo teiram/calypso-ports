@@ -85,3 +85,12 @@
 [submodule "mist/MiSTery"]
 	path = mist/MiSTery
 	url = https://github.com/gyurco/MiSTery.git
+[submodule "atari800/Atari800XL"]
+	path = atari800/Atari800XL
+	url = https://github.com/gyurco/Atari800XL.git
+[submodule "minimig/minimig-mist"]
+	path = minimig/minimig-mist
+	url = https://github.com/mist-devel/minimig-mist.git
+[submodule "x68000/X68000"]
+	path = x68000/X68000
+	url = https://github.com/BigMist/X68000.git
