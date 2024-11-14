@@ -633,7 +633,7 @@ BEGIN
 	GENERIC MAP
 	(
 		cycle_length => 32,
-		internal_rom => 0,
+		internal_rom => 1, -- For some reason we need the ROM mapped on BRAM (maybe SDRAM going out of bounds)
 		internal_ram => 0,
 		video_bits => 8,
 		palette => 0
