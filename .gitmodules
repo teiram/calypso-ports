@@ -94,3 +94,6 @@
 [submodule "x68000/X68000"]
 	path = x68000/X68000
 	url = https://github.com/BigMist/X68000.git
+[submodule "atari800/mist-modules"]
+	path = atari800/mist-modules
+	url = https://github.com/mist-devel/mist-modules.git

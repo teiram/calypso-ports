@@ -87,7 +87,9 @@ module atari800_calypso_top(
 	input         AUDIO_IN,
 `endif
 	input         UART_RX,
-	output        UART_TX
+	output        UART_TX,
+    
+    output        [7:0] AUX
 
 );
 
@@ -168,7 +170,7 @@ atari800core_calypso
 atari800core_calypso (
 	.CLK12M(CLK12M),
 
-	.LED(LED[0]),
+	.LEDS(LED),
 	.VGA_R(VGA_R),
 	.VGA_G(VGA_G),
 	.VGA_B(VGA_B),
@@ -217,6 +219,8 @@ atari800core_calypso (
 	.SDRAM_CKE(SDRAM_CKE),
 
 	.UART_RX(UART_RX),
-	.UART_TX(UART_TX)
+	.UART_TX(UART_TX),
+    .AUX(AUX)
+    
 );
 endmodule 

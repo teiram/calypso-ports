@@ -63,11 +63,13 @@ ENTITY atari800core_calypso IS
 		SDRAM_A :  OUT  STD_LOGIC_VECTOR(12 DOWNTO 0);
 		SDRAM_DQ :  INOUT  STD_LOGIC_VECTOR(15 DOWNTO 0);
 
-		LED : OUT std_logic;
+		LEDS : OUT std_logic_vector(7 downto 0);
 		
 		UART_TX :  OUT  STD_LOGIC;
 		UART_RX :  IN  STD_LOGIC;
 		
+        AUX:       OUT STD_LOGIC_VECTOR(7 downto 0);
+        
 		SPI_DO :  INOUT  STD_LOGIC;
 		SPI_DI :  IN  STD_LOGIC;
 		SPI_SCK :  IN  STD_LOGIC;
@@ -152,6 +154,7 @@ end component;
 
 	signal CLK_PLL1 : std_logic; -- cascaded to get better pal clock
 	signal PLL1_LOCKED : std_logic;
+    signal PLL_LOCKED: std_logic;
 	signal CLK_RATE : integer;
 
 	SIGNAL PS2_CLK : std_logic;
@@ -194,7 +197,7 @@ end component;
 	SIGNAL KEYBOARD_RESPONSE :  STD_LOGIC_VECTOR(1 DOWNTO 0);
 	SIGNAL KEYBOARD_SCAN :  STD_LOGIC_VECTOR(5 DOWNTO 0);
 	signal atari_keyboard : std_logic_vector(63 downto 0);
-
+    signal rom_download: std_logic;
 	signal SDRAM_REQUEST : std_logic;
 	signal SDRAM_REQUEST_COMPLETE : std_logic;
 	signal SDRAM_READ_ENABLE :  STD_LOGIC;
@@ -299,7 +302,6 @@ end component;
 	signal i2c_ack : std_logic;
 
 	-- data io
-	signal rom_loaded      : std_logic;
 	type ioctl_t is (
 		IOCTL_IDLE,
 		IOCTL_UNLOAD,
@@ -390,7 +392,7 @@ end component;
 		"P1,Video;"&
 		"P2,System;"&
 		SEP&
-		"P1O4,Video,NTSC,PAL;"&
+--		"P1O4,Video,PAL,NTSC;"&
 		"P1O56,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;"&
 		"P1OO,Custom hi-res modes,Off,On;"&
 		"P2O8A,CPU Speed,1x,2x,4x,8x,16x;"&
@@ -402,7 +404,7 @@ end component;
 		"P2OKM,Drive speed,Standard,Fast-6,Fast-5,Fast-4,Fast-3,Fast-2,Fast-1,Fast-0;"&
 		"P2ON,Dual Pokey,No,Yes;"&
 		"O7,Swap joysticks,Off,On;"&
-		"O3,Paddles,Enabled,Disabled;"&
+		"O3,Paddles,Disabled,Enabled;"&
 		"T1,Reset;"&
 		"T2,Cold reset;"&
 		"V,v"&BUILD_DATE;
@@ -423,7 +425,20 @@ end component;
 	end function;
 
 BEGIN
-	joy1 <= mist_joy1(5 downto 0) when joyswap = '0' else mist_joy2(5 downto 0);
+    AUX(0) <= zpu_pokey_enable;
+    AUX(1) <= zpu_sio_command;
+    AUX(2) <= zpu_sio_rxd;
+    AUX(3) <= zpu_sio_txd;
+    AUX(5 downto 4) <= img_mounted;
+    AUX(7 downto 6) <= zpu_out3(31 downto 30);
+    
+    
+    LEDS(0) <= zpu_pokey_enable;
+    LEDS(1) <= not(zpu_sio_command);
+    LEDS(2) <= not(zpu_sio_rxd);
+    LEDS(3) <= not(zpu_sio_txd);
+	
+    joy1 <= mist_joy1(5 downto 0) when joyswap = '0' else mist_joy2(5 downto 0);
 	joy2 <= mist_joy2(5 downto 0) when joyswap = '0' else mist_joy1(5 downto 0);
 	joy1x <= x"80" when mist_status(3) = '1' else mist_joy1x when joyswap = '0' else mist_joy2x;
 	joy1y <= x"80" when mist_status(3) = '1' else mist_joy1y when joyswap = '0' else mist_joy2y;
@@ -454,7 +469,7 @@ BEGIN
 		end if;
 	end process;
 
-	paddle_mode_next <= not mist_status(3);
+	paddle_mode_next <= mist_status(3);
 
 -- mist spi io
 	spi_do <= spi_miso_io when CONF_DATA0 ='0' else 'Z';
@@ -569,7 +584,7 @@ BEGIN
 		dac_out => audio_r
 	);
 
-	CLK_RATE <= 56750000 when PAL = '1' else 57270000;
+	CLK_RATE <= 56000000;
 
 	my_i2s : i2s
 	port map (
@@ -592,48 +607,22 @@ BEGIN
 		sample_i => AUDIO_R_PCM_IN(19 downto 4) & AUDIO_L_PCM
 	);
 
-	reconfig_pll : entity work.pll_reconfig -- This only exists to generate reset!!
-	PORT MAP(inclk0 => CLK12M,
-		c0 => CLK_RECONFIG_PLL,
-		locked => CLK_RECONFIG_PLL_LOCKED);
-
-	process (CLK_RECONFIG_PLL, CLK_RECONFIG_PLL_LOCKED)
-	begin
-		if CLK_RECONFIG_PLL_LOCKED = '0' then
-			rom_loaded <= '0';
-		elsif rising_edge(CLK_RECONFIG_PLL) then
-			if ioctl_download = '1' then -- FIXME: synchronize
-				rom_loaded <= '1';
-			end if;
-		end if;
-	end process;
-
-	pll_switcher : work.switch_pal_ntsc
-	GENERIC MAP
-	(
-		CLOCKS => 4,
-		SYNC_ON => 1
-	)
-	PORT MAP
-	(
-		RECONFIG_CLK => CLK_RECONFIG_PLL,
-		RESET_N => CLK_RECONFIG_PLL_LOCKED,
-
-		PAL => PAL,
-		SWITCH_ENA => not ioctl_download and rom_loaded,
-		INPUT_CLK => CLK12M,
-		PLL_CLKS(0) => CLK_SDRAM,
-		PLL_CLKS(1) => CLK,
-		PLL_CLKS(2) => SDRAM_CLK,
-
-		RESET_N_OUT => RESET_N
-	);
+    rom_download <= '1' when ioctl_download = '1' and ioctl_index = x"00" else '0';
+    RESET_N <= PLL_LOCKED and not(rom_download);
+    
+    pll_base : entity work.pll_unified
+    PORT MAP(inclk0 => CLK12M,
+             c0 => CLK_SDRAM,
+             c1 => CLK,
+             c2 => SDRAM_CLK,
+             locked => PLL_LOCKED
+             );
 
 	atarixl_simple_sdram1 : entity work.atari800core_simple_sdram
 	GENERIC MAP
 	(
 		cycle_length => 32,
-		internal_rom => 1, -- For some reason we need the ROM mapped on BRAM (maybe SDRAM going out of bounds)
+		internal_rom => 1,
 		internal_ram => 0,
 		video_bits => 8,
 		palette => 0
@@ -897,8 +886,8 @@ BEGIN
 		end if;
 	end process;
 
-	LED <= zpu_sio_rxd;
 
+    
 	scandouble <= not scandoubler_disable;
 
 	process(clk,RESET_N,SDRAM_RESET_N,reset_atari)
@@ -1078,8 +1067,8 @@ BEGIN
 	GENERIC MAP
 	(
 		platform => 1,
-		spi_clock_div => 4,	-- 28MHz/2. Max for SD cards is 25MHz...
-		nMHz_clock_div => 27,
+		spi_clock_div => 4,
+		nMHz_clock_div => 12,
 		memory => 8192
 	)
 	PORT MAP
@@ -1160,7 +1149,7 @@ BEGIN
 
 	atari800mode <= mist_status(12);
 	ram_select <= mist_status(15 downto 13) when atari800mode = '0' else mist_status(18 downto 16);
-	PAL <= not mist_status(4);
+	PAL <= '1';  -- So far no PAL/NTSC switch 
 	scanlines <= mist_status(6 downto 5);
 	key_type <= mist_status(19);
 	turbo_drive <= mist_status(22 downto 20);

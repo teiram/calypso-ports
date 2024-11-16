@@ -41,9 +41,9 @@ set_time_format -unit ns -decimal_places 3
 create_clock -name CLK12M -period 83.333 [get_ports {CLK12M}]
 create_clock -name {SPI_SCK}  -period 41.666 -waveform { 20.8 41.666 } [get_ports {SPI_SCK}]
 
-set sdram_clk "atari800core_calypso|pll_switcher|generic_pll2|altpll_component|auto_generated|pll1|clk[2]"
-set mem_clk   "atari800core_calypso|pll_switcher|generic_pll2|altpll_component|auto_generated|pll1|clk[0]"
-set sys_clk   "atari800core_calypso|pll_switcher|generic_pll2|altpll_component|auto_generated|pll1|clk[1]"
+set sdram_clk "atari800core_calypso|pll_base|altpll_component|auto_generated|pll1|clk[2]"
+set mem_clk   "atari800core_calypso|pll_base|altpll_component|auto_generated|pll1|clk[0]"
+set sys_clk   "atari800core_calypso|pll_base|altpll_component|auto_generated|pll1|clk[1]"
 
 #**************************************************************
 # Create Generated Clock
@@ -85,9 +85,8 @@ set_output_delay -clock [get_clocks $sys_clk] -min -5 [get_ports {VGA_*}]
 # Set Clock Groups
 #**************************************************************
 
-set_clock_groups -asynchronous -group [get_clocks {SPI_SCK}] -group [get_clocks {atari800core_calypso|pll_switcher|*}]
-set_clock_groups -asynchronous -group [get_clocks {CLK12M}] -group [get_clocks {atari800core_calypso|pll_switcher|*}]
-set_clock_groups -asynchronous -group [get_clocks {atari800core_calypso|reconfig_pll|*}] -group [get_clocks {atari800core_calypso|pll_switcher|*}]
+set_clock_groups -asynchronous -group [get_clocks {SPI_SCK}] -group [get_clocks {atari800core_calypso|pll_base|*}]
+set_clock_groups -asynchronous -group [get_clocks {CLK12M}] -group [get_clocks {atari800core_calypso|pll_base|*}]
 
 #**************************************************************
 # Set False Path
