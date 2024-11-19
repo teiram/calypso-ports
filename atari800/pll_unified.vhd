@@ -155,18 +155,18 @@ BEGIN
 	altpll_component : altpll
 	GENERIC MAP (
 		bandwidth_type => "AUTO",
-		clk0_divide_by => 3,
+		clk0_divide_by => 25,
 		clk0_duty_cycle => 50,
-		clk0_multiply_by => 28,
+		clk0_multiply_by => 236,
 		clk0_phase_shift => "0",
-		clk1_divide_by => 3,
+		clk1_divide_by => 25,
 		clk1_duty_cycle => 50,
-		clk1_multiply_by => 14,
+		clk1_multiply_by => 118,
 		clk1_phase_shift => "0",
-		clk2_divide_by => 3,
+		clk2_divide_by => 25,
 		clk2_duty_cycle => 50,
-		clk2_multiply_by => 28,
-		clk2_phase_shift => "-2232",
+		clk2_multiply_by => 236,
+		clk2_phase_shift => "-2207",
 		compensate_clock => "CLK0",
 		inclk0_input_frequency => 83333,
 		intended_device_family => "Cyclone 10 LP",
@@ -253,9 +253,9 @@ END SYN;
 -- Retrieval info: PRIVATE: DUTY_CYCLE0 STRING "50.00000000"
 -- Retrieval info: PRIVATE: DUTY_CYCLE1 STRING "50.00000000"
 -- Retrieval info: PRIVATE: DUTY_CYCLE2 STRING "50.00000000"
--- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE0 STRING "112.000000"
--- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE1 STRING "56.000000"
--- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE2 STRING "112.000000"
+-- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE0 STRING "113.279999"
+-- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE1 STRING "56.639999"
+-- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE2 STRING "113.279999"
 -- Retrieval info: PRIVATE: EXPLICIT_SWITCHOVER_COUNTER STRING "0"
 -- Retrieval info: PRIVATE: EXT_FEEDBACK_RADIO STRING "0"
 -- Retrieval info: PRIVATE: GLOCKED_COUNTER_EDIT_CHANGED STRING "1"
@@ -286,9 +286,9 @@ END SYN;
 -- Retrieval info: PRIVATE: MULT_FACTOR1 NUMERIC "1"
 -- Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "1"
 -- Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
--- Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "112.00000000"
--- Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "56.00000000"
--- Retrieval info: PRIVATE: OUTPUT_FREQ2 STRING "112.00000000"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "113.28000000"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "56.64000000"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ2 STRING "113.28000000"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "1"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE1 STRING "1"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE2 STRING "1"
@@ -341,18 +341,18 @@ END SYN;
 -- Retrieval info: PRIVATE: ZERO_DELAY_RADIO STRING "0"
 -- Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 -- Retrieval info: CONSTANT: BANDWIDTH_TYPE STRING "AUTO"
--- Retrieval info: CONSTANT: CLK0_DIVIDE_BY NUMERIC "3"
+-- Retrieval info: CONSTANT: CLK0_DIVIDE_BY NUMERIC "25"
 -- Retrieval info: CONSTANT: CLK0_DUTY_CYCLE NUMERIC "50"
--- Retrieval info: CONSTANT: CLK0_MULTIPLY_BY NUMERIC "28"
+-- Retrieval info: CONSTANT: CLK0_MULTIPLY_BY NUMERIC "236"
 -- Retrieval info: CONSTANT: CLK0_PHASE_SHIFT STRING "0"
--- Retrieval info: CONSTANT: CLK1_DIVIDE_BY NUMERIC "3"
+-- Retrieval info: CONSTANT: CLK1_DIVIDE_BY NUMERIC "25"
 -- Retrieval info: CONSTANT: CLK1_DUTY_CYCLE NUMERIC "50"
--- Retrieval info: CONSTANT: CLK1_MULTIPLY_BY NUMERIC "14"
+-- Retrieval info: CONSTANT: CLK1_MULTIPLY_BY NUMERIC "118"
 -- Retrieval info: CONSTANT: CLK1_PHASE_SHIFT STRING "0"
--- Retrieval info: CONSTANT: CLK2_DIVIDE_BY NUMERIC "3"
+-- Retrieval info: CONSTANT: CLK2_DIVIDE_BY NUMERIC "25"
 -- Retrieval info: CONSTANT: CLK2_DUTY_CYCLE NUMERIC "50"
--- Retrieval info: CONSTANT: CLK2_MULTIPLY_BY NUMERIC "28"
--- Retrieval info: CONSTANT: CLK2_PHASE_SHIFT STRING "-2232"
+-- Retrieval info: CONSTANT: CLK2_MULTIPLY_BY NUMERIC "236"
+-- Retrieval info: CONSTANT: CLK2_PHASE_SHIFT STRING "-2207"
 -- Retrieval info: CONSTANT: COMPENSATE_CLOCK STRING "CLK0"
 -- Retrieval info: CONSTANT: INCLK0_INPUT_FREQUENCY NUMERIC "83333"
 -- Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone 10 LP"
