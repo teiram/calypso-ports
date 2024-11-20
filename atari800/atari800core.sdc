@@ -1,31 +1,3 @@
-## Generated SDC file "hello_led.out.sdc"
-
-## Copyright (C) 1991-2011 Altera Corporation
-## Your use of Altera Corporation's design tools, logic functions 
-## and other software and tools, and its AMPP partner logic 
-## functions, and any output files from any of the foregoing 
-## (including device programming or simulation files), and any 
-## associated documentation or information are expressly subject 
-## to the terms and conditions of the Altera Program License 
-## Subscription Agreement, Altera MegaCore Function License 
-## Agreement, or other applicable license agreement, including, 
-## without limitation, that your use is for the sole purpose of 
-## programming logic devices manufactured by Altera and sold by 
-## Altera or its authorized distributors.  Please refer to the 
-## applicable agreement for further details.
-
-
-## VENDOR  "Altera"
-## PROGRAM "Quartus II"
-## VERSION "Version 11.1 Build 216 11/23/2011 Service Pack 1 SJ Web Edition"
-
-## DATE    "Fri Jul 06 23:05:47 2012"
-
-##
-## DEVICE  "EP3C25Q240C8"
-##
-
-
 #**************************************************************
 # Time Information
 #**************************************************************
@@ -38,12 +10,12 @@ set_time_format -unit ns -decimal_places 3
 # Create Clock
 #**************************************************************
 
-create_clock -name CLK12M -period 83.333 [get_ports {CLK12M}]
-create_clock -name {SPI_SCK}  -period 41.666 -waveform { 20.8 41.666 } [get_ports {SPI_SCK}]
+create_clock -name CLK12M -period 83.333  [get_ports {CLK12M}]
+create_clock -name {SPI_SCK}  -period 40  [get_ports {SPI_SCK}]
 
-set sdram_clk "atari800core_calypso|pll_base|altpll_component|auto_generated|pll1|clk[2]"
-set mem_clk   "atari800core_calypso|pll_base|altpll_component|auto_generated|pll1|clk[0]"
-set sys_clk   "atari800core_calypso|pll_base|altpll_component|auto_generated|pll1|clk[1]"
+set sdram_clk "atari800core_calypso|pll_switcher|generic_pll2|altpll_component|auto_generated|pll1|clk[2]"
+set mem_clk   "atari800core_calypso|pll_switcher|generic_pll2|altpll_component|auto_generated|pll1|clk[0]"
+set sys_clk   "atari800core_calypso|pll_switcher|generic_pll2|altpll_component|auto_generated|pll1|clk[1]"
 
 #**************************************************************
 # Create Generated Clock
@@ -85,8 +57,9 @@ set_output_delay -clock [get_clocks $sys_clk] -min -5 [get_ports {VGA_*}]
 # Set Clock Groups
 #**************************************************************
 
-set_clock_groups -asynchronous -group [get_clocks {SPI_SCK}] -group [get_clocks {atari800core_calypso|pll_base|*}]
-set_clock_groups -asynchronous -group [get_clocks {CLK12M}] -group [get_clocks {atari800core_calypso|pll_base|*}]
+set_clock_groups -asynchronous -group [get_clocks {SPI_SCK}] -group [get_clocks {atari800core_calypso|pll_switcher|*}]
+set_clock_groups -asynchronous -group [get_clocks {CLK12M}] -group [get_clocks {atari800core_calypso|pll_switcher|*}]
+set_clock_groups -asynchronous -group [get_clocks {atari800core_calypso|reconfig_pll|*}] -group [get_clocks {atari800core_calypso|pll_switcher|*}]
 
 #**************************************************************
 # Set False Path

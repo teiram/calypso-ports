@@ -170,7 +170,7 @@ atari800core_calypso
 atari800core_calypso (
 	.CLK12M(CLK12M),
 
-	.LEDS(LED),
+	.LED(LED),
 	.VGA_R(VGA_R),
 	.VGA_G(VGA_G),
 	.VGA_B(VGA_B),
@@ -219,8 +219,6 @@ atari800core_calypso (
 	.SDRAM_CKE(SDRAM_CKE),
 
 	.UART_RX(UART_RX),
-	.UART_TX(UART_TX),
-    .AUX(AUX)
-    
+	.UART_TX(UART_TX)    
 );
 endmodule 

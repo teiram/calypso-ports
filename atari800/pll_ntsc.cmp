@@ -13,16 +13,18 @@
 --applicable agreement for further details.
 
 
-component fifo_transmit
+component pll_ntsc
 	PORT
 	(
-		clock		: IN STD_LOGIC ;
-		data		: IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		rdreq		: IN STD_LOGIC ;
-		wrreq		: IN STD_LOGIC ;
-		empty		: OUT STD_LOGIC ;
-		full		: OUT STD_LOGIC ;
-		q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
-		usedw		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
+		areset		: IN STD_LOGIC  := '0';
+		configupdate		: IN STD_LOGIC  := '0';
+		inclk0		: IN STD_LOGIC  := '0';
+		scanclk		: IN STD_LOGIC  := '1';
+		scanclkena		: IN STD_LOGIC  := '0';
+		scandata		: IN STD_LOGIC  := '0';
+		c0		: OUT STD_LOGIC ;
+		locked		: OUT STD_LOGIC ;
+		scandataout		: OUT STD_LOGIC ;
+		scandone		: OUT STD_LOGIC 
 	);
 end component;

@@ -235,7 +235,6 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nCAS
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nWE
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nCS
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_CKE
-set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_CLK
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to VGA_R[3]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to VGA_R[2]
@@ -274,6 +273,23 @@ set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
 set_global_assignment -name TOP_LEVEL_ENTITY atari800_calypso_top
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:Atari800XL/mist/build_id.tcl"
 
+set_global_assignment -name SYSTEMVERILOG_FILE atari800_calypso_top.sv
+set_global_assignment -name VHDL_FILE atari800core_calypso.vhd
+set_global_assignment -name SDC_FILE atari800core.sdc
+set_global_assignment -name QIP_FILE zpu_rom.qip
+set_global_assignment -name VHDL_FILE DualPortRAM.vhd
+set_global_assignment -name VHDL_FILE switch_pal_ntsc.vhd
+set_global_assignment -name QIP_FILE pll_pal.qip
+set_global_assignment -name QIP_FILE pll_downstream_pal.qip
+set_global_assignment -name QIP_FILE video_pll_reconfig.qip
+set_global_assignment -name QIP_FILE clkctrl.qip
+set_global_assignment -name QIP_FILE pll_reconfig.qip
+set_global_assignment -name QIP_FILE pal_rom.qip
+set_global_assignment -name QIP_FILE ntsc_rom.qip
+#set_global_assignment -name QIP_FILE "Atari800XL/common/components/mist-modules/mist.qip"
+set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
+set_global_assignment -name QIP_FILE fifo_transmit.qip
+set_global_assignment -name QIP_FILE fifo_receive.qip
 
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/atari5200core.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/atari5200core_simplesdram.vhd
@@ -330,6 +346,7 @@ set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/wide_delay_line.v
 set_global_assignment -name VERILOG_FILE Atari800XL/common/components/hq_dac.v
 set_global_assignment -name VERILOG_FILE Atari800XL/common/components/rgb2ypbpr.v
 set_global_assignment -name SYSTEMVERILOG_FILE Atari800XL/common/components/rgb2ypbpr.sv
+set_global_assignment -name VHDL_FILE Atari800XL/common/components/sdram_statemachine.vhdl
 set_global_assignment -name VHDL_FILE Atari800XL/common/components/i2c_master.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/components/I2C_regs.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/components/I2C_slave.vhd
@@ -350,15 +367,7 @@ set_global_assignment -name VHDL_FILE Atari800XL/common/zpu/zpupkg.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/zpu/sio_handler.vhdl
 set_global_assignment -name VHDL_FILE Atari800XL/common/zpu/zpu_config_regs.vhdl
 set_global_assignment -name VHDL_FILE Atari800XL/common/zpu/zpu_glue.vhdl
-set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
-set_global_assignment -name VHDL_FILE sdram_statemachine.vhdl
-set_global_assignment -name SYSTEMVERILOG_FILE atari800_calypso_top.sv
-set_global_assignment -name VHDL_FILE atari800core_calypso.vhd
-set_global_assignment -name SDC_FILE atari800core.sdc
+set_global_assignment -name VHDL_FILE Atari800XL/mist/switch_pal_ntsc.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/mist/DualPortRAM.vhd
-set_global_assignment -name QIP_FILE video_pll_reconfig.qip
-set_global_assignment -name QIP_FILE fifo_receive.qip
-set_global_assignment -name QIP_FILE fifo_transmit.qip
-set_global_assignment -name QIP_FILE pll_unified.qip
-set_global_assignment -name QIP_FILE zpu_rom.qip
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

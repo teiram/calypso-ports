@@ -13,16 +13,26 @@
 --applicable agreement for further details.
 
 
-component fifo_transmit
+component video_pll_reconfig_pal
 	PORT
 	(
 		clock		: IN STD_LOGIC ;
-		data		: IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-		rdreq		: IN STD_LOGIC ;
-		wrreq		: IN STD_LOGIC ;
-		empty		: OUT STD_LOGIC ;
-		full		: OUT STD_LOGIC ;
-		q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
-		usedw		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
+		counter_param		: IN STD_LOGIC_VECTOR (2 DOWNTO 0);
+		counter_type		: IN STD_LOGIC_VECTOR (3 DOWNTO 0);
+		data_in		: IN STD_LOGIC_VECTOR (8 DOWNTO 0);
+		pll_areset_in		: IN STD_LOGIC  := '0';
+		pll_scandataout		: IN STD_LOGIC ;
+		pll_scandone		: IN STD_LOGIC ;
+		read_param		: IN STD_LOGIC ;
+		reconfig		: IN STD_LOGIC ;
+		reset		: IN STD_LOGIC ;
+		write_param		: IN STD_LOGIC ;
+		busy		: OUT STD_LOGIC ;
+		data_out		: OUT STD_LOGIC_VECTOR (8 DOWNTO 0);
+		pll_areset		: OUT STD_LOGIC ;
+		pll_configupdate		: OUT STD_LOGIC ;
+		pll_scanclk		: OUT STD_LOGIC ;
+		pll_scanclkena		: OUT STD_LOGIC ;
+		pll_scandata		: OUT STD_LOGIC 
 	);
 end component;
