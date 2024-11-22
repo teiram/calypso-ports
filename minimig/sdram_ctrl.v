@@ -678,8 +678,10 @@ always @ (posedge sysclk) begin
         if(!chip_dma || !chipRW) begin
           slot1_type          <= #1 CHIP;
           sdaddr              <= #1 {1'b0, chipAddr[20:9]};
-          ba                  <= #1 2'b00; // always bank zero for chipset accesses, so we can interleave Fast RAM access
-          slot1_bank          <= #1 2'b00;
+//          ba                  <= #1 2'b00; // always bank zero for chipset accesses, so we can interleave Fast RAM access
+//          slot1_bank          <= #1 2'b00;
+          ba                  <= chipAddr[22:21];
+          slot1_bank          <= chipAddr[22:21];
           cas_dqm             <= #1 {chipU,chipL};
           sd_cs               <= #1 4'b1110; // ACTIVE
           sd_ras              <= #1 1'b0;
@@ -715,7 +717,7 @@ always @ (posedge sysclk) begin
           writebuffer_hold    <= #1 1'b1; // let the write buffer know we're about to write
         end
         // request from read cache
-        else if(cache_req && (|hostslot_cnt || (hostState[2] || hostena)) && (slot2_type == IDLE || slot2_bank != cpuAddr_mangled[24:23])) begin
+        else if(cache_req && (|hostslot_cnt || (hostState[2] || hostena)) && (slot2_type == IDLE || slot2_bank != cpuAddr_mangled[22:21])) begin
           // we only yield to the OSD CPU if it's both cycle-starved and ready to go
           slot1_type          <= #1 CPU_READCACHE;
           sdaddr              <= #1 {1'b0, cpuAddr_mangled[20:9]};
