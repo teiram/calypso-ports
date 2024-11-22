@@ -1,4 +1,4 @@
 CORE_ID=minimig
 PROJECT_NAME=minimig_calypso
 VERSION=0.1
-BITSTREAM_FILE=output_files/minimg_calypso.rbf
+BITSTREAM_FILE=output_files/minimig_calypso.rbf
