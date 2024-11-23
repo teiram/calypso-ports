@@ -274,6 +274,7 @@ set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:build_id.tcl"
 
 
 set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.2 Lite Edition"
+set_global_assignment -name VERILOG_FILE i2s.v
 set_global_assignment -name VERILOG_FILE sdram_ctrl.v
 set_global_assignment -name VERILOG_FILE amiga_clk.v
 set_global_assignment -name SYSTEMVERILOG_FILE "minimig-mist/rtl/mist/video_mixer.sv"

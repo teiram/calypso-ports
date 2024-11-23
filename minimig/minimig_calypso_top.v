@@ -37,9 +37,11 @@ module minimig_calypso_top (
   output wire [  2-1:0] SDRAM_BA,   // SDRAM Bank Address
   output wire           SDRAM_CLK,  // SDRAM Clock
   output wire           SDRAM_CKE,  // SDRAM Clock Enable
-  // MINIMIG specific
-  output wire           AUDIO_L,    // sigma-delta DAC output left
-  output wire           AUDIO_R,    // sigma-delta DAC output right
+
+  // I2S
+  output        I2S_BCK,
+  output        I2S_LRCK,
+  output        I2S_DATA,
   // SPI
   inout wire            SPI_DO,     // inout
   input wire            SPI_DI,
@@ -368,6 +370,16 @@ user_io user_io(
      .CONF(core_config)
   );
 
+i2s i2s (
+    .reset(1'b0),
+    .clk(clk_28),
+    .clk_rate(32'd28_687_500),
+    .sclk(I2S_BCK),
+    .lrclk(I2S_LRCK),
+    .sdata(I2S_DATA),
+    .left_chan({ldata[14], ldata}),
+    .right_chan({rdata[14], rdata})
+);
 
 //// minimig top ////
 minimig minimig (
@@ -444,10 +456,10 @@ minimig minimig (
   .green        (green            ),  // green
   .blue         (blue             ),  // blue
   //audio
-  .left         (AUDIO_L          ),  // audio bitstream left
-  .right        (AUDIO_R          ),  // audio bitstream right
-  .ldata        (                 ),  // left DAC data
-  .rdata        (                 ),  // right DAC data
+  .left         (                 ),  // audio bitstream left
+  .right        (                 ),  // audio bitstream right
+  .ldata        (ldata            ),  // left DAC data
+  .rdata        (rdata            ),  // right DAC data
   //user i/o
   .cpu_config   (cpu_config       ), // CPU config
   .memcfg       (memcfg           ), // memory config
