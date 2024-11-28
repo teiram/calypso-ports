@@ -103,7 +103,7 @@ set_location_assignment PIN_P2 -to VGA_B[1]
 set_location_assignment PIN_P1 -to VGA_B[0]
 set_location_assignment PIN_L16 -to VGA_HS
 set_location_assignment PIN_L15 -to VGA_VS
-set_location_assignment PIN_P11 -to EAR
+set_location_assignment PIN_P11 -to AUDIO_IN
 set_location_assignment PIN_D16 -to I2S_LRCK
 set_location_assignment PIN_D15 -to I2S_BCK
 set_location_assignment PIN_C15 -to I2S_DATA
