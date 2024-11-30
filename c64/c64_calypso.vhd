@@ -42,7 +42,7 @@ generic
    USE_MIDI_PINS : boolean := false;
    BIG_OSD : boolean := false;
    HDMI : boolean := false;
-   DRIVE_N : integer := 1;
+   DRIVE_N : integer := 0;
    BUILD_DATE : string :=""
 );
 port
@@ -113,6 +113,7 @@ end c64_calypso;
 
 architecture struct of c64_calypso is
 
+    
 component sdram is port
 (
    sd_addr    : out   std_logic_vector(11 downto 0);
@@ -172,6 +173,13 @@ begin
 	end loop;
 	return s;
 end function;
+
+-- Bitmap for MiST config string options
+-- 
+-- 0         1         2         3          4         5         6
+-- 01234567890123456789012345678901 234567890123456789012345678901
+-- 0123456789ABCDEFGHIJKLMNOPQRSTUV WXYZabcdefghijklmnopqrstuvwxyz
+--  
 
 constant CONF_STR : string := 
 	"C64;;"&
@@ -674,7 +682,7 @@ begin
 
 	-- 1541/tape activity led
 	LED(0) <= not ioctl_download and not led_disks and cass_motor;
-
+    LED(1) <= not led_disks;
 	-- use iec and the first set of idle cycles for mist access
 	mist_cycle <= '1' when ces = "1011" or idle0 = '1' else '0'; 
 

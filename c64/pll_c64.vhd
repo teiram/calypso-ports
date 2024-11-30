@@ -185,7 +185,7 @@ BEGIN
 		clk2_divide_by => 4,
 		clk2_duty_cycle => 50,
 		clk2_multiply_by => 21,
-		clk2_phase_shift => "0",
+		clk2_phase_shift => "-3968",
 		compensate_clock => "CLK0",
 		inclk0_input_frequency => 83333,
 		intended_device_family => "Cyclone 10 LP",
@@ -313,8 +313,8 @@ END SYN;
 -- Retrieval info: PRIVATE: MULT_FACTOR1 NUMERIC "21"
 -- Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "21"
 -- Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
--- Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "63.05591200"
--- Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "31.50000000"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "63.00000000"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "31.00000000"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ2 STRING "63.00000000"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "0"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE1 STRING "0"
@@ -326,7 +326,7 @@ END SYN;
 -- Retrieval info: PRIVATE: PHASE_RECONFIG_INPUTS_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PHASE_SHIFT0 STRING "0.00000000"
 -- Retrieval info: PRIVATE: PHASE_SHIFT1 STRING "0.00000000"
--- Retrieval info: PRIVATE: PHASE_SHIFT2 STRING "0.00000000"
+-- Retrieval info: PRIVATE: PHASE_SHIFT2 STRING "-90.00000000"
 -- Retrieval info: PRIVATE: PHASE_SHIFT_STEP_ENABLED_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PHASE_SHIFT_UNIT0 STRING "deg"
 -- Retrieval info: PRIVATE: PHASE_SHIFT_UNIT1 STRING "deg"
@@ -349,7 +349,7 @@ END SYN;
 -- Retrieval info: PRIVATE: SPREAD_FEATURE_ENABLED STRING "0"
 -- Retrieval info: PRIVATE: SPREAD_FREQ STRING "50.000"
 -- Retrieval info: PRIVATE: SPREAD_FREQ_UNIT STRING "KHz"
--- Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.500"
+-- Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.000"
 -- Retrieval info: PRIVATE: SPREAD_USE STRING "0"
 -- Retrieval info: PRIVATE: SRC_SYNCH_COMP_RADIO STRING "0"
 -- Retrieval info: PRIVATE: STICKY_CLK0 STRING "1"
@@ -379,7 +379,7 @@ END SYN;
 -- Retrieval info: CONSTANT: CLK2_DIVIDE_BY NUMERIC "4"
 -- Retrieval info: CONSTANT: CLK2_DUTY_CYCLE NUMERIC "50"
 -- Retrieval info: CONSTANT: CLK2_MULTIPLY_BY NUMERIC "21"
--- Retrieval info: CONSTANT: CLK2_PHASE_SHIFT STRING "0"
+-- Retrieval info: CONSTANT: CLK2_PHASE_SHIFT STRING "-3968"
 -- Retrieval info: CONSTANT: COMPENSATE_CLOCK STRING "CLK0"
 -- Retrieval info: CONSTANT: INCLK0_INPUT_FREQUENCY NUMERIC "83333"
 -- Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone 10 LP"

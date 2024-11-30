@@ -1,4 +1,4 @@
 CORE_ID=c64
 PROJECT_NAME=C64_calypso
-VERSION=0.1
+VERSION=0.2
 BITSTREAM_FILE=output_files/C64_calypso.rbf

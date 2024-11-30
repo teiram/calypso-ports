@@ -40,7 +40,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) c
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl c1541/gen_rom.vhd]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl c1541/gcr_floppy.vhd]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl c1541/c1541_sd.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl c1541/c1541_logic.vhd]
+set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c1541_logic.vhd]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) c64_calypso_top.sv]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64_calypso.vhd]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c64/rtl mist/sigma_delta_dac.v]
