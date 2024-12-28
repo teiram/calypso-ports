@@ -22,7 +22,7 @@
 //============================================================================
 module zxspectrum
 (
-   input         CLK12M,   // Input clock 27 MHz
+   input         CLK12M,
 
    output  [3:0] VGA_R,
    output  [3:0] VGA_G,
@@ -55,7 +55,11 @@ module zxspectrum
    output        SDRAM_nCS,
    output  [1:0] SDRAM_BA,
    output        SDRAM_CLK,
-   output        SDRAM_CKE
+   output        SDRAM_CKE,
+   
+   output        I2S_BCK,
+   output        I2S_LRCK,
+   output        I2S_DATA
 );
 `default_nettype none
 
@@ -380,8 +384,7 @@ always_comb begin
 	endcase
 end
 
-
-sdram ram
+sdram #(.MHZ(112)) ram
 (
 	.*,
 	.init_n(locked),
@@ -390,7 +393,7 @@ sdram ram
 
 	// port1 is CPU/tape
 	.port1_req(sdram_req),
-	.port1_a(sdram_addr[23:1]),
+	.port1_a(sdram_addr[21:1]),
 	.port1_ds(sdram_we ? {sdram_addr[0], ~sdram_addr[0]} : 2'b11),
 	.port1_d({sdram_din, sdram_din}),
 	.port1_q(sdram_dout),
@@ -399,7 +402,7 @@ sdram ram
 
 	// port 2 is General Sound CPU
 	.port2_req(gs_sdram_req),
-	.port2_a(gs_sdram_addr[23:1]),
+	.port2_a(gs_sdram_addr[21:1]),
 	.port2_ds(gs_sdram_we ? {gs_sdram_addr[0], ~gs_sdram_addr[0]} : 2'b11),
 	.port2_q(gs_sdram_dout),
 	.port2_d({gs_sdram_din, gs_sdram_din}),
@@ -685,6 +688,18 @@ gs #(.INT_DIV(373)) gs
 	.OUTR(gs_r)
 );
 
+i2s i2s (
+    .reset(1'b0),
+    .clk(clk_sys),
+    .clk_rate(32'd112_000_000),
+    .sclk(I2S_BCK),
+    .lrclk(I2S_LRCK),
+    .sdata(I2S_DATA),
+    .left_chan({~gs_l[14], gs_l[13:0]} + {2'b00, psg_ch_a, 5'd0} + {3'b000, psg_ch_b, 4'd0} + {2'b00, ear_out, mic_out, tape_in, 10'd0}),
+    .right_chan({~gs_r[14], gs_r[13:0]} + {2'b00, psg_ch_c, 5'd0} + {3'b000, psg_ch_b, 4'd0} + {2'b00, ear_out, mic_out, tape_in, 10'd0})
+);
+
+/*
 sigma_delta_dac #(14) dac_l
 (
 	.CLK(clk_sys),
@@ -700,7 +715,7 @@ sigma_delta_dac #(14) dac_r
 	.DACin({~gs_r[14], gs_r[13:0]} + {2'b00, psg_ch_c, 5'd0} + {3'b000, psg_ch_b, 4'd0} + {2'b00, ear_out, mic_out, tape_in, 10'd0}),
 	.DACout(AUDIO_R)
 );
-
+*/
 
 ////////////////////   VIDEO   ///////////////////
 (* maxfan = 10 *) wire        ce_cpu_sn;
@@ -974,7 +989,7 @@ u765 #(20'd1800,1) u765
 );
 
 ///////////////////   TAPE   ///////////////////
-wire [24:0] tape_addr = 25'h400000 + tape_addr_raw;
+wire [24:0] tape_addr = 25'h20_0000 + tape_addr_raw;
 wire [24:0] tape_addr_raw;
 wire        tape_req;
 wire        tape_dout_en;
@@ -1009,7 +1024,7 @@ smart_tape tape
 	.buff_din(ram_dout),
 
 	.ioctl_download(ioctl_download & (ioctl_index[4:0] == 2)),
-	.tape_size(ioctl_addr - 25'h400000 + 1'b1),
+	.tape_size(ioctl_addr - 25'h20_0000 + 1'b1),
 	.tape_mode(ioctl_index[7:6]),
 
 	.m1(~nM1 & ~nMREQ),
