@@ -182,7 +182,9 @@ end component;
 	signal mist_status   : std_logic_vector(63 downto 0);
 
 	signal MIST_JOY1 :  STD_LOGIC_VECTOR(31 DOWNTO 0);
+  signal MIST_JOY1_E :  STD_LOGIC_VECTOR(31 DOWNTO 0);
 	signal MIST_JOY2 :  STD_LOGIC_VECTOR(31 DOWNTO 0);
+  signal MIST_JOY2_E :  STD_LOGIC_VECTOR(31 DOWNTO 0);
 	signal JOY1 :  STD_LOGIC_VECTOR(5 DOWNTO 0);
 	signal JOY2 :  STD_LOGIC_VECTOR(5 DOWNTO 0);
 	signal JOY1_n :  STD_LOGIC_VECTOR(4 DOWNTO 0);
@@ -387,6 +389,13 @@ end component;
   -- SIO devices
   signal sio_extern : std_logic;
 
+  -- Enable keyboard-emulated joysticks
+  signal emu_js  : std_logic;
+
+  signal emu_js1_keys :  STD_LOGIC_VECTOR(4 DOWNTO 0) := (ps2_keys(16#114#) or ps2_keys(16#59#))&ps2_keys(16#175#)&ps2_keys(16#172#)&ps2_keys(16#16B#)&ps2_keys(16#174#); --V2 FUDLR  (CtrlRs or ShiftR )- CLeft - CRight - CDown - CUp    --Bak  FLRDU  Ctrl(Rigth) - CLeft - CRight - CDown - CUp
+  signal emu_js2_keys :  STD_LOGIC_VECTOR(4 DOWNTO 0) := "00000";
+
+
 	constant SDRAM_BASE    : unsigned(23 downto 0) := x"800000";
 	constant CARTRIDGE_MEM : unsigned(23 downto 0) := x"D00000";
 	constant SDRAM_ROM_ADDR : unsigned(23 downto 0):= x"F00000";
@@ -428,6 +437,7 @@ end component;
 		"P2OJ,Keyboard,ISO,ANSI;"&
 		"P2OKM,Drive speed,Standard,Fast-6,Fast-5,Fast-4,Fast-3,Fast-2,Fast-1,Fast-0;"&
 		"P2ON,Dual Pokey,No,Yes;"&
+    "OQ,Cursor Emu Joysticks,No,Yes;"&
 		"O7,Swap joysticks,Off,On;"&
 		"O3,Paddles,Disabled,Enabled;"&
 		"T1,Reset;"&
@@ -450,8 +460,11 @@ end component;
 	end function;
 
 BEGIN
-	joy1 <= mist_joy1(5 downto 0) when joyswap = '0' else mist_joy2(5 downto 0);
-	joy2 <= mist_joy2(5 downto 0) when joyswap = '0' else mist_joy1(5 downto 0);
+	mist_joy1_e <= mist_joy1 when emu_js = '0' else (mist_joy1 or emu_js1_keys);
+  mist_joy2_e <= mist_joy2 when emu_js = '0' else (mist_joy2 or emu_js2_keys);
+  joy1 <= mist_joy1_e(5 downto 0) when joyswap = '0' else mist_joy2_e(5 downto 0);
+  joy2 <= mist_joy2_e(5 downto 0) when joyswap = '0' else mist_joy1_e(5 downto 0); 
+
 	joy1x <= x"80" when mist_status(3) = '1' else mist_joy1x when joyswap = '0' else mist_joy2x;
 	joy1y <= x"80" when mist_status(3) = '1' else mist_joy1y when joyswap = '0' else mist_joy2y;
 	joy2x <= x"80" when mist_status(3) = '1' else mist_joy2x when joyswap = '0' else mist_joy1x;
@@ -1217,6 +1230,7 @@ BEGIN
 	turbo_drive <= mist_status(22 downto 20);
 	hires_ena <= mist_status(24);
   sio_extern <= mist_status(25);
+  emu_js <= mist_status(26);
 
 	pause_atari <= '1' when zpu_out1(0) = '1' or ioctl_state /= IOCTL_IDLE else '0';
 	freezer_enable <= zpu_out1(25);
