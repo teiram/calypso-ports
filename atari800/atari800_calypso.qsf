@@ -115,14 +115,26 @@ set_location_assignment PIN_F8 -to SDRAM_CKE
 set_location_assignment PIN_B13 -to SDRAM_DQML
 set_location_assignment PIN_D12 -to SDRAM_DQMH
 
-set_location_assignment PIN_T12 -to AUX[0]
-set_location_assignment PIN_R11 -to AUX[1]
-set_location_assignment PIN_R12 -to AUX[2]
-set_location_assignment PIN_P14 -to AUX[3]
-set_location_assignment PIN_J14 -to AUX[4]
-set_location_assignment PIN_L2 -to AUX[5]
-set_location_assignment PIN_F13 -to AUX[6]
-set_location_assignment PIN_F16 -to AUX[7]
+#Fujinet pins
+set_location_assignment PIN_P14 -to SIO_INTERRUPT
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SIO_INTERRUPT
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SIO_INTERRUPT
+
+set_location_assignment PIN_J14 -to SIO_DTR_PROCEED
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SIO_DTR_PROCEED
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SIO_DTR_PROCEED
+
+set_location_assignment PIN_L2 -to SIO_RX
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SIO_RX
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SIO_RX
+
+set_location_assignment PIN_F13 -to SIO_TX
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SIO_TX
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SIO_TX
+
+set_location_assignment PIN_F16 -to SIO_COMM_CTS
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SIO_COMM_CTS
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SIO_COMM_CTS
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[0]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[1]
@@ -294,7 +306,7 @@ set_global_assignment -name QIP_FILE fifo_receive.qip
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/atari5200core.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/atari5200core_simplesdram.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/atari800core.vhd
-set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/atari800core_simple_sdram.vhd
+set_global_assignment -name VHDL_FILE atari800core_simple_sdram_sio.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/cart_logic.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/covox.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/cpu.vhd

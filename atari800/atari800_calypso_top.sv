@@ -89,7 +89,11 @@ module atari800_calypso_top(
 	input         UART_RX,
 	output        UART_TX,
     
-    output        [7:0] AUX
+	inout         SIO_RX,
+	output        SIO_TX,
+	inout         SIO_COMM_CTS,
+	input         SIO_DTR_PROCEED,
+	input         SIO_INTERRUPT
 
 );
 
@@ -219,6 +223,12 @@ atari800core_calypso (
 	.SDRAM_CKE(SDRAM_CKE),
 
 	.UART_RX(UART_RX),
-	.UART_TX(UART_TX)    
+	.UART_TX(UART_TX),
+
+    .SIO_RX(SIO_RX),
+    .SIO_TX(SIO_TX),
+    .SIO_COMM_CTS(SIO_COMM_CTS),
+    .SIO_DTR_PROCEED(SIO_DTR_PROCEED),
+    .SIO_INTERRUPT(SIO_INTERRUPT)
 );
 endmodule 

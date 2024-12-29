@@ -74,7 +74,14 @@ ENTITY atari800core_calypso IS
 		SPI_SS2 :  IN  STD_LOGIC;
 		SPI_SS3 :  IN  STD_LOGIC;
 		SPI_SS4 :  IN  STD_LOGIC;
-		CONF_DATA0 :  IN  STD_LOGIC -- AKA SPI_SS5
+		CONF_DATA0 :  IN  STD_LOGIC;
+
+    SIO_RX :          INOUT  STD_LOGIC;
+		SIO_TX :          OUT  STD_LOGIC;
+    SIO_COMM_CTS :    INOUT  STD_LOGIC;
+    SIO_DTR_PROCEED : IN  STD_LOGIC;
+    SIO_INTERRUPT :   IN  STD_LOGIC 
+
 	);
 END atari800core_calypso;
 
@@ -248,7 +255,23 @@ end component;
 	signal zpu_sio_txd : std_logic;
 	signal zpu_sio_rxd : std_logic;
 	signal zpu_sio_command : std_logic;
-	SIGNAL ASIO_CLOCKOUT : std_logic;
+
+  SIGNAL ASIO_RXD : std_logic;
+  SIGNAL ASIO_TXD : std_logic;
+  SIGNAL ASIO_CLOCKOUT : std_logic;
+  SIGNAL ASIO_CLOCKIN_IN : std_logic;
+  SIGNAL ASIO_CLOCKIN_OUT : std_logic;
+  SIGNAL ASIO_CLOCKIN_OE : std_logic;
+
+  -- PIA
+  SIGNAL  CA1_IN :  STD_LOGIC;
+  SIGNAL  CB1_IN:  STD_LOGIC;
+  SIGNAL  CA2_OUT :  STD_LOGIC;
+  SIGNAL  CA2_DIR_OUT:  STD_LOGIC;
+  SIGNAL  CB2_OUT :  STD_LOGIC;
+  SIGNAL  CB2_DIR_OUT:  STD_LOGIC;
+  SIGNAL  CA2_IN:  STD_LOGIC;
+  SIGNAL  CB2_IN:  STD_LOGIC;
 
 	-- system control from zpu
 	signal ram_select : std_logic_vector(2 downto 0);
@@ -361,6 +384,9 @@ end component;
 	signal CLK_RECONFIG_PLL : std_logic;
 	signal CLK_RECONFIG_PLL_LOCKED : std_logic;
 
+  -- SIO devices
+  signal sio_extern : std_logic;
+
 	constant SDRAM_BASE    : unsigned(23 downto 0) := x"800000";
 	constant CARTRIDGE_MEM : unsigned(23 downto 0) := x"D00000";
 	constant SDRAM_ROM_ADDR : unsigned(23 downto 0):= x"F00000";
@@ -393,6 +419,7 @@ end component;
 		"P1O4,Video,PAL,NTSC;"&
 		"P1O56,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;"&
 		"P1OO,Custom hi-res modes,Off,On;"&
+    "P2OP,SIO,Intern,Extern;"&
 		"P2O8A,CPU Speed,1x,2x,4x,8x,16x;"&
 		"P2OB,Turbo at VBL only,Off,On;"&
 		"P2OC,Machine,XL/XE,400/800;"&
@@ -629,7 +656,20 @@ BEGIN
 		RESET_N_OUT => RESET_N
 	);
 
-	atarixl_simple_sdram1 : entity work.atari800core_simple_sdram
+  -- SIO Stuff
+  ASIO_CLOCKIN_IN <= '1';
+  ASIO_RXD <=  SIO_RX when sio_extern='1' else zpu_sio_txd;--Antes ASIO_RXD <= SIO_RX;
+  SIO_RX <= 'Z';--Antes SIO_RX <= '0' when zpu_sio_txd='0' else 'Z';
+  SIO_TX <= ASIO_TXD when sio_extern='1' else 'Z';
+  zpu_sio_rxd <= '1' when sio_extern='1' else ASIO_TXD;
+  CB1_IN <= SIO_INTERRUPT when sio_extern='1' else '1';
+  CA1_IN <= SIO_DTR_PROCEED when sio_extern='1' else '1';
+  SIO_COMM_CTS <= '0' when (CB2_DIR_OUT and NOT(CB2_OUT) and sio_extern) = '1' else 'Z';
+  CB2_IN <= SIO_COMM_CTS when sio_extern='1' else CB2_OUT when CB2_DIR_OUT='1' else '1';
+  zpu_sio_command <= '1' when sio_extern='1' else CB2_OUT when CB2_DIR_OUT='1' else '1';
+  CA2_IN <= CA2_OUT when CA2_DIR_OUT='1' else '1';
+
+	atarixl_simple_sdram1 : entity work.atari800core_simple_sdram_sio
 	GENERIC MAP
 	(
 		cycle_length => 32,
@@ -665,10 +705,21 @@ BEGIN
 		KEYBOARD_RESPONSE => KEYBOARD_RESPONSE,
 		KEYBOARD_SCAN => KEYBOARD_SCAN,
 
-		SIO_COMMAND => zpu_sio_command,
-		SIO_RXD => zpu_sio_txd,
-		SIO_TXD => zpu_sio_rxd,
-		SIO_CLOCKOUT => ASIO_CLOCKOUT,
+    SIO_RXD => ASIO_RXD,
+    SIO_TXD => ASIO_TXD,
+    SIO_CLOCKOUT => ASIO_CLOCKOUT,
+    SIO_CLOCKIN_IN => ASIO_CLOCKIN_IN,
+    SIO_CLOCKIN_OUT => ASIO_CLOCKIN_OUT,
+    SIO_CLOCKIN_OE => ASIO_CLOCKIN_OE,
+
+    CA1_IN => CA1_IN,
+    CB1_IN => CB1_IN,
+    CA2_IN => CA2_IN,
+    CA2_OUT => CA2_OUT,
+    CA2_DIR_OUT => CA2_DIR_OUT,
+    CB2_IN => CB2_IN,
+    CB2_OUT => CB2_OUT,
+    CB2_DIR_OUT => CB2_DIR_OUT,
 
 		CONSOL_OPTION => CONSOL_OPTION,
 		CONSOL_SELECT => CONSOL_SELECT,
@@ -1165,6 +1216,7 @@ BEGIN
 	key_type <= mist_status(19);
 	turbo_drive <= mist_status(22 downto 20);
 	hires_ena <= mist_status(24);
+  sio_extern <= mist_status(25);
 
 	pause_atari <= '1' when zpu_out1(0) = '1' or ioctl_state /= IOCTL_IDLE else '0';
 	freezer_enable <= zpu_out1(25);
