@@ -2,3 +2,4 @@ CORE_ID=atari800
 PROJECT_NAME=atari800_calypso
 VERSION=0.2
 BITSTREAM_FILE=output_files/atari800_calypso.rbf
+EXTRA_BINARIES=readme.md
