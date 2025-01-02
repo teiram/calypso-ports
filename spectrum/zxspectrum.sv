@@ -72,7 +72,7 @@ localparam CONF_PLUSD = "(+D) ";
 localparam CONF_STR = {
 	"SPECTRUM;;",
 	"S1,TRDIMGDSKMGT,Load Disk;",
-	"F,TAPCSWTZX,Load Tape;",
+	"F2,TAPCSWTZX,Load Tape;",
 	"O6,Fast tape load,On,Off;",
 	"O7,Joystick swap,Off,On;",
 	"O89,Video timings,ULA-48,ULA-128,Pentagon;",
@@ -695,27 +695,10 @@ i2s i2s (
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
-    .left_chan({~gs_l[14], gs_l[13:0]} + {2'b00, psg_ch_a, 5'd0} + {3'b000, psg_ch_b, 4'd0} + {2'b00, ear_out, mic_out, tape_in, 10'd0}),
+    .left_chan( {~gs_l[14], gs_l[13:0]} + {2'b00, psg_ch_a, 5'd0} + {3'b000, psg_ch_b, 4'd0} + {2'b00, ear_out, mic_out, tape_in, 10'd0}),
     .right_chan({~gs_r[14], gs_r[13:0]} + {2'b00, psg_ch_c, 5'd0} + {3'b000, psg_ch_b, 4'd0} + {2'b00, ear_out, mic_out, tape_in, 10'd0})
 );
 
-/*
-sigma_delta_dac #(14) dac_l
-(
-	.CLK(clk_sys),
-	.RESET(reset),
-	.DACin({~gs_l[14], gs_l[13:0]} + {2'b00, psg_ch_a, 5'd0} + {3'b000, psg_ch_b, 4'd0} + {2'b00, ear_out, mic_out, tape_in, 10'd0}),
-	.DACout(AUDIO_L)
-);
-
-sigma_delta_dac #(14) dac_r
-(
-	.CLK(clk_sys),
-	.RESET(reset),
-	.DACin({~gs_r[14], gs_r[13:0]} + {2'b00, psg_ch_c, 5'd0} + {3'b000, psg_ch_b, 4'd0} + {2'b00, ear_out, mic_out, tape_in, 10'd0}),
-	.DACout(AUDIO_R)
-);
-*/
 
 ////////////////////   VIDEO   ///////////////////
 (* maxfan = 10 *) wire        ce_cpu_sn;
@@ -989,7 +972,7 @@ u765 #(20'd1800,1) u765
 );
 
 ///////////////////   TAPE   ///////////////////
-wire [24:0] tape_addr = 25'h20_0000 + tape_addr_raw;
+wire [24:0] tape_addr = 25'h30_0000 + tape_addr_raw;
 wire [24:0] tape_addr_raw;
 wire        tape_req;
 wire        tape_dout_en;
@@ -1024,7 +1007,7 @@ smart_tape tape
 	.buff_din(ram_dout),
 
 	.ioctl_download(ioctl_download & (ioctl_index[4:0] == 2)),
-	.tape_size(ioctl_addr - 25'h20_0000 + 1'b1),
+	.tape_size(ioctl_addr - 25'h30_0000 + 1'b1),
 	.tape_mode(ioctl_index[7:6]),
 
 	.m1(~nM1 & ~nMREQ),
