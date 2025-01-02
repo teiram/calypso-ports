@@ -10,3 +10,6 @@ A customized AMSTRAD.ROM file have to be provided in the SD card root folder, wi
 OS6128 + BASIC1.1 + AMSDOS + MF2 + OS664 + BASIC664 + AMSDOS + MF2
 
 Each part with 16KB size, so a file of 128KB
+
+# Changelog
+- 0.3. Increase audio volume

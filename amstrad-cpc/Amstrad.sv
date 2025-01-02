@@ -53,14 +53,7 @@ module Amstrad
 );
 
 //////////////////////////////////////////////////////////////////////////
-assign LED[0] = reset;
-assign LED[1] = hs;
-assign LED[2] = ioctl_download;
-assign LED[3] = iorq;
-assign LED[4] = ~locked;
-assign LED[5] = ext_download;
-assign LED[6] = rom_download;
-assign LED[7] = mf2_rom_en;
+assign LED[0] = ~mf2_en & ~ioctl_download & ~(tape_motor & tape_motor_led);
 
 `include "build_id.v"
 localparam CONF_STR = {
@@ -819,8 +812,8 @@ i2s i2s (
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
 
-	.left_chan ({1'b0, audio_l} + {1'b0, playcity_audio_l} + (st_tape_sound ? {tape_rec, tape_play, 6'd0} : 0)),
-	.right_chan({1'b0, audio_r} + {1'b0, playcity_audio_r} + (st_tape_sound ? {tape_rec, tape_play, 6'd0} : 0))
+	.left_chan ({1'b0, audio_l, 5'b0} + {1'b0, playcity_audio_l, 5'b0} + (st_tape_sound ? {tape_rec, tape_play, 10'd0} : 0)),
+	.right_chan({1'b0, audio_r, 5'b0} + {1'b0, playcity_audio_r, 5'b0} + (st_tape_sound ? {tape_rec, tape_play, 10'd0} : 0))
 );
 //////////////////////////////////////////////////////////////////////
 
