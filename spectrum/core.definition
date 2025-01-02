@@ -1,0 +1,5 @@
+CORE_ID=zxspectrum
+PROJECT_NAME=zxspectrum
+VERSION=0.1
+BITSTREAM_FILE=output_files/zxspectrum.rbf
+EXTRA_BINARIES=readme.md

@@ -97,3 +97,6 @@
 [submodule "atari800/mist-modules"]
 	path = atari800/mist-modules
 	url = https://github.com/mist-devel/mist-modules.git
+[submodule "samcoupe/SAMCoupe_MIST"]
+	path = samcoupe/SAMCoupe_MIST
+	url = https://github.com/sorgelig/SAMCoupe_MIST.git
