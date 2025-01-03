@@ -1,0 +1,5 @@
+CORE_ID=samcoupe
+PROJECT_NAME=SamCoupe
+VERSION=0.1
+BITSTREAM_FILE=output_files/SamCoupe.rbf
+EXTRA_BINARIES=readme.md

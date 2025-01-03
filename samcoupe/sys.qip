@@ -1,0 +1,11 @@
+set_global_assignment -name SYSTEMVERILOG_FILE "SAMCoupe_MIST/sys/video_cleaner.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "SAMCoupe_MIST/sys/video_mixer.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "SAMCoupe_MIST/sys/video_space.sv"
+set_global_assignment -name SYSTEMVERILOG_FILE "SAMCoupe_MIST/sys/hq2x.sv"
+set_global_assignment -name VERILOG_FILE "SAMCoupe_MIST/sys/scandoubler.v"
+set_global_assignment -name VERILOG_FILE "SAMCoupe_MIST/sys/mist_io.v"
+set_global_assignment -name VERILOG_FILE "SAMCoupe_MIST/sys/osd.v"
+
+set_global_assignment -name VERILOG_FILE i2s.v
+set_global_assignment -name SDC_FILE constraints.sdc
+set_global_assignment -name QIP_FILE pll.qip
