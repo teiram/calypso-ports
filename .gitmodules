@@ -100,3 +100,6 @@
 [submodule "samcoupe/SAMCoupe_MIST"]
 	path = samcoupe/SAMCoupe_MIST
 	url = https://github.com/sorgelig/SAMCoupe_MIST.git
+[submodule "gehstock/Mist_FPGA"]
+	path = gehstock/Mist_FPGA
+	url = https://github.com/Gehstock/Mist_FPGA.git
