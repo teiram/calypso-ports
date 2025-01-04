@@ -1,6 +1,6 @@
-CORE_ID=ace
+CORE_ID=jupiter-ace
 PROJECT_NAME=ace
 VERSION=0.1
 BITSTREAM_FILE=output_files/ace.rbf
 EXTRA_BINARIES=readme.md
-EXTRA_SUBMODULES=../Mist-FPGA
+EXTRA_SUBMODULES=../Mist_FPGA
