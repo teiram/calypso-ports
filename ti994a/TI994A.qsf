@@ -110,7 +110,7 @@ set_location_assignment PIN_L15 -to VGA_VS
 ####################################
 # EAR
 ####################################
-set_location_assignment PIN_P11 -to EAR
+set_location_assignment PIN_P11 -to AUDIO_IN
 
 ####################################
 # I2S
@@ -179,6 +179,10 @@ set_location_assignment PIN_B13 -to SDRAM_DQML
 set_location_assignment PIN_D12 -to SDRAM_DQMH
 
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
+set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
+
+set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
+
 set_global_assignment -name USE_CONFIGURATION_DEVICE ON
 set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
@@ -267,60 +271,8 @@ set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[12]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[13]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[14]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[15]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[2]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[3]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[4]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[5]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[6]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[7]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[8]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[9]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[10]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[11]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[2]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[3]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[4]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[5]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[6]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[7]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[8]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[9]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[10]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[11]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[12]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[13]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[14]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[15]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_BA[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_BA[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQML
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQMH
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_nRAS
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_nCAS
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_nWE
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_nCS
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_CKE
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_CLK
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_R[3]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_R[2]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_R[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_R[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_G[3]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_G[2]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_G[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_G[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[3]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[2]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_VS
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_HS
 
-set_location_assignment PLL_1 -to pll|altpll_component|auto_generated|pll1
+
 set_global_assignment -name SYSTEMVERILOG_FILE ti994a_calypso.sv
 set_global_assignment -name VHDL_FILE ../colecovision/colecovision_fpga/src/board/mist/build_id.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
@@ -359,7 +311,6 @@ set_global_assignment -name VHDL_FILE "../colecovision/colecovision_fpga/src/vdp
 set_global_assignment -name VERILOG_FILE ../colecovision/colecovision_fpga/src/fdc1772/floppy.v
 set_global_assignment -name VERILOG_FILE ../colecovision/colecovision_fpga/src/fdc1772/fdc1772.v
 set_global_assignment -name QIP_FILE pll.qip
-
 set_global_assignment -name QIP_FILE spram.qip
 set_global_assignment -name QIP_FILE sprom.qip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

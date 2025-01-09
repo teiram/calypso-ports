@@ -67,8 +67,6 @@ module ti994a_calypso(
 	output        SDRAM2_CKE,
 `endif
 
-	output        AUDIO_L,
-	output        AUDIO_R,
 `ifdef I2S_AUDIO
 	output        I2S_BCK,
 	output        I2S_LRCK,
@@ -156,6 +154,7 @@ localparam CONF_STR =
     "F2,BIN,Load Full or C.bin;",
     "F3,BIN,Load D.bin;",
     "F4,BIN,Load G.bin;",
+    "F5,ROM,Reload ROM;",
     "S0U,DSK,Drive 1;",
     "S1U,DSK,Drive 2;",
     "OD,Cart Type,Normal,MBX;",
@@ -318,7 +317,7 @@ data_io data_io_inst (
     
 reg        reset;
 wire       por_n;
-wire       force_reset;
+reg       force_reset;
 reg  [1:0] clk_cnt;
 reg        clk_en_10m7;
 
@@ -337,7 +336,7 @@ always @(posedge clk_sys) begin
 end
 
 always @(posedge clk_sys)
-	reset <= status[0] || buttons[1] || force_reset || ~pll_locked;
+       reset <= status[0] || buttons[1] || force_reset || ~pll_locked;
 
 //-----------------------------------------------------------------------------
 //-- The TI99/4A module
@@ -418,7 +417,8 @@ ep994a #(.is_pal_g(0), .compat_rgb_g(0)) ti994a
     .scratch_1k_i    ( scratch1k ),
     .mbx_i           ( 1'b0/*--status(13)*/ ),
     .flashloading_i  ( downl ),
-    .turbo_i         ( turbo )
+    .turbo_i         ( turbo ),
+    .ear_input       ( ear_input )
 );
 
 TI994A_keyboard keyboard
@@ -511,21 +511,52 @@ assign rommask = (index != 8'h03 && index != 8'h41) ? 6'b111111 : // not .D
                romwr_a[24:18] ==  7'b0000000 ? 6'b011111 :
                6'b111111;
 
+reg clean_ram = 0;
+reg [24:0] clean_ram_addr;
 assign cpu_ram_d_to_ti = sdram_dout;
-assign sdram_addr = !downl ? {5'b00000, cpu_ram_a, 1'b0} :
+assign sdram_addr = 
+                clean_ram ? clean_ram_addr :
+                !downl ? {5'b00000, cpu_ram_a, 1'b0} :
                 (index == 8'h02 || index == 8'h01) ? romwr_a : // .c
                 (index == 8'h03 || index == 8'h41) ? romwr_a + 16'h2000  : // .d
                 (index == 8'h04 || index == 8'h81) ? romwr_a + 20'h86000 : // .g
                 romwr_a + 20'h80000; // .rom
 
-assign ram_we = downl ? rom_wr : ~(cpu_ram_ce_n || cpu_ram_we_n);
-assign ram_rd = downl ? 1'b0 :   ~(cpu_ram_ce_n || ~cpu_ram_we_n);
-assign sdram_din = downl ? {ioctl_dout, ioctl_dout} : cpu_ram_d_from_ti;
-assign sdram_bs =  downl ? {~romwr_a[0], romwr_a[0]} : ~cpu_ram_be_n;
+assign ram_we = clean_ram ? clean_ram_we: downl ? rom_wr : ~(cpu_ram_ce_n || cpu_ram_we_n);
+assign ram_rd = clean_ram ? 1'b0: downl ? 1'b0   : ~(cpu_ram_ce_n || ~cpu_ram_we_n);
+assign sdram_din = clean_ram ? 16'hffff : downl ? {ioctl_dout, ioctl_dout} : cpu_ram_d_from_ti;
+assign sdram_bs =  clean_ram ? 2'b11 : downl ? {~romwr_a[0], romwr_a[0]} : ~cpu_ram_be_n;
 
 reg  [2:0] clk_mem_cnt;
 assign clkref = clk_mem_cnt == 0;
-assign force_reset = downl;
+reg [1:0] state_clean = 2'b00;
+reg clean_ram_we = 1'b0;
+
+always @(posedge clk_sys) begin
+    reg downl_last;
+    downl_last <= downl;
+    if (~downl_last & downl) begin
+        force_reset <= 1;
+    end else if (downl_last && ~downl) begin
+        state_clean <= 2'b01;
+        clean_ram <= 1;
+        clean_ram_addr <= 24'h0bc000;
+    end else if (state_clean == 2'b01) begin
+        state_clean <= 2'b10;
+        clean_ram_we <= 1'b1;
+    end else if (state_clean == 2'b10) begin
+        clean_ram_addr <= clean_ram_addr + 1'b1;
+        clean_ram_we <= 1'b0;
+        state_clean <= 2'b01;
+        if (clean_ram_addr == 24'h7fffff) begin
+            state_clean <= 2'b11;
+            clean_ram <= 0;
+        end
+    end else if (state_clean == 2'b11) begin
+        force_reset <= 0;
+        state_clean <= 2'b00;
+    end
+end
 
 always @(posedge clk_mem) begin
 	reg ram_rdD, ram_weD;
@@ -655,18 +686,6 @@ assign HDMI_PCLK = clk_sys;
 //-- AUDIO OUTPUT
 //-----------------------------------------------------------------------------
 
-wire dac_o;
-assign AUDIO_L = dac_o;
-assign AUDIO_R = dac_o;
-
-dac #(
-	.C_bits(11))
-dac_r(
-	.clk_i(clk_sys),
-	.res_n_i(1),
-	.dac_i(unsigned_audio),
-	.dac_o(dac_o)
-	);	
 
 `ifdef I2S_AUDIO
 i2s i2s (
@@ -676,8 +695,8 @@ i2s i2s (
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
-	.left_chan({2'd0, unsigned_audio, 3'd0}),
-	.right_chan({2'd0, unsigned_audio, 3'd0})
+	.left_chan({2'd0, unsigned_audio, 3'd0} + {2'd0, ear_input, 13'd0}),
+	.right_chan({2'd0, unsigned_audio, 3'd0} + {2'd0, ear_input, 13'd0})
 );
 `ifdef I2S_AUDIO_HDMI
 assign HDMI_MCLK = 0;

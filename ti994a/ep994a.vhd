@@ -129,7 +129,8 @@ entity ep994a is
     scratch_1k_i     : in std_logic;
     mbx_i            : in std_logic;
     flashloading_i   : in std_logic;
-    turbo_i          : in std_logic
+    turbo_i          : in std_logic;
+    ear_input        : in std_logic
 );
 
 end ep994a;
@@ -181,9 +182,11 @@ architecture Behavioral of ep994a is
 			sd_dout_strobe   : in  std_logic
 		);
 	end component ;
-
+ 
+    
 	--signal optSWI	 		: std_logic_vector(7 downto 0) := b"11111111";
 	signal optSWI	 		: std_logic_vector(7 downto 0) := b"01111111";
+
 	signal funky_reset 		: std_logic_vector(15 downto 0) := (others => '0');
 	signal real_reset			: std_logic;
 	signal real_reset_n		: std_logic;
@@ -375,7 +378,6 @@ begin
 	);
 
 	clk <= clk_i;
-
 	-------------------------------------
 
 	cpu_ram_be_n_o <= "00"; -- TMS99105 is always 16-bit, use CE 
@@ -699,7 +701,11 @@ begin
 					cru_read_bit <= cru9901(0);
 				elsif cpu_addr(15 downto 5) = "00000000001" then
 					-- TMS9901 bits 16..31, addresses 20..3E
-					cru_read_bit <= cru9901(to_integer(unsigned('1' & cpu_addr(4 downto 1))));
+                    if cpu_addr(4 downto 1) = "1011" then -- Address 36 (mag tape input)
+                        cru_read_bit <= ear_input;
+                    else
+                        cru_read_bit <= cru9901(to_integer(unsigned('1' & cpu_addr(4 downto 1))));
+                    end if;
 				elsif cpu_addr(15 downto 4) = x"110" then
 					case to_integer(unsigned(cpu_addr(3 downto 1))) is
 						when 0 => cru_read_bit <= disk_hlt; -- HLD
@@ -726,23 +732,35 @@ begin
 	go_cruclk <= '1' when cruclk_sampler(1 downto 0) = "01" else '0';
 
 	vdp_data_out(7 downto 0) <= x"00";
-	data_to_cpu <= 
-		vdp_data_out         			when sams_regs(6)='0' and cpu_addr(15 downto 10) = "100010" else	-- 10001000..10001011 (8800..8BFF)
-		speech_data_out & x"00"       when sams_regs(6)='0' and cpu_addr(15 downto 10) = "100100" and speech_i='1' else	-- speech address read (9000..93FF)
-		x"6000"                       when sams_regs(6)='0' and cpu_addr(15 downto 10) = "100100" and speech_i='0' else	-- speech address read (9000..93FF)
-		grom_data_out & x"00" 			when sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='1' else	-- GROM address read
-		pager_data_out(7 downto 0) & pager_data_out(7 downto 0) when paging_registers = '1' else	-- replicate pager values on both hi and lo bytes
-		sram_16bit_read_bus(15 downto 8) & x"00" when sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_ram_addr(0)='0' and grom_selected='1' else
-		sram_16bit_read_bus(7 downto 0)  & x"00" when sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_ram_addr(0)='1' and grom_selected='1' else
-		x"FF00"                       when sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_selected='0' else
-		-- CRU space signal reads
-		cru_read_bit & "000" & x"000"	when MEM_n='1' else
-		x"FFF0"								when MEM_n='1' else -- other CRU
-		-- line below commented, paged memory repeated in the address range as opposed to returning zeros outside valid range
-		--	x"0000"							when translated_addr(15 downto 6) /= "0000000000" else -- paged memory limited to 256K for now
-		not disk_dout&not disk_dout when disk_cs = '1' else
-		sram_16bit_read_bus(15 downto 0);		-- data to CPU
 
+    process(clk)
+	begin
+		if rising_edge(clk) then
+            if sams_regs(6)='0' and cpu_addr(15 downto 10) = "100010" then
+                data_to_cpu <= vdp_data_out;
+            elsif sams_regs(6)='0' and cpu_addr(15 downto 10) = "100100" and speech_i='1' then
+                data_to_cpu <= speech_data_out & x"00";
+            elsif sams_regs(6)='0' and cpu_addr(15 downto 10) = "100100" and speech_i='0' then
+                data_to_cpu <= x"6000";
+            elsif sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='1' then
+                data_to_cpu <= grom_data_out & x"00";
+            elsif paging_registers = '1' then
+                data_to_cpu <= pager_data_out(7 downto 0) & pager_data_out(7 downto 0);
+            elsif sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_ram_addr(0)='0' and grom_selected='1' then
+                data_to_cpu <= sram_16bit_read_bus(15 downto 8) & x"00";
+            elsif sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_ram_addr(0)='1' and grom_selected='1' then
+                data_to_cpu <= sram_16bit_read_bus(7 downto 0)  & x"00";
+            elsif sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_selected='0' then
+                data_to_cpu <= x"FF00";
+            elsif MEM_n='1' then
+                data_to_cpu <= cru_read_bit & "000" & x"000";
+            elsif disk_cs = '1' then
+                data_to_cpu <= not disk_dout&not disk_dout;
+            else 
+                data_to_cpu <= sram_16bit_read_bus(15 downto 0);
+            end if;
+        end if;
+    end process;
 	-----------------------------------------------------------------------------
 	-- TMS9928A Video Display Processor
 	-----------------------------------------------------------------------------
