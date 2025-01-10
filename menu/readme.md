@@ -10,3 +10,7 @@ You can optionally provide a background image in raw format (RGBA) of 640x312 pi
 You can find a sample image as [menu.rom](menu.rom) in this folder, which would look like this, but with a slightly different aspect ratio and less colors:
 
 ![Sample](menu.rom?raw=true "Sample Background")
+
+# Changelog
+- 0.3. Configuration option to change the background
+

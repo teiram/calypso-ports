@@ -176,6 +176,7 @@ assign SDRAM_CKE = 1;
 
 localparam CONF_STR = {
 	"MENU;;",
+    "F1,BMP,Change background;",
 	"O1,Video mode,PAL,NTSC;",
 	"O23,Rotate,Off,Left,Right;",
 	"V,",`BUILD_DATE
