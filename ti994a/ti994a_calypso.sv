@@ -177,7 +177,7 @@ wire        scratch1k = status[14];
 assign LED[0] = ~downl;
 assign UART_TX = 1;
 
-wire clk_mem, clk_sys, pll_locked;
+wire clk_mem, clk_sys /* synthesis keep */, pll_locked;
 assign SDRAM_CLK = clk_mem;
 assign SDRAM_CKE = 1;
 
@@ -364,7 +364,8 @@ wire [13:0] vram_a;
 wire        vram_we;
 wire  [7:0] vram_d_to_cv;
 wire  [7:0] vram_d_from_cv;
-  
+wire tape_audio;
+
 ep994a #(.is_pal_g(0), .compat_rgb_g(0)) ti994a
 (
     .clk_i           ( clk_sys ),
@@ -418,7 +419,8 @@ ep994a #(.is_pal_g(0), .compat_rgb_g(0)) ti994a
     .mbx_i           ( 1'b0/*--status(13)*/ ),
     .flashloading_i  ( downl ),
     .turbo_i         ( turbo ),
-    .ear_input       ( ear_input )
+    .cassette_bit_i  ( ear_input ),
+    .tape_audio      ( tape_audio)
 );
 
 TI994A_keyboard keyboard
@@ -695,8 +697,8 @@ i2s i2s (
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
-	.left_chan({2'd0, unsigned_audio, 3'd0} + {2'd0, ear_input, 13'd0}),
-	.right_chan({2'd0, unsigned_audio, 3'd0} + {2'd0, ear_input, 13'd0})
+	.left_chan({2'd0, unsigned_audio, 3'd0} + {2'd0, tape_audio, 13'd0}),
+	.right_chan({2'd0, unsigned_audio, 3'd0} + {2'd0, tape_audio, 13'd0})
 );
 `ifdef I2S_AUDIO_HDMI
 assign HDMI_MCLK = 0;

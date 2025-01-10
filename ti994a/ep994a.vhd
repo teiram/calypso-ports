@@ -130,7 +130,9 @@ entity ep994a is
     mbx_i            : in std_logic;
     flashloading_i   : in std_logic;
     turbo_i          : in std_logic;
-    ear_input        : in std_logic
+    cassette_bit_i   : in std_logic;
+    cassette_bit_o   : out std_logic;
+    tape_audio       : out std_logic
 );
 
 end ep994a;
@@ -228,13 +230,21 @@ architecture Behavioral of ep994a is
 
 	-- Keyboard control
 	signal cru9901			: std_logic_vector(31 downto 0) := x"00000000";	-- 32 write bits to 9901, when cru9901(0)='0'
-	signal cru9901_timer	: std_logic_vector(15 downto 0) := x"0000";	-- 15 write bits of 9901 when cru9901(0)='1' (bit 0 not used here)
+	signal cru9901IntMask: std_logic_vector(15 downto 0) := x"0000";		-- 16 bit Interrupt Mask for 9901
 	
 	type keyboard_array is array (7 downto 0, 7 downto 0) of std_logic;
 	signal keyboard : keyboard_array;
 	
 	signal cru_read_bit		: std_logic;
 
+    -- cassette/tape system
+	signal timer9901Read   : std_logic_vector(13 downto 0); -- TMS 9901 Timer READ Register paused for CRU reading.
+	signal timer9901Load: std_logic_vector(13 downto 0);	-- TMS 9901 Clock Register
+	signal timer9901  : std_logic_vector(13 downto 0); -- TMS 9901 Timer countdown
+	signal tms9901Counter : integer; -- simple counter to track 64 clock cycles @ 3Mhz (916 @ 42.9)
+	constant tms9901NumCycles : integer := 910; -- Calc: CORE_CLK_MHZ / 3MHZ * 64    -- (42954540/3000000) = 14.318 X 64 = 916.36352 (x394), subtract 1 for range 0-393
+	signal tms9901IntReq_n : std_logic;
+    
 	-- Reset control
 	signal cpu_reset_ctrl	: std_logic_vector(7 downto 0);	-- 8 control signals, bit 0 = reset, bit 1=rom bank reset, bit 2=mask interrupts when cleared
 	signal cpu_single_step  : std_logic_vector(7 downto 0) := x"00";	-- single stepping. bit 0=1 single step mode, bit 1=1 advance one instruction	
@@ -350,6 +360,11 @@ architecture Behavioral of ep994a is
 	signal flashLoading : std_logic;
 	signal lastFlashLoading : std_logic;	-- last state of flashLoading
 
+    
+    attribute keep: boolean;
+    attribute keep of cpu_addr: signal is true;
+    attribute keep of data_to_cpu: signal is true;
+    attribute keep of cassette_bit_i: signal is true;
 -------------------------------------------------------------------------------
 
 begin
@@ -420,23 +435,14 @@ begin
 	cpu_access <= not cpu_holda;	-- CPU owns the bus except when in hold
 
 	-------------------------------------
-	-- vdp interrupt
-	-- INTERRUPT <=  vdp_interrupt when cru9901(2)='1' else '1';	-- TMS9901 interrupt mask bit
-	conl_int <= vdp_interrupt when cru9901(2)='1' else '1';	-- TMS9901 interrupt mask bit
+	-- vdp interrupt & Timer Interrupt
+   	conl_int <= '0' when (tms9901IntReq_n = '0' and cru9901IntMask(3) = '1' and timer9901Load /= 0) or (vdp_interrupt = '0' and cru9901IntMask(2) = '1') else '1';
+
 	-- cartridge memory select
 	cartridge_cs 	<= '1' when MEM_n = '0' and cpu_addr(15 downto 13) = "011" else '0'; -- cartridge_cs >6000..>7FFF
 
 	-------------------------------------
-	-- key matrix support
-	--epGPIO(15 downto 8) <= "ZZZZZZZZ";	-- IO1N..IO8N are inputs
-	-- KBD connector signals
-	-- 15 | IO8P | col#3
-	-- 14 | IO7P | col#2	
-	-- 13 | IO6P | col#1	
-	-- 12 | IO5P | col#0	
-	--  9 | IO4P | col#4	
-	--  8 | IO3P | col#5
-	--epGPIO(1 downto 0) <= "ZZ";	-- unused
+    
 	-- For the column decoder, rely on pull-ups to bring the row selectors high
 	epGPIO_o(8) <= cru9901(21); 	-- alpha-lock
 	epGPIO_o(7) <= '0' when cru9901(20 downto 18) = "011" else '1'; 	-- col#3
@@ -449,9 +455,10 @@ begin
 	epGPIO_o(0) <= '0' when cru9901(20 downto 18) = "111" else '1'; 	-- col#7
 	-------------------------------------
 	speech_i <= '0' when speech_model = "11" else '1';
+	tape_audio <= cru9901(27) and cru9901IntMask(3) and not cru9901IntMask(2) and cru9901(22) and not cru9901(24);
 
 	switch <= not reset_n_s;
-	flashloading <= flashloading_i;--'0';
+	flashloading <= flashloading_i;
 
 	process(clk, switch)
 	begin
@@ -495,6 +502,7 @@ begin
 			if funky_reset(funky_reset'length-1) = '0' then
 				-- reset activity here
 				cru9901 <= x"00000000";
+                cru9901IntMask <= x"0000";
 				cru1100_regs <= (others => '0');
 				sams_regs <= (others => '0');
 				
@@ -506,6 +514,11 @@ begin
 				cpu_single_step <= x"00";
 				
 				waits <= (others => '0');
+                timer9901Load <= (others => '0');
+                timer9901 <= (others => '0');
+                tms9901Counter <= 0;
+                tms9901IntReq_n <= '1';
+                timer9901Read <= (others => '0');
 			else
 				-- processing of normal clocks here. We run at 100MHz.
 
@@ -645,20 +658,99 @@ begin
 						grom_rd <= '1';
 					end if;
 				end if;
+      
+				-- TMS9901
+				-- Not Connected Pins - set to 1 (Inactive)
+				cru9901(1)  <= '1';
+--				-- Map the epGPIO pins to the proper CRU bit even though we don't currently use them
+				cru9901(3)  <= epGPIO_i(0);
+				cru9901(4)  <= epGPIO_i(1);
+				cru9901(5)  <= epGPIO_i(2);
+				cru9901(6)  <= epGPIO_i(3);
+				cru9901(7)  <= epGPIO_i(4);
+				cru9901(8)  <= epGPIO_i(5);
+				cru9901(9)  <= epGPIO_i(6);
+				cru9901(10) <= epGPIO_i(7);
 
+				cru9901(11) <= cassette_bit_i;
+				cru9901(12) <= '1';				-- Always 1 - Attached to Pull up Resistor (5v)
+				cru9901(13) <= cru9901(25);	-- Bit 13 Mirrors Bit 25 (Cassette Out)
+				cru9901(14) <= cru9901(24);	-- Bit 14 Mirrors Bit 24 (Audio Gate)
+				cru9901(15) <= cru9901(23);	-- Bit 15 Mirrors Bit 23 (CS2 Motor)
+				cru9901(16) <= '0';
+				cru9901(17) <= '0';
+
+				-- Other CRU mirroring
+				cru9901(26) <= cru9901(18);	-- Bit 26 Mirrors Bit 18 (Select Keyboard Column or Joystick)
+				cru9901(28) <= cru9901(10);	-- Bit 28 Mirrors Bit 10 (Keyboard)
+				cru9901(27) <= cassette_bit_i;
+				cru9901(29) <= cru9901(9);		-- Bit 29 Mirrors Bit 9  (Keyboard)
+				cru9901(30) <= cru9901(8);		-- Bit 30 Mirrors Bit 8  (Keyboard)
+				cru9901(31) <= cru9901(7);		-- Bit 31 Mirrors Bit 7  (Keyboard)
+
+				cassette_bit_o <= cru9901(25);
+				
+				if tms9901Counter = 0 then											
+					tms9901Counter <= tms9901NumCycles; --"11" & x"94";				-- Reset Ph4 counter to 916 (x394)
+					if timer9901 = 0 and timer9901Load /= 0 then				-- If tms timer hits 0 and the clock register isn't 0, then reset timer and throw an interrupt -- was at 0, but from looks of how Mame process the cycles, it decrements first, then compares to 0 to throw interrupt.  We skip that step
+						timer9901 <= timer9901Load;
+						if cru9901IntMask(3) = '1' then 
+							tms9901IntReq_n <= '0';
+						end if;
+					else
+						timer9901 <= (timer9901 - 1); -- and ("11111111111111");
+					end if;
+				else
+					tms9901Counter <= tms9901Counter - 1;
+				end if;
+				if cru9901(0) = '0' then
+					timer9901Read <= timer9901;					-- TMS timer Read registered updated with current countdown
+				end if;
+-----------------------------------------------------------------------------------------------------------
+--------------------------------------------------TMS9901--------------------------------------------------
+-----------------------------------------------------------------------------------------------------------
+------------------------------------------------CRU WRITES-------------------------------------------------
+-----------------------------------------------------------------------------------------------------------
 				-- CRU cycle to TMS9901
 				if MEM_n='1' and cpu_addr(15 downto 8)=x"00" and go_cruclk = '1' then
-
-					if cru9901(0) = '1' and cpu_addr(5)='0' and cpu_addr(4 downto 1) /= "0000" then
-						-- write to timer bits (not bit 0)
-						cru9901_timer(to_integer(unsigned(cpu_addr(4 downto 1)))) <= cpu_cruout;
-					else
-						-- write to main register
-						cru9901(to_integer(unsigned(cpu_addr(5 downto 1)))) <= cpu_cruout;
+					if cpu_addr(5 downto 1) = "00000" then -- 0
+						cru9901(0) <= cpu_cruout;
+						if cru9901(0) = '1' then
+							timer9901Read <= timer9901;												-- 9901 just entered timer mode, update timer read register with current timer value
+						end if;
+					elsif cpu_addr(5 downto 1) >= "10000" then -- 16
+						
+                        cru9901(to_integer(unsigned(cpu_addr(5 downto 1)))) <= cpu_cruout;
+					elsif cpu_addr(5 downto 1) = "01111" then	-- 15
+						if cru9901(0) = '1' then
+							if cpu_cruout = '0' then													-- A 0 written to bit 15 while in timer mode does a soft reset
+								cru9901(0) <= '0';
+								cru9901IntMask <= x"0000";
+								cru9901IntMask(1) <= '0';
+								cru9901IntMask(2) <= '0';
+								cru9901IntMask(3) <= '0';
+								cru9901(25) <= '0';
+								cru9901(27) <= '0';
+								timer9901Load <= (others => '0');
+								timer9901 <= (others => '0');
+							end if;
+						else
+							cru9901IntMask(15) <= cpu_cruout;
+						end if;
+					else																						-- All other bits (1-14 should only be left)
+						if cru9901(0) = '1' then
+							timer9901Load(to_integer(unsigned(cpu_addr(5 downto 1)))-1) <= cpu_cruout;
+							timer9901 <= timer9901Load;
+							timer9901(to_integer(unsigned(cpu_addr(5 downto 1)))-1) <= cpu_cruout;			-- temporarly doing this because 
+						else
+							cru9901IntMask(to_integer(unsigned(cpu_addr(5 downto 1)))) <= cpu_cruout;
+							if cpu_addr(5 downto 1) = "00011" then -- 3
+								tms9901IntReq_n <= '1';
+							end if;
+						end if;
 					end if;
-
 				end if;
-
+                
 				-- CRU write cycle to disk control system
 				if MEM_n='1' and cpu_addr(15 downto 4)= x"110" and go_cruclk = '1' then
 					cru1100_regs(to_integer(unsigned(cpu_addr(3 downto 1)))) <= cpu_cruout;
@@ -668,21 +760,19 @@ begin
 					sams_regs(to_integer(unsigned(cpu_addr(3 downto 1)))) <= cpu_cruout;
 				end if;				
 
-				-- Precompute cru_read_bit in case this cycle is a CRU read 
+				-- Precompute cru_read_bit in case this cycle is a CRU read
+-----------------------------------------------------------------------------------------------------------
+--------------------------------------------------TMS9901--------------------------------------------------
+-----------------------------------------------------------------------------------------------------------
+-------------------------------------------------CRU READS-------------------------------------------------
+-----------------------------------------------------------------------------------------------------------                
 				cru_read_bit <= '1';
---				if cru9901(20 downto 18)="101" and cpu_addr(15 downto 1) & '0' = x"000E" then
---					-- key "1" CRU is connected to switch
---					cru_read_bit <= '1';
---					if switch = '1' or keyboard(5, 4)='0' then
---						cru_read_bit <= '0';
---					end if;
---				els
+                -- Read keyboard
 				if cpu_addr(15 downto 1) & '0' >= 6 and cpu_addr(15 downto 1) & '0' < 22 then
 					-- 6 = 0110
-					--	8 = 1000
+					-- 8 = 1000
 					-- A = 1010 
 					ki := to_integer(unsigned(cpu_addr(3 downto 1))) - 3; -- row select on address
---					cru_read_bit <= keyboard(to_integer(unsigned(cru9901(20 downto 18))), ki); -- column select on multiplexor select
 					case ki is
 						when 0 => cru_read_bit <= epGPIO_i(0);
 						when 1 => cru_read_bit <= epGPIO_i(1);
@@ -694,18 +784,32 @@ begin
 						when 7 => cru_read_bit <= epGPIO_i(7);
 						when others => null;
 					end case;
-
-				elsif cpu_addr(15 downto 1) & '0' = x"0004" then
-					cru_read_bit <= vdp_interrupt; -- VDP interrupt status (read with TB 2 instruction)
+					if ki = 0 and cru9901IntMask(3) = '1' and timer9901Load /= 0 then 	-- If INT3 Mask is enabled and Timer is running, INT3 doesn't generate interrupts so we return a 1 (inactive)
+						cru_read_bit <= '1';
+					end if;
 				elsif cpu_addr(15 downto 1) & '0' = x"0000" then
 					cru_read_bit <= cru9901(0);
-				elsif cpu_addr(15 downto 5) = "00000000001" then
-					-- TMS9901 bits 16..31, addresses 20..3E
-                    if cpu_addr(4 downto 1) = "1011" then -- Address 36 (mag tape input)
-                        cru_read_bit <= ear_input;
-                    else
-                        cru_read_bit <= cru9901(to_integer(unsigned('1' & cpu_addr(4 downto 1))));
-                    end if;
+				elsif cpu_addr(15 downto 1) & '0' = x"0002" and cru9901(0) = '0' then
+					cru_read_bit <= '1';									-- External Interrupt (not implement at the moment)
+				elsif cpu_addr(15 downto 1) & '0' = x"0004" and cru9901(0) = '0' then
+					cru_read_bit <= vdp_interrupt;					-- VDP interrupt status (read with TB 2 instruction)
+
+				elsif cpu_addr(15 downto 1) & '0' = x"001E" and cru9901(0) = '1' then
+					cru_read_bit <= conl_int;
+                    
+                elsif cpu_addr(15 downto 1) & '0' >= 2 and cpu_addr(15 downto 1) & '0' <= x"1C" and cru9901(0) = '1' then							--Flanny read current 9901 timer read-back register
+					cru_read_bit <= timer9901Read(to_integer(unsigned('0' & cpu_addr(4 downto 1)))-1);
+				elsif cpu_addr(15 downto 1) & '0' >= x"16" and cpu_addr(15 downto 1) & '0' <= x"3E" then		-- 9901 CRU bits 11-31
+					if cpu_addr(15 downto 1) & '0' = x"36" then																-- Tape in, reading directly from cassette_bit_i instead of cru9901(27) to avoid the 1+ cycles offset
+						cru_read_bit <= cassette_bit_i;
+					else
+						cru_read_bit <= cru9901(to_integer(unsigned(cpu_addr(15 downto 1))));
+					end if;
+					if cpu_addr(15 downto 1) & '0' >= x"20" and cru9901(0) = '1' then									-- If 9901 is in timer mode and we do any reads on bits 16+, we get out of timer mode
+						cru9901(0) <= '0';
+						cru_read_bit <= cru9901(to_integer(unsigned(cpu_addr(5 downto 1))));
+					end if;
+                    
 				elsif cpu_addr(15 downto 4) = x"110" then
 					case to_integer(unsigned(cpu_addr(3 downto 1))) is
 						when 0 => cru_read_bit <= disk_hlt; -- HLD
@@ -732,35 +836,23 @@ begin
 	go_cruclk <= '1' when cruclk_sampler(1 downto 0) = "01" else '0';
 
 	vdp_data_out(7 downto 0) <= x"00";
+	data_to_cpu <= 
+		vdp_data_out         			when sams_regs(6)='0' and cpu_addr(15 downto 10) = "100010" else	-- 10001000..10001011 (8800..8BFF)
+		speech_data_out & x"00"       when sams_regs(6)='0' and cpu_addr(15 downto 10) = "100100" and speech_i='1' else	-- speech address read (9000..93FF)
+		x"6000"                       when sams_regs(6)='0' and cpu_addr(15 downto 10) = "100100" and speech_i='0' else	-- speech address read (9000..93FF)
+		grom_data_out & x"00" 			when sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='1' else	-- GROM address read
+		pager_data_out(7 downto 0) & pager_data_out(7 downto 0) when paging_registers = '1' else	-- replicate pager values on both hi and lo bytes
+		sram_16bit_read_bus(15 downto 8) & x"00" when sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_ram_addr(0)='0' and grom_selected='1' else
+		sram_16bit_read_bus(7 downto 0)  & x"00" when sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_ram_addr(0)='1' and grom_selected='1' else
+		x"FF00"                       when sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_selected='0' else
+		-- CRU space signal reads
+		cru_read_bit & "000" & x"000"	when MEM_n='1' else
+		-- x"FFF0"								when MEM_n='1' else -- other CRU
+		-- line below commented, paged memory repeated in the address range as opposed to returning zeros outside valid range
+		--	x"0000"							when translated_addr(15 downto 6) /= "0000000000" else -- paged memory limited to 256K for now
+		not disk_dout&not disk_dout when disk_cs = '1' else
+		sram_16bit_read_bus(15 downto 0);		-- data to CPU
 
-    process(clk)
-	begin
-		if rising_edge(clk) then
-            if sams_regs(6)='0' and cpu_addr(15 downto 10) = "100010" then
-                data_to_cpu <= vdp_data_out;
-            elsif sams_regs(6)='0' and cpu_addr(15 downto 10) = "100100" and speech_i='1' then
-                data_to_cpu <= speech_data_out & x"00";
-            elsif sams_regs(6)='0' and cpu_addr(15 downto 10) = "100100" and speech_i='0' then
-                data_to_cpu <= x"6000";
-            elsif sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='1' then
-                data_to_cpu <= grom_data_out & x"00";
-            elsif paging_registers = '1' then
-                data_to_cpu <= pager_data_out(7 downto 0) & pager_data_out(7 downto 0);
-            elsif sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_ram_addr(0)='0' and grom_selected='1' then
-                data_to_cpu <= sram_16bit_read_bus(15 downto 8) & x"00";
-            elsif sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_ram_addr(0)='1' and grom_selected='1' then
-                data_to_cpu <= sram_16bit_read_bus(7 downto 0)  & x"00";
-            elsif sams_regs(6)='0' and cpu_addr(15 downto 8) = x"98" and cpu_addr(1)='0' and grom_selected='0' then
-                data_to_cpu <= x"FF00";
-            elsif MEM_n='1' then
-                data_to_cpu <= cru_read_bit & "000" & x"000";
-            elsif disk_cs = '1' then
-                data_to_cpu <= not disk_dout&not disk_dout;
-            else 
-                data_to_cpu <= sram_16bit_read_bus(15 downto 0);
-            end if;
-        end if;
-    end process;
 	-----------------------------------------------------------------------------
 	-- TMS9928A Video Display Processor
 	-----------------------------------------------------------------------------
