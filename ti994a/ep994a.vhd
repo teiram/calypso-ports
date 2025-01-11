@@ -361,10 +361,12 @@ architecture Behavioral of ep994a is
 	signal lastFlashLoading : std_logic;	-- last state of flashLoading
 
     
-    attribute keep: boolean;
-    attribute keep of cpu_addr: signal is true;
-    attribute keep of data_to_cpu: signal is true;
-    attribute keep of cassette_bit_i: signal is true;
+--    attribute keep: boolean;
+--    attribute keep of cpu_addr: signal is true;
+--    attribute keep of cassette_bit_i: signal is true;
+--    attribute keep of cru_read_bit: signal is true;
+--    attribute keep of cru9901: signal is true;
+--    attribute keep of clk_en_3m58_p_o: signal is true;
 -------------------------------------------------------------------------------
 
 begin
@@ -395,9 +397,9 @@ begin
 	clk <= clk_i;
 	-------------------------------------
 
-	cpu_ram_be_n_o <= "00"; -- TMS99105 is always 16-bit, use CE 
+	cpu_ram_be_n_o <= "00" when cpu_access = '1' else "01"; -- TMS99105 is always 16-bit, use CE 
 	cpu_ram_a_o    <= sram_addr_bus;
-	cpu_ram_d_o    <= data_from_cpu;
+	cpu_ram_d_o    <= data_from_cpu when cpu_access='1' and MEM_n='0' and WE_n = '0';
 
 	sram_16bit_read_bus <= cpu_ram_d_i;
 
@@ -625,9 +627,10 @@ begin
 				wr_sampler <= wr_sampler(wr_sampler'length-2 downto 0) & WE_n;
 				rd_sampler <= rd_sampler(rd_sampler'length-2 downto 0) & RD_n;
 				cruclk_sampler <= cruclk_sampler(cruclk_sampler'length-2 downto 0) & cpu_cruclk;
-
+				if (clk_en_10m7_i = '1') then
 				vdp_wr <= '0';
 				vdp_rd <= '0';
+				end if;
 				grom_we <= '0';
 				if (psg_ready_s = '1') then
 					tms9919_we <= '0';
@@ -767,8 +770,8 @@ begin
 -------------------------------------------------CRU READS-------------------------------------------------
 -----------------------------------------------------------------------------------------------------------                
 				cru_read_bit <= '1';
-                -- Read keyboard
-				if cpu_addr(15 downto 1) & '0' >= 6 and cpu_addr(15 downto 1) & '0' < 22 then
+				-- Read Keyboard
+				if cpu_addr(15 downto 1) & '0' >= 6 and cpu_addr(15 downto 1) & '0' < 22 and cru9901(0) = '0' then
 					-- 6 = 0110
 					-- 8 = 1000
 					-- A = 1010 
@@ -949,7 +952,7 @@ begin
 
 	cpu : work.tms9900
 		generic map (
-			cycle_clks_g => 14
+			cycle_clks_g => 16
 		)
 	PORT MAP (
 		clk => clk,
