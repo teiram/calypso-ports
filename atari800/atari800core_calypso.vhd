@@ -76,11 +76,15 @@ ENTITY atari800core_calypso IS
 		SPI_SS4 :  IN  STD_LOGIC;
 		CONF_DATA0 :  IN  STD_LOGIC;
 
-    SIO_RX :          INOUT  STD_LOGIC;
+		SIO_RX :          INOUT  STD_LOGIC;
 		SIO_TX :          OUT  STD_LOGIC;
-    SIO_COMM_CTS :    INOUT  STD_LOGIC;
-    SIO_DTR_PROCEED : IN  STD_LOGIC;
-    SIO_INTERRUPT :   IN  STD_LOGIC 
+		SIO_COMM_CTS :    INOUT  STD_LOGIC;
+		SIO_DTR_PROCEED : IN  STD_LOGIC;
+		SIO_INTERRUPT :   IN  STD_LOGIC;
+    
+		I2S_IN_SDI 	 	:  IN  STD_LOGIC; --//SIO Interrupt
+		I2S_IN_WS 	 	:  IN  STD_LOGIC; --//SIO Interrupt
+		I2S_IN_SCLK 	:  IN  STD_LOGIC --//SIO Interrupt
 
 	);
 END atari800core_calypso;
@@ -118,7 +122,7 @@ end component;
 
 	component i2s
 	generic (
-		I2S_Freq   : integer := 48000;
+		I2S_Freq   : integer := 48100;
 		AUDIO_DW   : integer := 16
 	);
 	port
@@ -144,10 +148,26 @@ end component;
 	);
 	end component spdif;
 
+	component i2s_decoder_kyp port
+	(
+		clock	: in  	std_logic;
+		i2s 	: in   	std_logic_vector(2 downto 0); --[sDi,WS,sClk]
+		left  	: out  	std_logic_vector(15 downto 0);
+		right	: out  	std_logic_vector(15 downto 0)
+	);
+	end component i2s_decoder_kyp;
+    
+
 	signal AUDIO_L_PCM : std_logic_vector(15 downto 0);
 	signal AUDIO_R_PCM : std_logic_vector(15 downto 0);
 	signal AUDIO_R_PCM_IN : std_logic_vector(19 downto 0);
 
+	signal AUDIO_L_I2S : std_logic_vector(15 downto 0);
+	signal AUDIO_R_I2S : std_logic_vector(15 downto 0);
+	signal AUDIO_L_I2S_IN : std_logic_vector(15 downto 0);
+	signal AUDIO_R_I2S_IN : std_logic_vector(15 downto 0);
+    
+    
 	signal VGA_VS_RAW : std_logic;
 	signal VGA_HS_RAW : std_logic;
 	signal VGA_CS_RAW : std_logic;
@@ -611,6 +631,9 @@ BEGIN
 
 	CLK_RATE <= 56750000 when PAL = '1' else 57270000;
 
+	AUDIO_L_I2S <= std_logic_vector(signed(AUDIO_L_PCM) + signed(AUDIO_L_I2S_IN));
+	AUDIO_R_I2S <= std_logic_vector(signed(AUDIO_R_PCM_IN(19 downto 4)) + signed(AUDIO_R_I2S_IN));
+
 	my_i2s : i2s
 	port map (
 		clk => CLK,
@@ -619,9 +642,18 @@ BEGIN
 		sclk => I2S_BCK,
 		lrclk => I2S_LRCK,
 		sdata => I2S_DATA,
-		left_chan  => AUDIO_L_PCM,
-		right_chan => AUDIO_R_PCM_IN(19 downto 4)
+		left_chan  => AUDIO_L_I2S, --AUDIO_L_PCM,
+		right_chan => AUDIO_R_I2S --AUDIO_R_PCM_IN(19 downto 4)
 	);
+
+	I2SDec : i2s_decoder_kyp
+    port map (
+        clock => CLK,
+        i2s   => I2S_IN_SDI & I2S_IN_WS & I2S_IN_SCLK,
+        left  => AUDIO_L_I2S_IN,
+        right => AUDIO_R_I2S_IN
+    );
+
 
 	my_spdif : spdif
 	port map (

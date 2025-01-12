@@ -115,7 +115,24 @@ set_location_assignment PIN_F8 -to SDRAM_CKE
 set_location_assignment PIN_B13 -to SDRAM_DQML
 set_location_assignment PIN_D12 -to SDRAM_DQMH
 
+
 #Fujinet pins
+#  I2S_IN
+#set_location_assignment PIN_T12 -to AUX[0]
+set_location_assignment PIN_T12 -to I2S_IN_SDI
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to I2S_IN_SDI
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to I2S_IN_SDI
+
+#set_location_assignment PIN_R11 -to AUX[1]
+set_location_assignment PIN_R11 -to I2S_IN_WS
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to I2S_IN_WS
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to I2S_IN_WS
+
+#set_location_assignment PIN_R12 -to AUX[2]
+set_location_assignment PIN_R12 -to I2S_IN_SCLK
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to I2S_IN_SCLK
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to I2S_IN_SCLK
+
 set_location_assignment PIN_P14 -to SIO_INTERRUPT
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SIO_INTERRUPT
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SIO_INTERRUPT
@@ -289,8 +306,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE atari800_calypso_top.sv
 set_global_assignment -name VHDL_FILE atari800core_calypso.vhd
 set_global_assignment -name SDC_FILE atari800core.sdc
 set_global_assignment -name QIP_FILE zpu_rom.qip
-set_global_assignment -name VHDL_FILE DualPortRAM.vhd
-set_global_assignment -name VHDL_FILE switch_pal_ntsc.vhd
+#set_global_assignment -name VHDL_FILE DualPortRAM.vhd
+#set_global_assignment -name VHDL_FILE switch_pal_ntsc.vhd
 set_global_assignment -name QIP_FILE pll_pal.qip
 set_global_assignment -name QIP_FILE pll_downstream_pal.qip
 set_global_assignment -name QIP_FILE video_pll_reconfig.qip
@@ -302,6 +319,8 @@ set_global_assignment -name QIP_FILE ntsc_rom.qip
 set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
 set_global_assignment -name QIP_FILE fifo_transmit.qip
 set_global_assignment -name QIP_FILE fifo_receive.qip
+set_global_assignment -name VERILOG_FILE i2s_decoder_kyp.v
+
 
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/atari5200core.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/common/a8core/atari5200core_simplesdram.vhd
