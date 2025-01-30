@@ -44,7 +44,7 @@ module sdram (
 	input             port1_req,
 	output reg        port1_ack,
 	input             port1_we,
-	input      [23:1] port1_a,
+	input      [21:1] port1_a,
 	input       [1:0] port1_ds,
 	input      [15:0] port1_d,
 	output reg [15:0] port1_q,
@@ -52,7 +52,7 @@ module sdram (
 	input             port2_req,
 	output reg        port2_ack,
 	input             port2_we,
-	input      [23:1] port2_a,
+	input      [21:1] port2_a,
 	input       [1:0] port2_ds,
 	input      [15:0] port2_d,
 	output reg [15:0] port2_q
@@ -71,7 +71,7 @@ localparam MODE = { 2'b00, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, BU
 
 // 64ms/4096 rows = 15.6us
 localparam RFRSH_CYCLES = 16'd156*MHZ/10;
-localparam RST_COUNT = 11'd10 + 11'd25 * MHZ;
+localparam RST_COUNT = 11'd10 + 11'd25 * MHZ / 8;
 
 // ---------------------------------------------------------------------
 // ------------------------ cycle state machine ------------------------
@@ -153,8 +153,8 @@ assign SDRAM_nCAS = sd_cmd[1];
 assign SDRAM_nWE  = sd_cmd[0];
 assign SDRAM_DQ = oe ? sd_dout : 16'hZZZZ;
 
-reg [24:1] addr_latch[2];
-reg [24:1] addr_latch_next[2];
+reg [22:1] addr_latch[2];
+reg [22:1] addr_latch_next[2];
 reg [15:0] din_latch[2];
 reg  [1:0] oe_latch;
 reg  [1:0] we_latch;
