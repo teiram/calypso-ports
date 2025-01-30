@@ -268,7 +268,6 @@ set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 
 set_global_assignment -name TOP_LEVEL_ENTITY minimig_calypso_top
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
-set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:build_id.tcl"
 
 
