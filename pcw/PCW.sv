@@ -493,7 +493,7 @@ pcw_core pcw_core
 );
 
 ///////////////////////////////////////////////////
-wire        ce_pix;
+wire        ce_pix /* synthesis keep */;
 wire [23:0] RGB;
 wire        HSync,VSync,HBlank,VBlank;
 

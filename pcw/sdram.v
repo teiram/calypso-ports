@@ -73,7 +73,7 @@ reg  [2:0] q /* synthesis keep */;
 reg [22:0] a, addr_next;
 reg        wr /* synthesis keep */, wr_next;
 reg        ram_req /* synthesis keep */=0, ram_req_next;
-reg        vram_req=0, vram_req_next;
+reg        vram_req /* synthesis keep */=0, vram_req_next;
 
 reg [22:0] old_vram_addr;
 reg old_rd, old_we;

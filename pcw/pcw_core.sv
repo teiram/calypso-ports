@@ -153,9 +153,9 @@ module pcw_core(
     logic [9:0] audio;
     logic speaker_enable = 1'b0;
 
-    logic [16:0] vid_ram_addr;
+    logic [16:0] vid_ram_addr /* synthesis keep */;
     logic [20:0] cpu_ram_addr/* synthesis keep */;
-    reg [7:0] vid_ram_dout;
+    reg [7:0] vid_ram_dout /* synthesis keep */;
     reg [7:0] cpu_ram_dout;
     
     // cpu control
@@ -199,7 +199,6 @@ module pcw_core(
     assign gclk = dn_go ? 1'b0 : clk_sys;
     
     reg [1:0] tstate /* synthesis keep */;
-    reg [2:0] counter;
     reg WAIT_n /* synthesis keep */;
     reg [20:0] sdram_addr;
     wire rfsh;
@@ -209,28 +208,20 @@ module pcw_core(
     always @(posedge clk_sys)
     begin
         cpu_ce_g_p_last <= cpu_ce_g_p;
-//        dn_go_last <= dn_go;
-//        if (dn_go_last & ~dn_go) begincpu_ce_g_p
-//            tstate <= 2'b00;
         if (reset2 == 1'b1) begin
             tstate <= 2'b11;
-            counter <= 3'b000;
         end else begin
             if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
                 tstate <= tstate + 1;
-                counter <= counter + 3'd1;
             end
         end
     end
     assign WAIT_n = tstate == 2'b01;
-    reg video_oe;
     reg mux_sdram;
-    assign mux_sdram = dn_go ? 1'b0 : tstate == 2'b11 && cpu_ce_g_p;
-    assign video_oe = counter[2] == 1'b0;
+    assign mux_sdram = dn_go ? 1'b0 : tstate == 2'b11;
     
     reg reset2 = 1'b0 /* synthesis keep */;
     assign reset2 = reset || dn_go;
-    
     
     //assign video_read = htstate[2:1] == 2'b11;  T1 T2 T3 T4
     /* Test without WAIT (Stopping the CPU)
@@ -282,12 +273,13 @@ module pcw_core(
     assign sdram_oe_download = dn_go ? dn_rd : ~memr;
 
     assign sdram_we =  mux_sdram ? 1'b0 : sdram_we_download;
-    assign sdram_oe =  mux_sdram ? video_oe : sdram_oe_download;
+    assign sdram_oe =  mux_sdram ? 1'b0 : sdram_oe_download;
+    reg [7:0] vid_data;
+    //assign {cpu_ram_dout , vid_ram_dout} = mux_sdram ? {8'b0, sdram_dout}: {sdram_dout , 8'b0};
+    assign cpu_ram_dout = mux_sdram ? 8'b0 : sdram_dout;
     
-    assign {cpu_ram_dout , vid_ram_dout} = mux_sdram ? {8'b0, sdram_dout}: {sdram_dout , 8'b0};
-    
-    //assign cpu_ram_dout = sdram_dout;
-    //assign vid_ram_dout = sdram_dout;
+    wire [15:0] vid_data_out_16;
+    assign vid_ram_dout = vid_ram_addr[0] ? vid_data_out_16[15:8] : vid_data_out_16[7:0];
     
     assign clkref = sdram_clk_ref;
     sdram sdram (
@@ -312,9 +304,9 @@ module pcw_core(
         .we(sdram_we),
         .oe(sdram_oe),
         
- //       .vram_addr(vid_ram_addr),
- //       .vram_dout(vid_ram_dout),
-        
+        .vram_addr(vid_ram_addr),
+        .vram_dout(vid_data_out_16),
+
         .ready(sdram_ready)
     );
 
