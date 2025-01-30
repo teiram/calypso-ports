@@ -174,8 +174,8 @@ localparam CONF_STR = {
 	"V,calypso-",`BUILD_DATE
 };
 
-(* preserve *) wire clk_sys;
-wire locked;
+wire clk_sys /* synthesis keep */;
+wire locked /* synthesis keep */;
 pll pll
 (
 	.inclk0   (CLK12M),
@@ -293,62 +293,108 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD
 );
 
 
-wire reset = ~locked | status[0] | buttons[1];
+wire reset = ~locked | status[0] /* synthesis keep */;
+
+// Counter for ce generation
+reg [3:0] ce_counter;
+always @(posedge clk_sys) begin
+    ce_counter <= ce_counter + 1'b1;
+end
+
+reg cpu_ce_p /* synthesis keep */;
+reg cpu_ce_n;
+reg sdram_clk_ref /* synthesis keep */;
+assign cpu_ce_p = ~ce_counter[3] & ~ce_counter[2] & ~ce_counter[1] & ~ce_counter[0];
+assign cpu_ce_n =  ce_counter[3] & ~ce_counter[2] & ~ce_counter[1] & ~ce_counter[0];
+assign sdram_clk_ref = cpu_ce_p;
 
 // signals from loader
-logic loader_wr;		
-logic loader_download;
+logic loader_wr;
+logic loader_rd;
+logic loader_download /* synthesis keep */;
 reg [15:0] loader_addr;
 reg [7:0] loader_data;
 reg [15:0] execute_addr;
 reg [3:0] counter_ce;
-logic execute_enable;
+logic execute_enable /* synthesis keep */;
 logic loader_wait;
 
-always @(posedge clk_sys) begin
-    counter_ce <= counter_ce + 1'b1;
-end 
+
 // Boot loader to kickstart system on a reset
 // Required because the ROM is overwritten and needs to be reloaded every reset
 // First detect end of reset pulse to kickstart download
 logic reset_ne;
 logic first_byte;
-logic loader_ce;
 
-edge_det reset_edge_det(.clk_sys(clk_sys), .signal(reset), .neg_edge(reset_ne));
-assign loader_ce = counter_ce[3];
+edge_det reset_edge_det(
+    .clk_sys(clk_sys),
+    .signal(reset),
+    .neg_edge(reset_ne));
 
 logic [15:0] read_addr;
 logic [7:0] read_data;
-reg loader_ce_last;
+logic [2:0] state_download;
+logic state_check /* synthesis keep */;
+
+reg sdram_clk_ref_last;
+logic sdram_ready /* synthesis keep */;
 always @(posedge clk_sys) begin
 	if(reset_ne) begin
 		read_addr <= 'b0;
 		loader_addr <= 'b0;
 		loader_wr <= 1'b0;
+        loader_rd <= 1'b0;
 		execute_enable <= 1'b0;
 		loader_download <= 1'b1;
 		execute_addr <= 'b0;
+        state_download <= 2'b00;
+        state_check <= 1'b0;
 	end
 	else begin
-        loader_ce_last <= loader_ce;
-		if (~loader_ce_last & loader_ce) begin
+        sdram_clk_ref_last <= sdram_clk_ref;
+		if (sdram_ready & ~sdram_clk_ref_last & sdram_clk_ref) begin
             if (loader_download) begin
-                if (~loader_wr) begin
-                    // Transfer loaded byte to loader
-                    loader_data <= read_data;
-                    loader_wr <= 1'b1;
-                end else begin
-                    loader_wr <= 1'b0;
-                    loader_addr <= loader_addr + 1'd1;
-                    read_addr <= read_addr + 1'd1;
-                    if (read_addr >= BOOT_ROM_END) begin
-                        loader_download <= 1'b0;
-                        execute_enable <= 1'b1;
-                    end
-                end
+                if (!state_check) begin
+                    case (state_download)
+                        2'b00: begin
+                            loader_data <= read_data;
+                            loader_wr <= 1'b1;
+                            state_download <= 2'b01;
+                        end
+                        2'b01: begin
+                            read_addr <= read_addr + 1'd1;
+                            loader_addr <= loader_addr + 1'd1;
+                            loader_wr <= 1'b0;
+                            state_download <= 2'b00;
+                            if (read_addr >= BOOT_ROM_END) begin
+                                state_check <= 1'b1;
+                                loader_addr <= 'b0;
+                            end
+                        end
+                    endcase
+                  end else begin
+                    case (state_download)
+                        2'b00: begin
+                            loader_rd <= 1'b1;
+                            state_download <= 2'b01;
+                        end
+                        2'b01: begin
+                            loader_addr <= loader_addr + 1'd1;
+                            loader_rd <= 1'b0;
+                            if (loader_addr >= BOOT_ROM_END) begin
+                                execute_enable <= 1'b1;
+                                state_download <= 2'b10;
+                            end else begin
+                                state_download <= 2'b00;
+                            end
+                        end
+                        2'b10: begin
+                            loader_download <= 1'b0;
+                            execute_enable <= 1'b0;
+                        end
+                    endcase
+                  end
             end
-            if (execute_enable) execute_enable <= 1'b0;
         end
 	end
 end
@@ -358,21 +404,19 @@ end
 boot_loader boot_loader
 (
 	.address(read_addr),
-	.data(read_data)
+	.data(read_data),
+    .model(status[4])
 );
 
-
-wire tmpled;
-assign LED[0] = ~tmpled;
-assign LED[1] = reset;
-assign LED[2] = reset_ne;
-assign LED[3] = loader_download;
 
 pcw_core pcw_core
 (
 	.reset(reset),
 	.clk_sys(clk_sys),
 
+    .cpu_ce_p(cpu_ce_p),
+    .cpu_ce_n(cpu_ce_n),
+    
 	.joy0(joystick_0),
 	.joy1(joystick_1),
 	.joy_type(status[12:10]),
@@ -387,7 +431,7 @@ pcw_core pcw_core
 	.vblank(VBlank),
 	.ce_pix(ce_pix),
 
-	.LED(tmpled),
+	.LED(LED),
 	.audiomix(audiomix),
 
 	.disp_color(status[6:5]),
@@ -401,6 +445,7 @@ pcw_core pcw_core
 	.dn_clk(clk_sys),
 	.dn_go(loader_download),
 	.dn_wr(loader_wr),
+    .dn_rd(loader_rd),
 	.dn_addr(loader_addr),			// CPU = 0000-FFFF; cassette = 10000-1FFFF
 	.dn_data(loader_data),
 
@@ -420,9 +465,31 @@ pcw_core pcw_core
 	.sd_buff_dout(sd_buff_dout),
 	.sd_buff_din(sd_buff_din),
 	.sd_dout_strobe(sd_buff_wr),
-	// SD RAM signals not explicitly named
 	.locked(locked),
-	.*	
+    
+    .sdram_clk_ref(sdram_clk_ref),
+    .SDRAM_A(SDRAM_A),
+    .SDRAM_BA(SDRAM_BA),
+    .SDRAM_DQ(SDRAM_DQ),
+    .SDRAM_DQML(SDRAM_DQML),
+    .SDRAM_DQMH(SDRAM_DQMH),
+    .SDRAM_nWE(SDRAM_nWE),
+    .SDRAM_nCAS(SDRAM_nCAS),
+    .SDRAM_nRAS(SDRAM_nRAS),
+    .SDRAM_nCS(SDRAM_nCS),
+    .SDRAM_CKE(SDRAM_CKE),
+    .sdram_ready(sdram_ready),
+    
+    .AUX_0(AUX_0),
+    .AUX_1(AUX_1),
+    .AUX_2(AUX_2),
+    .AUX_3(AUX_3),
+    .AUX_4(AUX_4),
+    .AUX_5(AUX_5),
+    .AUX_6(AUX_6),
+    .AUX_7(AUX_7)
+    
+    
 );
 
 ///////////////////////////////////////////////////

@@ -225,7 +225,7 @@ endmodule
 // Retrieval info: PRIVATE: SPREAD_FEATURE_ENABLED STRING "0"
 // Retrieval info: PRIVATE: SPREAD_FREQ STRING "50.000"
 // Retrieval info: PRIVATE: SPREAD_FREQ_UNIT STRING "KHz"
-// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.500"
+// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.000"
 // Retrieval info: PRIVATE: SPREAD_USE STRING "0"
 // Retrieval info: PRIVATE: SRC_SYNCH_COMP_RADIO STRING "0"
 // Retrieval info: PRIVATE: STICKY_CLK0 STRING "1"

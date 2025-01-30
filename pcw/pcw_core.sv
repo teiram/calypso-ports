@@ -38,7 +38,11 @@
 module pcw_core(
     input wire reset,           // Reset
 	input wire clk_sys,         // 64 Mhz System Clock
-
+    
+    input wire cpu_ce_p,
+    input wire cpu_ce_n,
+    input wire sdram_clk_ref,
+    
     output logic [23:0] RGB,    // RGB Output (8-8-8)     
 	output logic hsync,         // Horizontal sync
 	output logic vsync,         // Vertical sync
@@ -46,7 +50,7 @@ module pcw_core(
 	output logic vblank,        // Vertical blanking
     output logic ce_pix,        // Pixel clock
 
-    output logic LED,           // LED output
+    output logic [7:0] LED,           // LED output
     output logic [8:0] audiomix,
     input wire [7:0] joy0,
     input wire [7:0] joy1,
@@ -78,6 +82,7 @@ module pcw_core(
     input wire dn_clk,
     input wire dn_go,
     input wire dn_wr,
+    input wire dn_rd,
     input wire [24:0] dn_addr,
     input wire [7:0] dn_data,
 
@@ -98,6 +103,7 @@ module pcw_core(
 	output logic [7:0] sd_buff_din,
 	input  wire        sd_dout_strobe,
     
+    output sdram_ready,
     output AUX_0,
     output AUX_1,
     output AUX_2,
@@ -108,14 +114,14 @@ module pcw_core(
     output AUX_7
     );
 
-    assign AUX_0 = cpu_ce_p;
+    assign AUX_0 = cpu_ce_g_p;
     assign AUX_1 = clkref;
     assign AUX_2 = cpum1;
     assign AUX_3 = WAIT_n;
-    assign AUX_4 = memr;
-    assign AUX_5 = memw;
-    assign AUX_6 = cpumreq;
-    assign AUX_7 = nmi_sig;
+    assign AUX_4 = reset;
+    assign AUX_5 = tstate[0];
+    assign AUX_6 = tstate[1];
+    //assign AUX_7 = badstate;
     
     // Joystick types
     localparam JOY_NONE         = 3'b000;
@@ -153,10 +159,10 @@ module pcw_core(
     reg [7:0] cpu_ram_dout;
     
     // cpu control
-    logic [15:0] cpua;
+    logic [15:0] cpua /* synthesis keep */;
     logic [7:0] cpudo;
-    logic [7:0] cpudi;
-    logic cpuwr,cpurd,cpumreq,cpuiorq,cpum1;
+    logic [7:0] cpudi /* synthesis keep */;
+    logic cpuwr,cpurd,cpumreq,cpuiorq,cpum1 /* synthesis keep */;
     logic romrd,ramrd,ramwr;
     logic ior,iow,memr,memw;
 
@@ -164,7 +170,7 @@ module pcw_core(
     
     // Generate fractional Disk clock, capped at 4x
     reg [15:0] dcnt;
-    logic disk_clk;
+    logic disk_clk /* synthesis keep */;
     always @(posedge clk_sys)
     begin
         case(overclock)
@@ -184,66 +190,132 @@ module pcw_core(
     end 
 
     reg [3:0] cnt;
-    reg cpu_ce_p;
-    reg cpu_ce_n;
-    reg cpu_ce_g_p;
-    reg cpu_ce_g_n;
-    wire clkref = ~cnt[3];
-    always @(negedge clk_sys)
-    begin
-      cnt <= cnt + 4'd1;
-    end
-    assign cpu_ce_p = ~cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
-    assign cpu_ce_n =  cnt[3] & ~cnt[2] & ~cnt[1] & ~cnt[0];
-    
+
+    reg cpu_ce_g_p /* synthesis keep */;
+    reg cpu_ce_g_n /* synthesis keep */;   
+    reg gclk /* synthesis keep */;
     assign cpu_ce_g_p = dn_go ? 1'b0 : cpu_ce_p;
     assign cpu_ce_g_n = dn_go ? 1'b0 : cpu_ce_n;
-    reg [1:0] tstate;
-    reg WAIT_n;
-    reg m1cycle;
-    reg video_read;
+    assign gclk = dn_go ? 1'b0 : clk_sys;
+    
+    reg [1:0] tstate /* synthesis keep */;
+    reg [2:0] counter;
+    reg WAIT_n /* synthesis keep */;
     reg [20:0] sdram_addr;
     wire rfsh;
     reg cpu_ce_g_p_last;
-    reg cpu_ce_g_n_last;
-    reg cpum1_last;
-
+    reg dn_go_last;
+    // Implementation  with WAIT
+    always @(posedge clk_sys)
+    begin
+        cpu_ce_g_p_last <= cpu_ce_g_p;
+//        dn_go_last <= dn_go;
+//        if (dn_go_last & ~dn_go) begincpu_ce_g_p
+//            tstate <= 2'b00;
+        if (reset2 == 1'b1) begin
+            tstate <= 2'b11;
+            counter <= 3'b000;
+        end else begin
+            if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
+                tstate <= tstate + 1;
+                counter <= counter + 3'd1;
+            end
+        end
+    end
+    assign WAIT_n = tstate == 2'b01;
+    reg video_oe;
+    reg mux_sdram;
+    assign mux_sdram = dn_go ? 1'b0 : tstate == 2'b11 && cpu_ce_g_p;
+    assign video_oe = counter[2] == 1'b0;
+    
+    reg reset2 = 1'b0 /* synthesis keep */;
+    assign reset2 = reset || dn_go;
+    
+    
+    //assign video_read = htstate[2:1] == 2'b11;  T1 T2 T3 T4
+    /* Test without WAIT (Stopping the CPU)
     always @(posedge clk_sys)
     begin
         cpu_ce_g_p_last <= cpu_ce_g_p;
         cpu_ce_g_n_last <= cpu_ce_g_n;
         cpum1_last <= cpum1;
+        if (htstate == 0) begin
+            memcycle <= 0;
+            cpunwait <= 1;
+        end
         if (cpum1_last && ~cpum1) begin
-            tstate <= 0;
-            m1cycle <= 1;
-        end else if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
-            tstate <= tstate + 1;
-            case (tstate)
-                // This happens at the end of the tstate, right on the next transition
-                2'b00:  sdram_addr <= cpu_ram_addr;
-                2'b01:  cpu_ram_dout <= sdram_dout;
-                2'b10:  sdram_addr <= {1'b0, vid_ram_addr};
-                2'b11:  begin
-                    vid_ram_dout <= sdram_dout;
-                    m1cycle <= 0;
-                end
+            memcycle <= 0;
+            cpunwait <= 1;
+            htstate <= 0;
+        end else if ((~cpu_ce_g_p_last & cpu_ce_g_p) | (~cpu_ce_g_n_last & cpu_ce_g_n)) begin
+            htstate <= htstate + 1;
+            case (htstate)
+                // This happens at the end of the half-tstate, right on the next transition
+                3'b000:  sdram_addr <= cpu_ram_addr;
+                3'b001:  memcycle <= cpum1 & ~cpumreq;
+                3'b010:  cpu_ram_dout <= sdram_dout;
+                3'b101:  if (memcycle == 1) cpunwait <= 0;
             endcase
         end
     end
-    assign WAIT_n = ~(~m1cycle && ~cpumreq && tstate == 2'b01); //Wait state on T2 of read/write cycles
-    assign video_read = tstate == 2'b11;
-    logic [7:0] sdram_dout;
+    assign WAIT_n = 1'b1;
+    assign video_read = htstate == 2'b111;
+    */
+    reg [7:0] sdram_dout /* synthesis keep */;
+    logic [22:0] sdram_addr_in /* synthesis keep */;
+    logic [22:0] sdram_addr_in_download /* synthesis keep */;
+
+    logic sdram_we_download /* synthesis keep */;
+    logic sdram_oe_download /* synthesis keep */;
+    logic [7:0] sdram_din /* synthesis keep */;
+    logic sdram_we;
+    logic sdram_oe /* synthesis keep */;
+    logic clkref /* synthesis keep */;
+    assign sdram_addr_in_download = dn_go ? {6'b0, dn_addr[16:0]} : cpu_ram_addr;
+    assign sdram_addr_in = mux_sdram ? {6'b0, vid_ram_addr} : sdram_addr_in_download;
+    
+    //assign sdram_addr_in = dn_go ? dn_addr[16:0] : cpu_ram_addr;
+    //assign sdram_addr_in = dn_go ? dn_addr[16:0] : {7'b0, cpua};
+    assign sdram_din = dn_go ? dn_data : cpudo;
+    assign sdram_we_download = dn_go ? dn_wr : ~memw;
+    //assign sdram_oe = dn_go ? dn_rd : ~memr | video_read;
+    assign sdram_oe_download = dn_go ? dn_rd : ~memr;
+
+    assign sdram_we =  mux_sdram ? 1'b0 : sdram_we_download;
+    assign sdram_oe =  mux_sdram ? video_oe : sdram_oe_download;
+    
+    assign {cpu_ram_dout , vid_ram_dout} = mux_sdram ? {8'b0, sdram_dout}: {sdram_dout , 8'b0};
+    
+    //assign cpu_ram_dout = sdram_dout;
+    //assign vid_ram_dout = sdram_dout;
+    
+    assign clkref = sdram_clk_ref;
     sdram sdram (
-        .*,
+        .SDRAM_CKE(SDRAM_CKE),
+        .SDRAM_A(SDRAM_A),
+        .SDRAM_DQ(SDRAM_DQ),
+        .SDRAM_DQML(SDRAM_DQML),
+        .SDRAM_DQMH(SDRAM_DQMH),
+        .SDRAM_nCS(SDRAM_nCS),
+        .SDRAM_nCAS(SDRAM_nCAS),
+        .SDRAM_nRAS(SDRAM_nRAS),
+        .SDRAM_nWE(SDRAM_nWE),
+        
         .init(~locked),
         .clk(clk_sys),
         .clkref(clkref),
+        
         .bank(2'b00),
         .dout(sdram_dout),
-        .din (dn_go ? dn_data : cpudo),
-        .addr(dn_go ? dn_addr[16:0] : sdram_addr),
-        .we(dn_go ? dn_wr : ~memw),
-        .oe(~memr | video_read)
+        .din (sdram_din),
+        .addr(sdram_addr_in),
+        .we(sdram_we),
+        .oe(sdram_oe),
+        
+ //       .vram_addr(vid_ram_addr),
+ //       .vram_dout(vid_ram_dout),
+        
+        .ready(sdram_ready)
     );
 
     // CPU register debugging for Signal Tap
@@ -261,21 +333,20 @@ module pcw_core(
     logic C /* synthesis keep */;
 
     // Used for CPU debugging in SignalTap
-    /*
     z80_debugger debugger(
         .*,
-        .ce(GCLK),
+        .ce(cpu_ce_g_p),
         .m1_n(cpum1),
         .REG_in(cpu_reg)
     ); 
-
+    
     // Used to jump to address 0 on reset after ROM loads
     z80_regset z80_regset(
         .*,
         .dir_set(cpu_reg_set),
         .dir_out(cpu_reg_out)
     );
-    */
+    
     // Generate CPU positive and negative edges (delayed 1 clk_sys)
     //logic cpu_pe, cpu_ne;
     //edge_det cpu_edge_det(.clk_sys(clk_sys), .signal(cpuclk), .pos_edge(cpu_pe), .neg_edge(cpu_ne));
@@ -292,8 +363,8 @@ module pcw_core(
 	 
     // Create processor instance
     T80pa cpu(
-       	.RESET_n(~reset),
-        .CLK(clk_sys),
+       	.RESET_n(~reset2),
+        .CLK(gclk),
         .CEN_p(cpu_ce_g_p),
         .CEN_n(cpu_ce_g_n),
         .M1_n(cpum1),
@@ -448,7 +519,7 @@ module pcw_core(
     // end
 
     // detect fdc interrupt edge
-    logic fdc_pe, fdc_ne;
+    logic fdc_pe /* synthesis keep */, fdc_ne /* synthesis keep */;
     edge_det fdc_edge_det(.clk_sys(clk_sys), .signal(fdc_int), .pos_edge(fdc_pe), .neg_edge(fdc_ne));
     //  Drive FDC status latch (portF8) and NMI flag
     logic fdc_status_latch = 1'b0;
@@ -637,7 +708,7 @@ module pcw_core(
     edge_det toggle_full_edge_det(.clk_sys(clk_sys), .signal(toggle_full), .pos_edge(toggle_pe));
     // Line position of fake colour line
     logic [7:0] fake_end;
-        always @(posedge clk_sys)
+    always @(posedge clk_sys)
     begin
         if(reset) fake_end <= 8'd0;
         else begin
@@ -881,16 +952,25 @@ module pcw_core(
 
 
     // Floppy disk controller logic and control
-    wire fdc_sel = {~cpua[7]};
+    wire fdc_sel = {~cpua[7]} /* synthesis keep */;
     
     //wire [7:0] u765_dout;
     wire [7:0] fdc_dout;// = (fdc_sel & ~ior) ? u765_dout : 8'hFF;
 
-    reg  [1:0] u765_ready = 0;
+    reg  [1:0] u765_ready = 0 /* synthesis keep */;
     always @(posedge clk_sys) if(img_mounted[0]) u765_ready[0] <= |img_size;
     always @(posedge clk_sys) if(img_mounted[1]) u765_ready[1] <= |img_size;
-
-    logic fdc_int;
+    
+    assign LED[1] = motor;
+    assign LED[2] = u765_ready[0];
+    assign LED[3] = u765_ready[1];
+    assign LED[4] = fdc_int;
+    logic fdc_int /* synthesis keep */;
+    reg fdc_read /* synthesis noprune */;
+    reg fdc_write /* synthesis noprune */;
+    assign fdc_read = fdc_sel & ~ior;
+    assign fdc_write = fdc_sel & ~iow;
+    
     u765 u765
     (
         .reset(reset),
@@ -908,7 +988,7 @@ module pcw_core(
         .int_out(fdc_int),
         .tc(tc),
         .density(density),
-        .activity_led(LED),
+        .activity_led(LED[0]),
 
         .img_mounted(img_mounted),
         .img_size(img_size[31:0]),
