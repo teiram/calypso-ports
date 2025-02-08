@@ -38,17 +38,12 @@
 module pcw_core(
     input wire reset,           // Reset
 	input wire clk_sys,         // 64 Mhz System Clock
-    
-    input wire cpu_ce_p,
-    input wire cpu_ce_n,
-    input wire sdram_clk_ref,
-    
+
     output logic [23:0] RGB,    // RGB Output (8-8-8)     
 	output logic hsync,         // Horizontal sync
 	output logic vsync,         // Vertical sync
 	output logic hblank,        // Horizontal blanking
 	output logic vblank,        // Vertical blanking
-    output logic ce_pix,        // Pixel clock
 
     output logic [7:0] LED,           // LED output
     output logic [8:0] audiomix,
@@ -79,19 +74,9 @@ module pcw_core(
 	output        SDRAM_nWE,
     input         locked,
 
-    input wire dn_clk,
-    input wire dn_go,
-    input wire dn_wr,
-    input wire dn_rd,
-    input wire [24:0] dn_addr,
-    input wire [7:0] dn_data,
-
-    input wire [15:0] execute_addr,
-    input wire execute_enable,
-
     input wire [1:0]  img_mounted,
-	 input wire        img_readonly,
-	 input wire [31:0] img_size,
+	input wire        img_readonly,
+	input wire [31:0] img_size,
     input wire [1:0]  density,
 
 	output logic [31:0] sd_lba,
@@ -103,25 +88,9 @@ module pcw_core(
 	output logic [7:0] sd_buff_din,
 	input  wire        sd_dout_strobe,
     
-    output sdram_ready,
-    output AUX_0,
-    output AUX_1,
-    output AUX_2,
-    output AUX_3,
-    output AUX_4,
-    output AUX_5,
-    output AUX_6,
-    output AUX_7
-    );
+    output wire [7:0] AUX
+);
 
-    assign AUX_0 = cpu_ce_g_p;
-    assign AUX_1 = clkref;
-    assign AUX_2 = cpum1;
-    assign AUX_3 = WAIT_n;
-    assign AUX_4 = reset;
-    assign AUX_5 = tstate[0];
-    assign AUX_6 = tstate[1];
-    //assign AUX_7 = badstate;
     
     // Joystick types
     localparam JOY_NONE         = 3'b000;
@@ -142,6 +111,46 @@ module pcw_core(
     localparam MEM_512K = 1;
     localparam MEM_1M = 2;
     localparam MEM_2M = 3;
+
+    wire cpu_ce_p /* synthesis keep */;
+    wire cpu_ce_n /* synthesis keep */;
+    wire sdram_clk_ref /* synthesis keep */;
+    wire pix_stb /* synthesis keep */;
+    wire disk_ce /* synthesis keep */;
+    wire snd_ce /* synthesis keep */;
+    ce_generator ce_generator(
+        .clk(clk_sys),
+        .reset(reset),
+        .cpu_ce_p(cpu_ce_p),
+        .cpu_ce_n(cpu_ce_n),
+        .sdram_clk_ref(sdram_clk_ref),
+        .ce_16mhz(pix_stb),
+        .ce_4mhz(disk_ce),
+        .ce_1mhz(snd_ce)
+    ); 
+    
+    wire dn_wr;
+    wire dn_rd;
+    wire [15:0] dn_addr;
+    wire [7:0] dn_data;
+    wire dn_active;
+    wire [15:0] execute_addr;
+    wire execute_enable;
+    pcw_starter pcw_starter(
+        .clk(clk_sys),
+        .reset(reset),
+        .sdram_clk_ref(sdram_clk_ref),
+        .sdram_ready(sdram_ready),
+        .model(model),
+        .wr(dn_wr),
+        .rd(dn_rd),
+        .addr(dn_addr),
+        .data(dn_data),
+        .active(dn_active),
+        .exec_addr(execute_addr),
+        .exec_enable(execute_enable)
+    );
+
 
     logic fake_colour;
     assign fake_colour = (fake_colour_mode != 2'b00);
@@ -166,92 +175,37 @@ module pcw_core(
     logic romrd,ramrd,ramwr;
     logic ior,iow,memr,memw;
 
-
     
-    // Generate fractional Disk clock, capped at 4x
-    reg [15:0] dcnt;
-    logic disk_clk /* synthesis keep */;
-    always @(posedge clk_sys)
-    begin
-        case(overclock)
-            2'b00: {disk_clk, dcnt} <= dcnt + 16'h1000;  // 1x4Mhz - divide by 16: (2^16)/16   = 0x1000
-            2'b01: {disk_clk, dcnt} <= dcnt + 16'h2000;  // 2x4Mhz - divide by  8: (2^16)/8    = 0x2000
-            2'b10: {disk_clk, dcnt} <= dcnt + 16'h4000;  // 4x4Mhz - divide by  4: (2^16)/4    = 0x4000
-            2'b11: {disk_clk, dcnt} <= dcnt + 16'h8000;  // 8x4Mhz - divide by  4: (2^16)/2    = 0x4000
-        endcase
-    end    
-
-    // Generate 1mhz clock for ay-3-8912 sound
-    reg [15:0] scnt;
-    logic snd_clk;
-    always @(posedge clk_sys)
-    begin
-        {snd_clk, scnt} <= scnt + 16'h0400;  // divide by 64 = 1Mhz
-    end 
-
-    reg [3:0] cnt;
-
     reg cpu_ce_g_p /* synthesis keep */;
     reg cpu_ce_g_n /* synthesis keep */;   
     reg gclk /* synthesis keep */;
-    assign cpu_ce_g_p = dn_go ? 1'b0 : cpu_ce_p;
-    assign cpu_ce_g_n = dn_go ? 1'b0 : cpu_ce_n;
-    assign gclk = dn_go ? 1'b0 : clk_sys;
+    assign cpu_ce_g_p = dn_active ? 1'b0 : cpu_ce_p;
+    assign cpu_ce_g_n = dn_active ? 1'b0 : cpu_ce_n;
+    assign gclk = dn_active ? 1'b0 : clk_sys;
     
     reg [1:0] tstate /* synthesis keep */;
     reg WAIT_n /* synthesis keep */;
     reg [20:0] sdram_addr;
     wire rfsh;
     reg cpu_ce_g_p_last;
-    reg dn_go_last;
-    // Implementation  with WAIT
     always @(posedge clk_sys)
     begin
         cpu_ce_g_p_last <= cpu_ce_g_p;
-        if (reset2 == 1'b1) begin
-            tstate <= 2'b11;
+        if (cpu_reset == 1'b1) begin
+            tstate <= 2'b00;
         end else begin
             if (~cpu_ce_g_p_last & cpu_ce_g_p) begin
-                tstate <= tstate + 1;
+                tstate <= tstate + 1'b1;
             end
         end
     end
-    assign WAIT_n = tstate == 2'b01;
+    assign WAIT_n = tstate == 2'b01 || ~ior || ~iow;
     reg mux_sdram;
-    assign mux_sdram = dn_go ? 1'b0 : tstate == 2'b11;
+    assign mux_sdram = dn_active ? 1'b0 : tstate == 2'b11;
     
-    reg reset2 = 1'b0 /* synthesis keep */;
-    assign reset2 = reset || dn_go;
-    
-    //assign video_read = htstate[2:1] == 2'b11;  T1 T2 T3 T4
-    /* Test without WAIT (Stopping the CPU)
-    always @(posedge clk_sys)
-    begin
-        cpu_ce_g_p_last <= cpu_ce_g_p;
-        cpu_ce_g_n_last <= cpu_ce_g_n;
-        cpum1_last <= cpum1;
-        if (htstate == 0) begin
-            memcycle <= 0;
-            cpunwait <= 1;
-        end
-        if (cpum1_last && ~cpum1) begin
-            memcycle <= 0;
-            cpunwait <= 1;
-            htstate <= 0;
-        end else if ((~cpu_ce_g_p_last & cpu_ce_g_p) | (~cpu_ce_g_n_last & cpu_ce_g_n)) begin
-            htstate <= htstate + 1;
-            case (htstate)
-                // This happens at the end of the half-tstate, right on the next transition
-                3'b000:  sdram_addr <= cpu_ram_addr;
-                3'b001:  memcycle <= cpum1 & ~cpumreq;
-                3'b010:  cpu_ram_dout <= sdram_dout;
-                3'b101:  if (memcycle == 1) cpunwait <= 0;
-            endcase
-        end
-    end
-    assign WAIT_n = 1'b1;
-    assign video_read = htstate == 2'b111;
-    */
+    reg cpu_reset /* synthesis keep */;
+    assign cpu_reset = reset || dn_active;
+
     reg [7:0] sdram_dout /* synthesis keep */;
     logic [22:0] sdram_addr_in /* synthesis keep */;
     logic [22:0] sdram_addr_in_download /* synthesis keep */;
@@ -262,24 +216,28 @@ module pcw_core(
     logic sdram_we;
     logic sdram_oe /* synthesis keep */;
     logic clkref /* synthesis keep */;
-    assign sdram_addr_in_download = dn_go ? {6'b0, dn_addr[16:0]} : cpu_ram_addr;
+    assign sdram_addr_in_download = dn_active ? {7'b0, dn_addr[15:0]} : cpu_ram_addr;
     assign sdram_addr_in = mux_sdram ? {6'b0, vid_ram_addr} : sdram_addr_in_download;
     
     //assign sdram_addr_in = dn_go ? dn_addr[16:0] : cpu_ram_addr;
     //assign sdram_addr_in = dn_go ? dn_addr[16:0] : {7'b0, cpua};
-    assign sdram_din = dn_go ? dn_data : cpudo;
-    assign sdram_we_download = dn_go ? dn_wr : ~memw;
+    assign sdram_din = dn_active ? dn_data : cpudo;
+    assign sdram_we_download = dn_active ? dn_wr : ~memw;
     //assign sdram_oe = dn_go ? dn_rd : ~memr | video_read;
-    assign sdram_oe_download = dn_go ? dn_rd : ~memr;
+    assign sdram_oe_download = dn_active ? dn_rd : ~memr;
 
     assign sdram_we =  mux_sdram ? 1'b0 : sdram_we_download;
     assign sdram_oe =  mux_sdram ? 1'b0 : sdram_oe_download;
-    reg [7:0] vid_data;
-    //assign {cpu_ram_dout , vid_ram_dout} = mux_sdram ? {8'b0, sdram_dout}: {sdram_dout , 8'b0};
     assign cpu_ram_dout = mux_sdram ? 8'b0 : sdram_dout;
+
+    //assign sdram_we = sdram_we_download;
+    //assign sdram_oe = sdram_oe_download;
+    //assign cpu_ram_dout = sdram_dout;
     
     wire [15:0] vid_data_out_16;
     assign vid_ram_dout = vid_ram_addr[0] ? vid_data_out_16[15:8] : vid_data_out_16[7:0];
+    
+    wire sdram_ready;
     
     assign clkref = sdram_clk_ref;
     sdram sdram (
@@ -355,7 +313,7 @@ module pcw_core(
 	 
     // Create processor instance
     T80pa cpu(
-       	.RESET_n(~reset2),
+       	.RESET_n(~cpu_reset),
         .CLK(gclk),
         .CEN_p(cpu_ce_g_p),
         .CEN_n(cpu_ce_g_n),
@@ -498,23 +456,11 @@ module pcw_core(
         end
     end
 
-    // logic old_GCLK, old_ior;
-    // always @(posedge clk_sys)
-    // begin
-    //     old_GCLK <= GCLK;
-    //     if(~old_GCLK & GCLK)
-    //     begin
-    //         old_ior <= ior;
-    //         if(old_ior & ~ior & (cpua[7:0]==8'h00 || cpua[7:0]==8'h01)) waitio <= 1'b1;
-    //         else waitio <= 1'b0;
-    //     end
-    // end
-
     // detect fdc interrupt edge
     logic fdc_pe /* synthesis keep */, fdc_ne /* synthesis keep */;
     edge_det fdc_edge_det(.clk_sys(clk_sys), .signal(fdc_int), .pos_edge(fdc_pe), .neg_edge(fdc_ne));
     //  Drive FDC status latch (portF8) and NMI flag
-    logic fdc_status_latch = 1'b0;
+    logic fdc_status_latch /* synthesis keep */ = 1'b0;
 //    logic clear_fdc_status = 1'b0;
     logic clear_nmi_flag = 1'b0;
     logic nmi_flag = 1'b0;
@@ -609,8 +555,8 @@ module pcw_core(
     assign roller_ptr = portF5;
     assign yscroll = portF6;
     assign inverse = portF7[7];
-    assign disable_vid = ~portF7[6] || dn_go; // & ~portF8[3];
-
+    //assign disable_vid = ~portF7[6] || dn_active;
+    assign disable_vid = ~portF7[6];
     // Ram B address for various paging modes
     logic [20:0] pcw_ram_b_addr/* synthesis keep */;
     logic [17:0] cpc_read_ram_b_addr/* synthesis keep */;
@@ -731,6 +677,7 @@ module pcw_core(
     video_controller video(
         .reset(reset),
         .clk_sys(clk_sys),
+        .pix_stb(pix_stb),
         .roller_ptr(roller_ptr),
         .yscroll(yscroll),
         .inverse(inverse),
@@ -744,7 +691,6 @@ module pcw_core(
         .din(vid_ram_dout),
 
         .colour(colour),
-        .ce_pix(ce_pix),
         .hsync(hsync),
         .vsync(vsync),
         .hb(hblank),
@@ -924,7 +870,7 @@ module pcw_core(
 
         .IOA_in(dkjoy_io),
 
-        .CE(snd_clk & dktronics),
+        .CE(snd_ce & dktronics),
         .RESET(reset),
         .CLK(clk_sys)
     ); 
@@ -944,37 +890,46 @@ module pcw_core(
 
 
     // Floppy disk controller logic and control
-    wire fdc_sel = {~cpua[7]} /* synthesis keep */;
+    wire fdc_sel = {~cpua[7]};
     
     //wire [7:0] u765_dout;
     wire [7:0] fdc_dout;// = (fdc_sel & ~ior) ? u765_dout : 8'hFF;
 
-    reg  [1:0] u765_ready = 0 /* synthesis keep */;
+    reg  [1:0] u765_ready = 0;
     always @(posedge clk_sys) if(img_mounted[0]) u765_ready[0] <= |img_size;
     always @(posedge clk_sys) if(img_mounted[1]) u765_ready[1] <= |img_size;
     
     assign LED[1] = motor;
     assign LED[2] = u765_ready[0];
-    assign LED[3] = u765_ready[1];
-    assign LED[4] = fdc_int;
+    assign LED[3] = fdc_int;
+    assign LED[4] = nmi_line;
+    assign LED[5] = int_line;
+    assign LED[6] = timer_line;
+    
+    wire fdcreadreq /* synthesis keep */= ~fdc_sel | ior;
+    wire fdcwritereq /* synthesis keep */= ~fdc_sel | iow;
+    
+    assign AUX[0] = fdcreadreq;
+    assign AUX[1] = fdcwritereq;
+    assign AUX[2] = fdc_int;
+    assign AUX[3] = disk_to_int;
+    assign AUX[4] = disk_ce;
+    assign AUX[5] = int_sig;
+    assign AUX[6] = cpua[0];
     logic fdc_int /* synthesis keep */;
-    reg fdc_read /* synthesis noprune */;
-    reg fdc_write /* synthesis noprune */;
-    assign fdc_read = fdc_sel & ~ior;
-    assign fdc_write = fdc_sel & ~iow;
     
     u765 u765
     (
         .reset(reset),
 
         .clk_sys(clk_sys),
-        .ce(disk_clk),
+        .ce(disk_ce),
         .a0(cpua[0]),
         .ready(u765_ready),
         .motor({motor,motor}),
         .available(2'b11),
-        .nRD(~fdc_sel | ior), 
-        .nWR(~fdc_sel | iow),
+        .nRD(fdcreadreq), 
+        .nWR(fdcwritereq),
         .din(cpudo),
         .dout(fdc_dout),
         .int_out(fdc_int),

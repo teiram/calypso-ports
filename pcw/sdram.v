@@ -52,7 +52,7 @@ module sdram
 );
 
 assign SDRAM_CKE = ~init;
-assign dout = oe ? ram_dout : 8'hFF;
+assign dout = oe ? ram_dout : 8'h00;
 assign ready = reg_ready;
 // no burst configured
 localparam RASCAS_DELAY   = 3'd2;   // tRCD=20ns -> 2 cycles@64MHz

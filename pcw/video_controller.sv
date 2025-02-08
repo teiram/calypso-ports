@@ -38,6 +38,7 @@
 module video_controller(
     input wire reset,               // Reset
 	input wire clk_sys,             // 64 Mhz System Clock, Need to divide by 4 for 16Mhz pixel clock
+    input wire pix_stb,
     input wire [7:0] roller_ptr,    // Port F5 io register - Roller Ram Ptr
     input wire [7:0] yscroll,       // Port F6 y scroll register
     input wire inverse,             // Port F7 inverse video
@@ -51,7 +52,6 @@ module video_controller(
 	input wire [7:0] din,           // Data in for pixel data and roller ram
 
 	output logic [3:0] colour,
-	output logic ce_pix,
 	output logic hsync,
 	output logic vsync,
 	output logic hb,
@@ -60,24 +60,13 @@ module video_controller(
 
     );
 
-    // generate a 16mhz pixel clock based on clk_sys being 64mhz
-    reg [1:0] cnt;
-    reg pix_stb /* synthesis keep */;
-    always @(posedge clk_sys) begin
-        cnt <= cnt + 1'b1;
-    end
-    assign pix_stb = ~cnt[1] & ~cnt[0];  // 16mhz
+    logic [10:0] x /* synthesis keep */;  // current pixel x position: 10-bit value: 0-1023
+    logic [8:0] y /* synthesis keep */; // current pixel y position:  9-bit value: 0-511
+    logic active /* synthesis keep */;   // screen area action
+    logic screen_start /* synthesis keep */;   // Positive for one pixel at the very end of frame
+    logic line_start /* synthesis keep */;   // Start of horizontal sync line
+    logic prefetch;
     
-    //{pix_stb, cnt} <= cnt + 16'h4000;  // divide by 4: (2^16)/2 = 0x4000
-    //{vdata_ce, cnt} <= cnt + 16'h1000; // divide by 16: (2^16)/16   = 0x1000
-    assign ce_pix = pix_stb;
-
-    logic [10:0] x;  // current pixel x position: 10-bit value: 0-1023
-    logic [8:0] y;  // current pixel y position:  9-bit value: 0-511
-    logic active;   // screen area action
-    logic screen_start;   // Positive for one pixel at the very end of frame
-    logic line_start;   // Start of horizontal sync line
-
     video_sync display (
         .i_clk(clk_sys),
         .i_pix_stb(pix_stb),
@@ -90,6 +79,7 @@ module video_controller(
         .o_x(x), 
         .o_y(y),
         .o_active(active),
+        .o_prefetch(prefetch),
         .o_screenstart(screen_start),
         .o_linestart(line_start),
         .o_timer(timer_int)
@@ -103,7 +93,7 @@ module video_controller(
     roller_states roller_state;
     logic video_lookup /* synthesis keep */;         // memory override bit to get roller ram address
     logic [16:0] lookup_addr;   // address in memory to get roller ram lsb and msb
-    always @ (posedge clk_sys)
+    always @ (posedge clk_sys or posedge reset)
     begin
 
         logic old_ls = 1'b0;
@@ -124,7 +114,7 @@ module video_controller(
                     roller_state <= WAIT1;
                     video_lookup <= 1'b1;
                     // Read MSB of address
-                    lookup_addr <= {roller_ptr[7:0],9'b0} + (((y + yscroll) & 8'hff) << 1);
+                    lookup_addr <= {roller_ptr[7:0], 9'b0} + (((y + yscroll) & 8'hff) << 1);
                 end else begin
                     case(roller_state)
                         IDLE: begin
@@ -138,7 +128,8 @@ module video_controller(
                         GET_LSB: begin
                             video_lookup <= 1'b1;
                             // Read LSB of address
-                            lookup_addr <= {roller_ptr[7:0],9'b0} + (((y + yscroll) & 8'hff) << 1) + 1;
+                            //lookup_addr <= {roller_ptr[7:0], 9'b0} + (((y + yscroll) & 8'hff) << 1) + 1;
+                            lookup_addr <= lookup_addr + 1'b1;
                             // din should equal LSB from previous step
                             roller_bits[7:0] <= din;
                             roller_state <= WAIT4;
@@ -148,16 +139,16 @@ module video_controller(
                         WAIT6: roller_state <= GET_MSB;
                         GET_MSB: begin
                             video_lookup <= 1'b0;
-                            lookup_addr <= 'b0;
+                            //lookup_addr <= 'b0;
                             // din should equal MSB from previous transition step
                             roller_bits[15:8] <= din;
                             roller_state <= SETUP;
                         end
                         SETUP: begin
                             video_lookup <= 1'b0;
-                            lookup_addr <= 'b0;
+                            //lookup_addr <= 'b0;
                             // Set line address for future pixel reads
-                            line_addr <= {roller_bits[15:3],1'b0,roller_bits[2:0]};
+                            line_addr <= {roller_bits[15:3], 1'b0, roller_bits[2:0]};
                             roller_state <= IDLE;
                         end
                     endcase
@@ -168,7 +159,7 @@ module video_controller(
 
     // Pixel memory lookup address controller
     logic [16:0] pixel_addr /* synthesis keep */;
-    assign pixel_addr = active ? line_addr + (x[10:3] << 3 ) : 'b0;
+    assign pixel_addr = prefetch ? line_addr + (x[10:3] << 3) : 'b0;
 
     // Address controller for vid_addr
     assign vid_addr = video_lookup ? lookup_addr : pixel_addr;
@@ -176,16 +167,16 @@ module video_controller(
     // Pixel shift register loader
     logic [7:0] pixel_reg = 'b0;
     logic [3:0] pixel;
-    always @ (posedge clk_sys)
+    always @(posedge clk_sys)
     begin
-        if(ce_pix)
+        if (pix_stb)
         begin
             // Every 8 pixels load shift reg
-            if(x[2:0]==3'b000 && active) pixel_reg <= din;
+            if (x[2:0] == 3'b000 && active) pixel_reg <= din;
              // else shift pixel register left
             else begin
                 // Shift every other pixel in fake colour mode
-                if(fake_colour && y < fake_end) begin
+                if (fake_colour && y < fake_end) begin
                     pixel_reg <= ~x[0] ? {pixel_reg[5:0], 2'b0} : pixel_reg;
                 end
                 // else every pixel
