@@ -103,3 +103,6 @@
 [submodule "gehstock/Mist_FPGA"]
 	path = gehstock/Mist_FPGA
 	url = https://github.com/Gehstock/Mist_FPGA.git
+[submodule "coco2/CoCo2-FPGA"]
+	path = coco2/CoCo2-FPGA
+	url = https://github.com/gyurco/CoCo2-FPGA.git
