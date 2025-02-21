@@ -46,8 +46,8 @@ module mdv (
 	input [15:0] mem_din
 );
 
-// mdv1_ image stored at h800000, mdv2_ image stored at address h900000
-wire [24:0] BASE_ADDR = (mdv_drive == 1)?25'h800000:25'h900000;
+// mdv1_ image stored at h380000, mdv2_ image stored at address h3C0000 (inside 8Mb of CYC1000)
+wire [24:0] BASE_ADDR = (mdv_drive == 1)?25'h380000:25'h3C0000;
   
 // a gap is permanently present if no mdv is inserted or if
 // there's a gap on the inserted one. This is the signal that triggers
