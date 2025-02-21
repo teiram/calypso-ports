@@ -159,7 +159,8 @@ module video_controller(
 
     // Pixel memory lookup address controller
     logic [16:0] pixel_addr /* synthesis keep */;
-    assign pixel_addr = prefetch ? line_addr + (x[10:3] << 3) : 'b0;
+    assign pixel_addr = (prefetch & ~active) ? line_addr + (x[10:3] << 3):
+                        active ? line_addr + ((8'd1 + x[10:3]) << 3): 'b0;
 
     // Address controller for vid_addr
     assign vid_addr = video_lookup ? lookup_addr : pixel_addr;

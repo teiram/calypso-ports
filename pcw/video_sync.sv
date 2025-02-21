@@ -118,6 +118,7 @@ module video_sync(
     // Timer interrupt processing
     logic timer_tick, timer_line;
     logic [5:0] timer_count;
+    logic [9:0] timer_duration;
     assign timer_line = ((v_count == VS_TIMER_START) & (h_count == LINE - 1));
     assign o_timer = timer_tick;
 
@@ -132,7 +133,10 @@ module video_sync(
         end else
         if (i_pix_stb)  // once per pixel
         begin
-            timer_tick <= 1'b0;
+            if (timer_tick) begin
+                timer_duration <= timer_duration - 10'b1;
+            end
+            if (!(|timer_duration)) timer_tick <= 1'b0;
 
             if (h_count == LINE - 1)  // end of line
             begin
@@ -141,10 +145,11 @@ module video_sync(
                 if (v_count + 1 == SCREEN) v_count <= 0;
                 else v_count <= v_count + 1;
                 
-                if(timer_count == 0 || timer_line) 
+                if (timer_count == 0 || timer_line) 
                 begin 
                     timer_count <= TIMER_LINES - 1;
                     timer_tick <= 1'b1;
+                    timer_duration <= 10'b1111111111;
                 end
                 else timer_count <= timer_count - 1;
 
