@@ -150,7 +150,6 @@ localparam CONF_STR = {
 	`SEP
 	"O4,Model,8256/8512,9256/9512+;",
 	"OFG,Memory Size,256K,512K,1MB,2MB;",
-	"O89,Clockspeed,4,8,16,32;",
 	`SEP
 	"O56,CRT Color,White,Green,Amber;",
 	"OIJ,Fake Color,None,CGA,EGA;",
@@ -307,7 +306,6 @@ pcw_core pcw_core(
 
 	.disp_color(status[6:5]),
 	.ntsc(status[7]),
-	.overclock(status[9:8]),
 	.model(status[4]),
 	.memory_size(status[16:15]),
 	.dktronics(status[17]),

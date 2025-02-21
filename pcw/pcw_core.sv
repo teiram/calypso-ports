@@ -3,6 +3,9 @@
 //
 // Copyright (c) 2020 Stephen Eddy
 //
+// Calypso adaptations for full SDRAM, more realistic WAIT signal implementation
+// and interrupt handling (c) 2025 Manuel Teira
+//
 // All rights reserved
 //
 // Redistribution and use in source and synthezised forms, with or without
@@ -54,7 +57,6 @@ module pcw_core(
     input wire [24:0] ps2_mouse,
     input wire [1:0] mouse_type,
     input wire [1:0] disp_color,
-    input wire [1:0] overclock,
     input wire ntsc,
     input wire model,
     input wire [1:0] memory_size,
@@ -127,7 +129,7 @@ module pcw_core(
         .ce_16mhz(pix_stb),
         .ce_4mhz(disk_ce),
         .ce_1mhz(snd_ce)
-    ); 
+    );
     
     wire dn_wr;
     wire dn_rd;
@@ -169,7 +171,7 @@ module pcw_core(
     
     // cpu control
     logic [15:0] cpua /* synthesis keep */;
-    logic [7:0] cpudo;
+    logic [7:0] cpudo /* synthesis keep */;
     logic [7:0] cpudi /* synthesis keep */;
     logic cpuwr,cpurd,cpumreq,cpuiorq,cpum1 /* synthesis keep */;
     logic romrd,ramrd,ramwr;
@@ -390,8 +392,8 @@ module pcw_core(
         end
     end
 
-    assign portF8 = {1'b0,vblank,fdc_status_latch,~ntsc,timer_misses};
-
+    //assign portF8 = {1'b0,vblank,fdc_status_latch,~ntsc,timer_misses};
+    assign portF8 = {1'b0,vblank,fdc_int,~ntsc,timer_misses};
     logic int_mode_change = 1'b0;
     // IO writing to register ports
     always @(posedge clk_sys)
@@ -482,7 +484,7 @@ module pcw_core(
 
     // Detect timer interrupt firing from video controller (300 hz)
     logic timer_pe;
-    logic vid_timer;
+    logic vid_timer /* synthesis keep */;
     edge_det timer_edge_det(.clk_sys(clk_sys), .signal(vid_timer), .pos_edge(timer_pe));
      // Detect int_mode_change edge
     logic int_mode_pe, int_mode_ne;
@@ -492,10 +494,12 @@ module pcw_core(
     logic int_line = 1'b0;
     logic nmi_line = 1'b0;
     logic clear_timer = 1'b0;
-    logic [4:0] clear_timer_count = 'b0;   // 32 count cycle to clear timer after read
+    logic [1:0] clear_timer_count = 'b0; //Clear timer after two M1 activations
+    logic last_cpum1;
     // Timer flag and interrupt flag drivers
     always @(posedge clk_sys)
     begin
+        last_cpum1 <= cpum1;
         if(timer_pe) 
         begin
             // Timer count and int line processing
@@ -518,14 +522,14 @@ module pcw_core(
         // Clear timer processing
         if(clear_timer)
         begin
-            if(&clear_timer_count)
+            if(clear_timer_count == 2'b10)
             begin
                 // Reached top so clear flag
                 clear_timer <= 1'b0;
                 timer_line <= 1'b0;
                 timer_misses <= 'b0;
             end
-            else clear_timer_count <= clear_timer_count + 4'd1;
+            else if (~cpum1 & last_cpum1) clear_timer_count <= clear_timer_count + 2'b01;
         end
         // Clear interrupts
         if(int_mode_pe)
@@ -545,8 +549,8 @@ module pcw_core(
 	logic nmi_sig/* synthesis keep */, int_sig/* synthesis keep */;
     assign nmi_sig = ~nmi_line;
     // Disk int and timer int combined
-    assign int_sig = nmi_line ? 1'b1 : (~int_line & ~timer_line);   // Don't fire if NMI outstanding
-
+    //assign int_sig = ~((fdc_int & disk_to_int) | timer_line);
+    assign int_sig = ~((fdc_int & disk_to_int) | vid_timer);
     // Video control registers
     logic [7:0] roller_ptr;
     logic [7:0] yscroll;
@@ -555,8 +559,7 @@ module pcw_core(
     assign roller_ptr = portF5;
     assign yscroll = portF6;
     assign inverse = portF7[7];
-    //assign disable_vid = ~portF7[6] || dn_active;
-    assign disable_vid = ~portF7[6];
+    assign disable_vid = ~portF7[6] || dn_active;
     // Ram B address for various paging modes
     logic [20:0] pcw_ram_b_addr/* synthesis keep */;
     logic [17:0] cpc_read_ram_b_addr/* synthesis keep */;
@@ -697,19 +700,6 @@ module pcw_core(
         .vb(vblank),
         .timer_int(vid_timer)
     );
-
-    // Head over heals duplicate writes to 0xc000-c1ff for debugging
-    // Clone SD writes into sd_debug for memory debugging using in system member debugger in Quartus
-    // logic [7:0] debug_vid /*synthesis noprune*/;
-    // logic c000_range;
-    // assign c000_range = (ram_b_addr >= 18'hc000 && ram_b_addr < 18'hcfff) & ~memw & GCLK;
-    // sd_debug vid_debug(
-    //     .clock(clk_sys),
-    //     .address(ram_b_addr[11:0]),
-    //     .data(cpudo),
-    //     .wren(c000_range),
-    //     .q(debug_vid)
-    // );
 
     // Video colour processing
     always_comb begin
@@ -890,12 +880,12 @@ module pcw_core(
 
 
     // Floppy disk controller logic and control
-    wire fdc_sel = {~cpua[7]};
+    wire fdc_sel = ~cpua[7];
     
     //wire [7:0] u765_dout;
     wire [7:0] fdc_dout;// = (fdc_sel & ~ior) ? u765_dout : 8'hFF;
 
-    reg  [1:0] u765_ready = 0;
+    reg  [1:0] u765_ready = {1'b0, 1'b0};
     always @(posedge clk_sys) if(img_mounted[0]) u765_ready[0] <= |img_size;
     always @(posedge clk_sys) if(img_mounted[1]) u765_ready[1] <= |img_size;
     
@@ -905,23 +895,18 @@ module pcw_core(
     assign LED[4] = nmi_line;
     assign LED[5] = int_line;
     assign LED[6] = timer_line;
-    
+    assign LED[7] = vid_timer;
     wire fdcreadreq /* synthesis keep */= ~fdc_sel | ior;
     wire fdcwritereq /* synthesis keep */= ~fdc_sel | iow;
+    assign AUX[0] = vid_timer;
+    assign AUX[1] = int_line;
+    assign AUX[2] = nmi_line;
     
-    assign AUX[0] = fdcreadreq;
-    assign AUX[1] = fdcwritereq;
-    assign AUX[2] = fdc_int;
-    assign AUX[3] = disk_to_int;
-    assign AUX[4] = disk_ce;
-    assign AUX[5] = int_sig;
-    assign AUX[6] = cpua[0];
     logic fdc_int /* synthesis keep */;
     
     u765 u765
     (
         .reset(reset),
-
         .clk_sys(clk_sys),
         .ce(disk_ce),
         .a0(cpua[0]),

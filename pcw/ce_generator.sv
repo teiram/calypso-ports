@@ -19,7 +19,7 @@ module ce_generator(
     assign cpu_ce_n =  counter[3] & ~counter[2] & ~counter[1] & ~counter[0]; //  4mhz
     assign ce_1mhz  = ~|counter;                                            //  1mhz
     assign ce_16mhz = ~counter[1] & ~counter[0];                             // 16mhz
-    assign ce_4mhz = cpu_ce_p;
+    assign ce_4mhz = cpu_ce_n;
     assign sdram_clk_ref = cpu_ce_p;
     
 endmodule

@@ -292,7 +292,20 @@ wire [5:4] joyB_t = {turbo_cnt[19],turbo_cnt[19]} & (joy_swap ? core_joy_A[9:8] 
 wire [7:0] joyA = joy_swap ? core_joy_B[7:0] | core_joy_A[19:16] : core_joy_A[7:0] | core_joy_B[19:16];
 wire [7:0] joyB = joy_swap ? core_joy_A[7:0] | core_joy_B[19:16] : core_joy_B[7:0] | core_joy_A[19:16];
 
-wire [7:0] nes_joy_A = { joyA[0], joyA[1], joyA[2], joyA[3], joyA[7], joyA[6], joyA[5] | joyA_t[5], joyA[4] | joyA_t[4] };
+reg kbd_select;
+reg kbd_start;
+always @(posedge clk) begin
+	if (key_strobe) begin
+        if (!key_extended) begin
+            case(key_code) 
+                8'h05: kbd_select <= key_pressed; // F1
+                8'h06: kbd_start  <= key_pressed; // F2
+            endcase
+        end
+    end
+end
+
+wire [7:0] nes_joy_A = { joyA[0], joyA[1], joyA[2], joyA[3], joyA[7] | kbd_select, joyA[6] | kbd_start, joyA[5] | joyA_t[5], joyA[4] | joyA_t[4] };
 wire [7:0] nes_joy_B = { joyB[0], joyB[1], joyB[2], joyB[3], joyB[7], joyB[6], joyB[5] | joyB_t[5], joyB[4] | joyB_t[4] };
  
   wire clock_locked;
