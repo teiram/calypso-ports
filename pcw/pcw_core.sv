@@ -3,6 +3,9 @@
 //
 // Copyright (c) 2020 Stephen Eddy
 //
+// Calypso adaptations for full SDRAM, more realistic WAIT signal implementation
+// and interrupt handling (c) 2025 Manuel Teira
+//
 // All rights reserved
 //
 // Redistribution and use in source and synthezised forms, with or without
@@ -54,7 +57,6 @@ module pcw_core(
     input wire [24:0] ps2_mouse,
     input wire [1:0] mouse_type,
     input wire [1:0] disp_color,
-    input wire [1:0] overclock,
     input wire ntsc,
     input wire model,
     input wire [1:0] memory_size,
