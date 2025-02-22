@@ -722,10 +722,10 @@ module pcw_core(
 
     logic [23:0] mono_colour;
     always_comb begin
-        if(disp_color==2'b00) mono_colour = rgb_white;
+        if (disp_color==2'b00) mono_colour = model == 1'b0 ? rgb_green : rgb_white;
         else if(disp_color==2'b01) mono_colour = rgb_green;
-        else if(disp_color==2'b10) mono_colour= rgb_amber;
-        else mono_colour = rgb_white;
+        else if(disp_color==2'b10) mono_colour= rgb_white;
+        else mono_colour = rgb_amber;
     end
 
     always_comb begin

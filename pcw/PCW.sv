@@ -151,7 +151,7 @@ localparam CONF_STR = {
 	"O4,Model,8256/8512,9256/9512+;",
 	"OFG,Memory Size,256K,512K,1MB,2MB;",
 	`SEP
-	"O56,CRT Color,White,Green,Amber;",
+	"O56,CRT Color,Auto,Green,White,Amber;",
 	"OIJ,Fake Color,None,CGA,EGA;",
 	"O7,Video System,PAL,NTSC;",
 	"O13,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
