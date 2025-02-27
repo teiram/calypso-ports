@@ -119,7 +119,7 @@ module pcw_core(
     wire sdram_clk_ref /* synthesis keep */;
     wire pix_stb /* synthesis keep */;
     wire disk_ce /* synthesis keep */;
-    wire snd_ce /* synthesis keep */;
+    wire snd_clk;
     ce_generator ce_generator(
         .clk(clk_sys),
         .reset(reset),
@@ -127,8 +127,8 @@ module pcw_core(
         .cpu_ce_n(cpu_ce_n),
         .sdram_clk_ref(sdram_clk_ref),
         .ce_16mhz(pix_stb),
-        .ce_u765(disk_ce),
-        .ce_1mhz(snd_ce)
+        .ce_4mhz(disk_ce),
+        .clk_2mhz(snd_clk)
     );
     
     wire dn_wr;
@@ -826,31 +826,9 @@ module pcw_core(
     end 
 
     logic [7:0] dk_out;
-    // Audio processing
-    /*
-    ym2149 soundchip(
-        .DI(cpudo),
-        .DO(dk_out),
-
-        .BDIR(dk_busdir),
-        .BC(dk_bc),
-        .SEL(1'b0),
-        .MODE(1'b0),
-
-        .CHANNEL_A(ch_a),
-        .CHANNEL_B(ch_b),
-        .CHANNEL_C(ch_c),
-
-        .IOA_in(dkjoy_io),
-
-        .CE(snd_ce & dktronics),
-        .RESET(reset),
-        .CLK(clk_sys)
-    ); 
-    */
-    
+   
     psg soundchip(
-        .clock(cpu_ce_g_p),       
+        .clock(snd_clk),       
         .sel(1'b0),            
         .ce(dktronics),
         .reset(~reset),         

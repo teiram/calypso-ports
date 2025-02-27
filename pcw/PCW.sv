@@ -418,14 +418,14 @@ assign HDMI_PCLK = clk_sys;
 i2s i2s (
 	.reset(1'b0),
 	.clk(clk_sys),
-	.clk_rate(32'd64_000_000),
+	.clk_rate(32'd32_000_000),
 
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
 
-	.left_chan ({audio[13:0], 2'b00}),
-	.right_chan({audio[13:0], 2'b00})
+	.left_chan ({~audio[13], audio[12:0], 2'b00}),
+	.right_chan({~audio[13], audio[12:0], 2'b00})
 );
 `ifdef I2S_AUDIO_HDMI
 assign HDMI_MCLK = 0;
@@ -443,7 +443,7 @@ spdif spdif
 	.rst_i(reset),
 	.clk_rate_i(32'd64_000_000),
 	.spdif_o(SPDIF),
-	.sample_i({{~audio[8], audio[7:0], 7'b0000000},{~audio[8], audio[7:0], 7'b0000000}})
+	.sample_i({{~audio[13], audio[12:0], 2'b00},{~audio[13], audio[12:0], 2'b00}})
 );
 `endif
 endmodule
