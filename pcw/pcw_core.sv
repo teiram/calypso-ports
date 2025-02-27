@@ -158,10 +158,10 @@ module pcw_core(
     assign fake_colour = (fake_colour_mode != 2'b00);
 
     // Audio channels
-    logic [7:0] ch_a;
-    logic [7:0] ch_b;
-    logic [7:0] ch_c;
-    logic [9:0] audio;
+    logic [11:0] ch_a;
+    logic [11:0] ch_b;
+    logic [11:0] ch_c;
+    logic [13:0] audio;
     logic speaker_enable = 1'b0;
 
     logic [16:0] vid_ram_addr /* synthesis keep */;
@@ -202,39 +202,20 @@ module pcw_core(
         end
     end
     assign WAIT_n = tstate == 2'b01 || ~ior || ~iow;
-    reg mux_sdram;
-    assign mux_sdram = dn_active ? 1'b0 : tstate == 2'b11;
-    
     reg cpu_reset /* synthesis keep */;
     assign cpu_reset = reset || dn_active;
 
     reg [7:0] sdram_dout /* synthesis keep */;
     logic [22:0] sdram_addr_in /* synthesis keep */;
-    logic [22:0] sdram_addr_in_download /* synthesis keep */;
-
-    logic sdram_we_download /* synthesis keep */;
-    logic sdram_oe_download /* synthesis keep */;
     logic [7:0] sdram_din /* synthesis keep */;
     logic sdram_we;
     logic sdram_oe /* synthesis keep */;
     logic clkref /* synthesis keep */;
-    assign sdram_addr_in_download = dn_active ? {7'b0, dn_addr[15:0]} : cpu_ram_addr;
-    assign sdram_addr_in = mux_sdram ? {6'b0, vid_ram_addr} : sdram_addr_in_download;
-    
-    //assign sdram_addr_in = dn_go ? dn_addr[16:0] : cpu_ram_addr;
-    //assign sdram_addr_in = dn_go ? dn_addr[16:0] : {7'b0, cpua};
+    assign sdram_addr_in = dn_active ? {7'b0, dn_addr[15:0]} : cpu_ram_addr;
     assign sdram_din = dn_active ? dn_data : cpudo;
-    assign sdram_we_download = dn_active ? dn_wr : ~memw;
-    //assign sdram_oe = dn_go ? dn_rd : ~memr | video_read;
-    assign sdram_oe_download = dn_active ? dn_rd : ~memr;
-
-    assign sdram_we =  mux_sdram ? 1'b0 : sdram_we_download;
-    assign sdram_oe =  mux_sdram ? 1'b0 : sdram_oe_download;
-    assign cpu_ram_dout = mux_sdram ? 8'b0 : sdram_dout;
-
-    //assign sdram_we = sdram_we_download;
-    //assign sdram_oe = sdram_oe_download;
-    //assign cpu_ram_dout = sdram_dout;
+    assign sdram_we = dn_active ? dn_wr : ~memw;
+    assign sdram_oe = dn_active ? dn_rd : ~memr;
+    assign cpu_ram_dout = sdram_dout;
     
     wire [15:0] vid_data_out_16;
     assign vid_ram_dout = vid_ram_addr[0] ? vid_data_out_16[15:8] : vid_data_out_16[7:0];
@@ -500,7 +481,7 @@ module pcw_core(
         end
         
         // Detect clear timer start
-        if(~ior && cpua[7:0] == 8'hf4 && clear_timer == 1'b0) begin
+        if (~ior && cpua[7:0] == 8'hf4 && clear_timer == 1'b0) begin
             clear_timer <= 1'b1;
         end
 
@@ -515,14 +496,8 @@ module pcw_core(
         end
         
         // Clear interrupts: Check if this makes sense
-        if (int_mode_pe)
-        begin
-            if (disk_to_nmi) int_line <= 1'b0;
-            else if (disk_to_int) clear_nmi_flag <= 1'b1;    // Disk to int clears nmi
-            else begin
-                clear_nmi_flag <= 1'b1;
-                int_line <= 1'b0;      // Else clear both
-            end
+        if (int_mode_pe) begin
+            if (disk_to_int) clear_nmi_flag <= 1'b1;
         end 
         else clear_nmi_flag <= 1'b0;
     end

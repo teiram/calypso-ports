@@ -418,7 +418,7 @@ assign HDMI_PCLK = clk_sys;
 i2s i2s (
 	.reset(1'b0),
 	.clk(clk_sys),
-	.clk_rate(32'd32_000_000),
+	.clk_rate(32'd64_000_000),
 
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
