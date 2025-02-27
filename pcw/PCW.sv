@@ -283,7 +283,7 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD
 );
 
 wire reset = ~locked | status[0] /* synthesis keep */;
-wire [8:0] audio;
+wire [13:0] audio;
 
 pcw_core pcw_core(
 	.reset(reset),
@@ -424,8 +424,8 @@ i2s i2s (
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
 
-	.left_chan ({~audio[8], audio[7:0], 7'b0000000}),
-	.right_chan({~audio[8], audio[7:0], 7'b0000000})
+	.left_chan ({audio[13:0], 2'b00}),
+	.right_chan({audio[13:0], 2'b00})
 );
 `ifdef I2S_AUDIO_HDMI
 assign HDMI_MCLK = 0;

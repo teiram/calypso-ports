@@ -49,7 +49,7 @@ module pcw_core(
 	output logic vblank,        // Vertical blanking
 
     output logic [7:0] LED,           // LED output
-    output logic [8:0] audiomix,
+    output logic [13:0] audiomix,
     input wire [7:0] joy0,
     input wire [7:0] joy1,
     input wire [2:0] joy_type,
@@ -127,7 +127,7 @@ module pcw_core(
         .cpu_ce_n(cpu_ce_n),
         .sdram_clk_ref(sdram_clk_ref),
         .ce_16mhz(pix_stb),
-        .ce_4mhz(disk_ce),
+        .ce_u765(disk_ce),
         .ce_1mhz(snd_ce)
     );
     
@@ -392,8 +392,7 @@ module pcw_core(
         end
     end
 
-    //assign portF8 = {1'b0,vblank,fdc_status_latch,~ntsc,timer_misses};
-    assign portF8 = {1'b0,vblank,fdc_int,~ntsc,timer_misses};
+    assign portF8 = {1'b0, vblank, fdc_int_latch, ~ntsc, timer_misses};
     logic int_mode_change = 1'b0;
     // IO writing to register ports
     always @(posedge clk_sys)
@@ -408,6 +407,7 @@ module pcw_core(
             portF5 <= 8'h00;
             portF6 <= 8'h00;
             portF7 <= 8'h80;
+            int_mode_change <= 1'b0;
             disk_to_nmi <= 1'b0;
             disk_to_int <= 1'b0;
             tc <= 1'b0;
@@ -432,7 +432,6 @@ module pcw_core(
             else if(cpudo[3:0] == 4'd2) begin           // Disk to NMI
                 disk_to_nmi <= 1'b1;
                 disk_to_int <= 1'b0;
-                //int_mode_change <= 1'b1;
             end
             else if(cpudo[3:0] == 4'd3) begin           // Disk to INT
                 disk_to_int <= 1'b1;
@@ -457,100 +456,82 @@ module pcw_core(
             //if(img_mounted) motor <= 0; // Reset on new image mounted
         end
     end
+    
+    // Detect int_mode_change edge
+    logic int_mode_pe, int_mode_ne;
+    edge_det int_mode_edge_det(.clk_sys(clk_sys), .signal(int_mode_change), .pos_edge(int_mode_pe), .neg_edge(int_mode_ne));
 
     // detect fdc interrupt edge
     logic fdc_pe /* synthesis keep */, fdc_ne /* synthesis keep */;
     edge_det fdc_edge_det(.clk_sys(clk_sys), .signal(fdc_int), .pos_edge(fdc_pe), .neg_edge(fdc_ne));
     //  Drive FDC status latch (portF8) and NMI flag
-    logic fdc_status_latch /* synthesis keep */ = 1'b0;
-//    logic clear_fdc_status = 1'b0;
+    logic fdc_int_latch /* synthesis keep */ = 1'b0;
     logic clear_nmi_flag = 1'b0;
     logic nmi_flag = 1'b0;
     always @(posedge clk_sys)
     begin
-        if(fdc_pe) 
-        begin
-            fdc_status_latch <= 1'b1;
-            if(disk_to_nmi) nmi_flag <= 1'b1;
+        if (fdc_pe) begin
+            fdc_int_latch <= 1'b1;
+            if (disk_to_nmi) nmi_flag <= 1'b1;
         end
-        else if(fdc_ne) fdc_status_latch <= 1'b0;
-//        if(clear_fdc_status) fdc_status_latch <= 1'b0;
-        if(clear_nmi_flag) nmi_flag <= 1'b0;
+        else if (fdc_ne) fdc_int_latch <= 1'b0;
+        if (clear_nmi_flag) nmi_flag <= 1'b0;
     end
 
-    // // Detect interrupts being re-enabled by the cpu via iff1
-    // logic iff1_pe;
-    // edge_det int_enable_edge_det(.clk_sys(clk_sys), .signal(iff1), .pos_edge(iff1_pe));
-
     // Detect timer interrupt firing from video controller (300 hz)
-    logic timer_pe;
     logic vid_timer /* synthesis keep */;
-    edge_det timer_edge_det(.clk_sys(clk_sys), .signal(vid_timer), .pos_edge(timer_pe));
-     // Detect int_mode_change edge
-    logic int_mode_pe, int_mode_ne;
-    edge_det int_mode_edge_det(.clk_sys(clk_sys), .signal(int_mode_change), .pos_edge(int_mode_pe), .neg_edge(int_mode_ne));
-
+    logic last_vid_timer;
     logic timer_line = 1'b0;
     logic int_line = 1'b0;
     logic nmi_line = 1'b0;
     logic clear_timer = 1'b0;
-    logic [1:0] clear_timer_count = 'b0; //Clear timer after two M1 activations
     logic last_cpum1;
     // Timer flag and interrupt flag drivers
     always @(posedge clk_sys)
     begin
         last_cpum1 <= cpum1;
-        if(timer_pe) 
+        last_vid_timer <= vid_timer;
+        int_line <= disk_to_int & fdc_int_latch;
+        nmi_line <= nmi_flag;
+        
+        if (~last_vid_timer & vid_timer)
         begin
-            // Timer count and int line processing
-            if(!(&timer_misses)) timer_misses <= timer_misses + 4'b1;
-            if(~iff1) timer_line <= 1'b0;
-            else timer_line <= 1'b1;
-            // NMI line processing occurs on timer
-            if(nmi_flag) nmi_line <= 1'b1;  // Trigger or hold NMI high
-            else nmi_line <= 1'b0;
-            // INT line processing
-            if(disk_to_int & fdc_status_latch & iff1) int_line <= 1'b1;
-            else int_line <= 1'b0;
+            if (!(&timer_misses)) timer_misses <= timer_misses + 4'b1;
         end
+        
         // Detect clear timer start
-        if(~ior & cpua[7:0]==8'hf4) 
-        begin
-            clear_timer <= 1'b1; // Clear timer
-            clear_timer_count <= 'b0;
+        if(~ior && cpua[7:0] == 8'hf4 && clear_timer == 1'b0) begin
+            clear_timer <= 1'b1;
         end
-        // Clear timer processing
-        if(clear_timer)
+
+        // Deferred timer cleaning
+        if (clear_timer == 1'b1)
         begin
-            if(clear_timer_count == 2'b10)
+            if (~last_cpum1 & cpum1 & cpuiorq) 
             begin
-                // Reached top so clear flag
                 clear_timer <= 1'b0;
-                timer_line <= 1'b0;
                 timer_misses <= 'b0;
             end
-            else if (~cpum1 & last_cpum1) clear_timer_count <= clear_timer_count + 2'b01;
         end
-        // Clear interrupts
-        if(int_mode_pe)
+        
+        // Clear interrupts: Check if this makes sense
+        if (int_mode_pe)
         begin
-            if(disk_to_nmi) int_line <= 1'b0;
-            else if(disk_to_int) clear_nmi_flag <= 1'b1;    // Disk to int clears nmi
+            if (disk_to_nmi) int_line <= 1'b0;
+            else if (disk_to_int) clear_nmi_flag <= 1'b1;    // Disk to int clears nmi
             else begin
                 clear_nmi_flag <= 1'b1;
                 int_line <= 1'b0;      // Else clear both
             end
         end 
-        else begin
-            clear_nmi_flag <= 1'b0;
-        end
+        else clear_nmi_flag <= 1'b0;
     end
-
+    
 	logic nmi_sig/* synthesis keep */, int_sig/* synthesis keep */;
     assign nmi_sig = ~nmi_line;
     // Disk int and timer int combined
-    //assign int_sig = ~((fdc_int & disk_to_int) | timer_line);
-    assign int_sig = ~((fdc_int & disk_to_int) | vid_timer);
+    assign int_sig = nmi_line ? 1'b1 : ~(int_line | vid_timer);
+    
     // Video control registers
     logic [7:0] roller_ptr;
     logic [7:0] yscroll;
@@ -560,6 +541,7 @@ module pcw_core(
     assign yscroll = portF6;
     assign inverse = portF7[7];
     assign disable_vid = ~portF7[6] || dn_active;
+    
     // Ram B address for various paging modes
     logic [20:0] pcw_ram_b_addr/* synthesis keep */;
     logic [17:0] cpc_read_ram_b_addr/* synthesis keep */;
@@ -845,6 +827,7 @@ module pcw_core(
 
     logic [7:0] dk_out;
     // Audio processing
+    /*
     ym2149 soundchip(
         .DI(cpudo),
         .DO(dk_out),
@@ -864,7 +847,23 @@ module pcw_core(
         .RESET(reset),
         .CLK(clk_sys)
     ); 
-
+    */
+    
+    psg soundchip(
+        .clock(cpu_ce_g_p),       
+        .sel(1'b0),            
+        .ce(dktronics),
+        .reset(~reset),         
+        .bdir(dk_busdir),      
+        .bc1(dk_bc),           
+        .d(cpudo),             
+        .q(dk_out),            
+        .a(ch_a),              
+        .b(ch_b),              
+        .c(ch_c),              
+        .ioad(dkjoy_io),
+        .iobd(8'b1)	 
+);
     // Bleeper audio
     bleeper bleeper(
         .clk_sys(clk_sys),
@@ -872,11 +871,11 @@ module pcw_core(
         .speaker(speaker_out)
     );
 
-    logic [7:0] speaker = 'b0;
+    logic [11:0] speaker = 'b0;
     logic speaker_out;
-    assign speaker = {speaker_out, 6'b0};
-    assign audio = {2'b00,ch_a} + {2'b00,ch_b} + {2'b00,ch_c} + {2'b00,speaker};
-    assign audiomix = audio[9:1];
+    assign speaker = {speaker_out, 11'b0};
+    assign audio = {2'b00, ch_a} + {2'b00, ch_b} + {2'b00, ch_c} + {2'b00, speaker};
+    assign audiomix = audio;
 
 
     // Floppy disk controller logic and control
@@ -885,12 +884,12 @@ module pcw_core(
     //wire [7:0] u765_dout;
     wire [7:0] fdc_dout;// = (fdc_sel & ~ior) ? u765_dout : 8'hFF;
 
-    reg  [1:0] u765_ready = {1'b0, 1'b0};
+    reg  [1:0] u765_ready /* synthesis keep */ = {1'b0, 1'b0};
     always @(posedge clk_sys) if(img_mounted[0]) u765_ready[0] <= |img_size;
     always @(posedge clk_sys) if(img_mounted[1]) u765_ready[1] <= |img_size;
     
-    assign LED[1] = motor;
-    assign LED[2] = u765_ready[0];
+    assign LED[1] = u765_ready[0];
+    assign LED[2] = u765_ready[1];
     assign LED[3] = fdc_int;
     assign LED[4] = nmi_line;
     assign LED[5] = int_line;
@@ -898,9 +897,14 @@ module pcw_core(
     assign LED[7] = vid_timer;
     wire fdcreadreq /* synthesis keep */= ~fdc_sel | ior;
     wire fdcwritereq /* synthesis keep */= ~fdc_sel | iow;
-    assign AUX[0] = vid_timer;
-    assign AUX[1] = int_line;
-    assign AUX[2] = nmi_line;
+    assign AUX[0] = fdc_int;
+    assign AUX[1] = cpuiorq;
+    assign AUX[2] = cpurd;
+    assign AUX[3] = cpuwr;
+    assign AUX[4] = WAIT_n;
+    assign AUX[5] = int_sig;
+    assign AUX[6] = fdc_int_latch;
+    assign AUX[7] = nmi_sig;
     
     logic fdc_int /* synthesis keep */;
     

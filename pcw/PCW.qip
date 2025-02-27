@@ -4,7 +4,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/mouse.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/amx_mouse.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/kempston_mouse.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/dpram.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/ym2149.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/psg.v
 set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/u765.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/boot_loader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_PCW/rtl/fake_daisy.sv
