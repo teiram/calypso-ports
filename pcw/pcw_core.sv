@@ -119,7 +119,7 @@ module pcw_core(
     wire sdram_clk_ref /* synthesis keep */;
     wire pix_stb /* synthesis keep */;
     wire disk_ce /* synthesis keep */;
-    wire snd_clk;
+    wire snd_ce;
     ce_generator ce_generator(
         .clk(clk_sys),
         .reset(reset),
@@ -128,7 +128,7 @@ module pcw_core(
         .sdram_clk_ref(sdram_clk_ref),
         .ce_16mhz(pix_stb),
         .ce_4mhz(disk_ce),
-        .clk_2mhz(snd_clk)
+        .ce_2mhz(snd_ce)
     );
     
     wire dn_wr;
@@ -223,6 +223,7 @@ module pcw_core(
     wire sdram_ready;
     
     assign clkref = sdram_clk_ref;
+    assign SDRAM_BA = 2'b00;
     sdram sdram (
         .SDRAM_CKE(SDRAM_CKE),
         .SDRAM_A(SDRAM_A),
@@ -467,6 +468,7 @@ module pcw_core(
     logic nmi_line = 1'b0;
     logic clear_timer = 1'b0;
     logic last_cpum1;
+    
     // Timer flag and interrupt flag drivers
     always @(posedge clk_sys)
     begin
@@ -478,11 +480,13 @@ module pcw_core(
         if (~last_vid_timer & vid_timer)
         begin
             if (!(&timer_misses)) timer_misses <= timer_misses + 4'b1;
+            timer_line <= 1'b1;
         end
         
         // Detect clear timer start
         if (~ior && cpua[7:0] == 8'hf4 && clear_timer == 1'b0) begin
             clear_timer <= 1'b1;
+            timer_line <= 1'b0;
         end
 
         // Deferred timer cleaning
@@ -505,7 +509,7 @@ module pcw_core(
 	logic nmi_sig/* synthesis keep */, int_sig/* synthesis keep */;
     assign nmi_sig = ~nmi_line;
     // Disk int and timer int combined
-    assign int_sig = nmi_line ? 1'b1 : ~(int_line | vid_timer);
+    assign int_sig = nmi_line ? 1'b1 : ~(int_line | timer_line);
     
     // Video control registers
     logic [7:0] roller_ptr;
@@ -801,9 +805,10 @@ module pcw_core(
     end 
 
     logic [7:0] dk_out;
-   
+    wire [7:0] dac_out;
+
     psg soundchip(
-        .clock(snd_clk),       
+        .clock(snd_ce),       
         .sel(1'b0),            
         .ce(dktronics),
         .reset(~reset),         
@@ -815,7 +820,8 @@ module pcw_core(
         .b(ch_b),              
         .c(ch_c),              
         .ioad(dkjoy_io),
-        .iobd(8'b1)	 
+        .iobd(8'b1),
+        .iobq(dac_out)
 );
     // Bleeper audio
     bleeper bleeper(
@@ -827,7 +833,7 @@ module pcw_core(
     logic [11:0] speaker = 'b0;
     logic speaker_out;
     assign speaker = {speaker_out, 11'b0};
-    assign audio = {2'b00, ch_a} + {2'b00, ch_b} + {2'b00, ch_c} + {2'b00, speaker};
+    assign audio = {2'b00, ch_a} + {2'b00, ch_b} + {2'b00, ch_c} + {2'b00, speaker} + {1'b0, dac_out, 4'd0};
     assign audiomix = audio;
 
 
