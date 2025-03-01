@@ -17,9 +17,8 @@ module ce_generator(
     // Keep the original clock enables
     assign cpu_ce_p = ~counter[3] & ~counter[2] & ~counter[1] & ~counter[0]; // 4MHz positive CE
     assign cpu_ce_n =  counter[3] & ~counter[2] & ~counter[1] & ~counter[0]; // 4MHz negative CE
-    //assign ce_1mhz  = ~|counter;                                             // 1MHz
     assign ce_16mhz = ~counter[1] & ~counter[0];                             // 16MHz
-    assign ce_4mhz = cpu_ce_p;
+    assign ce_4mhz = cpu_ce_n;
     assign sdram_clk_ref = cpu_ce_p;
     assign ce_2mhz = counter[4];
 

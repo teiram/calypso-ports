@@ -834,7 +834,7 @@ module pcw_core(
     logic [11:0] speaker = 'b0;
     logic speaker_out;
     assign speaker = {speaker_out, 11'b0};
-    assign audio = {2'b00, ch_a} + {2'b00, ch_b} + {2'b00, ch_c} + {2'b00, speaker} + {1'b0, dac_out, 4'd0};
+    assign audio = {2'b00, ch_a} + {2'b00, ch_b} + {2'b00, ch_c} + {2'b00, speaker} + {2'b00, dac_out, 4'd0};
     assign audiomix = audio;
 
 
