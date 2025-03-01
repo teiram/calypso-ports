@@ -486,16 +486,17 @@ module pcw_core(
         // Detect clear timer start
         if (~ior && cpua[7:0] == 8'hf4 && clear_timer == 1'b0) begin
             clear_timer <= 1'b1;
-            timer_line <= 1'b0;
         end
 
+       
         // Deferred timer cleaning
         if (clear_timer == 1'b1)
         begin
-            if (~last_cpum1 & cpum1 & cpuiorq) 
+            if (last_cpum1 & ~cpum1 & cpuiorq) 
             begin
                 clear_timer <= 1'b0;
                 timer_misses <= 'b0;
+                timer_line <= 1'b0;
             end
         end
         
