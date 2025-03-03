@@ -106,3 +106,6 @@
 [submodule "coco2/CoCo2-FPGA"]
 	path = coco2/CoCo2-FPGA
 	url = https://github.com/gyurco/CoCo2-FPGA.git
+[submodule "mo/MO_MiSTer"]
+	path = mo/MO_MiSTer
+	url = https://github.com/Grabulosaure/MO_MiSTer.git
