@@ -474,13 +474,14 @@ module pcw_core(
     begin
         last_cpum1 <= cpum1;
         last_vid_timer <= vid_timer;
-        int_line <= disk_to_int & fdc_int_latch;
+        int_line <= 1'b0;
         nmi_line <= nmi_flag;
         
         if (~last_vid_timer & vid_timer)
         begin
             if (!(&timer_misses)) timer_misses <= timer_misses + 4'b1;
             timer_line <= 1'b1;
+            int_line <= disk_to_int & fdc_int_latch;
         end
         
         // Detect clear timer start
@@ -492,7 +493,7 @@ module pcw_core(
         // Deferred timer cleaning
         if (clear_timer == 1'b1)
         begin
-            if (last_cpum1 & ~cpum1 & cpuiorq) 
+            if (~last_cpum1 & cpum1 & cpuiorq)
             begin
                 clear_timer <= 1'b0;
                 timer_misses <= 'b0;
@@ -501,10 +502,12 @@ module pcw_core(
         end
         
         // Clear interrupts: Check if this makes sense
+        
         if (int_mode_pe) begin
             if (disk_to_int) clear_nmi_flag <= 1'b1;
         end 
         else clear_nmi_flag <= 1'b0;
+        
     end
     
 	logic nmi_sig/* synthesis keep */, int_sig/* synthesis keep */;
