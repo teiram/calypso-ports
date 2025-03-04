@@ -25,7 +25,7 @@ module CoCo2_calypso (
 	input         CLOCK_50,
 `endif
 
-	output [7:0]       LED,
+	output [7:0]          LED,
 	output [VGA_BITS-1:0] VGA_R,
 	output [VGA_BITS-1:0] VGA_G,
 	output [VGA_BITS-1:0] VGA_B,
@@ -108,7 +108,10 @@ module CoCo2_calypso (
 	input         AUDIO_IN,
 `endif
 `ifdef USE_EXPANSION
-	output        EXP5,
+	input         UART_CTS,
+	output        UART_RTS,
+	inout         EXP7,
+	inout         MOTOR_CTRL,
 `endif
 	input         UART_RX,
 	output        UART_TX
@@ -212,7 +215,7 @@ wire        disk_ena = status[14];
 wire        kblayout = ~status[15];
 
 wire        ledb;
-assign      LED[0] = ~ledb;
+assign      LED[0] = ledb;
 
 wire clk57, pll_locked;
 pll pll(
@@ -224,17 +227,20 @@ pll pll(
 	.locked(pll_locked)
 	);
 
-assign SDRAM_A = 13'hZZZZ;
-assign SDRAM_BA = 0;
-assign SDRAM_DQML = 1;
-assign SDRAM_DQMH = 1;
+`ifndef INTERNAL_RAM
+`define USE_SDRAM
+`endif
+`ifndef INTERNAL_ROM
+`define USE_SDRAM
+`endif
+
+`ifdef USE_SDRAM
+assign SDRAM_CKE = 1;
+assign SDRAM_CLK = clk57;
+`else
 assign SDRAM_CKE = 0;
 assign SDRAM_CLK = 0;
-assign SDRAM_nCS = 1;
-assign SDRAM_DQ = 16'hZZZZ;
-assign SDRAM_nCAS = 1;
-assign SDRAM_nRAS = 1;
-assign SDRAM_nWE = 1;
+`endif
 
 wire [31:0] status;
 wire  [1:0] buttons;
@@ -368,12 +374,8 @@ wire [11:0] sound;
 reg   [1:0] cass_in;
 wire        cass_out;
 wire        cass_relay;
-wire        uart_tx;
+wire        uart_tx, uart_rts, uart_cts;
 wire        upcase;
-
-wire [16:0] ram_addr;
-wire        ram_rd, ram_wr;
-wire  [7:0] ram_dout, ram_din;
 
 always @(posedge clk57) begin
 `ifdef USE_AUDIO_IN
@@ -385,11 +387,22 @@ always @(posedge clk57) begin
 end
 
 `ifdef USE_EXPANSION
-assign EXP5 = ~cass_relay;
+assign MOTOR_CTRL = cass_relay ? 1'b0 : 1'bZ;
 assign UART_TX = uart_tx;
+assign UART_RTS = uart_rts;
+assign uart_cts = UART_CTS;
+assign EXP7 = 1'bZ;
 `else
 assign UART_TX = uart_en ? uart_tx : ~cass_relay;
+assign uart_cts = 0;
 `endif
+
+wire [19:0] ram_addr;
+wire        ram_rd, ram_wr;
+wire  [7:0] ram_dout, ram_din;
+wire [19:0] rom_addr;
+wire        rom_rd;
+wire  [7:0] rom_dout;
 
 wire  [7:0] red, green, blue;
 wire        hb, vb, hs, vs;
@@ -420,6 +433,8 @@ dragoncoco dragoncoco(
   .vclk(),
   .uart_rx(UART_RX),
   .uart_tx(uart_tx),
+  .uart_cts(uart_cts),
+  .uart_rts(uart_rts),
 
   .key_strobe(key_strobe),
   .key_pressed(key_pressed),
@@ -450,6 +465,17 @@ dragoncoco dragoncoco(
   .cass_snd(adc_value),
   .sound(sound),
   .sndout(sndout),
+  .ledb(ledb),
+ 
+  // external RAM interface
+  .ext_ram_addr(ram_addr),
+  .ext_ram_din(ram_dout),
+  .ext_ram_dout(ram_din),
+  .ext_ram_rd(ram_rd),
+  .ext_ram_wr(ram_wr),
+  .ext_rom_addr(rom_addr),
+  .ext_rom_din(rom_dout),
+  .ext_rom_rd(rom_rd),
 
   // we load the disk ROM instead of cart ram
   .disk_cart_enabled(disk_ena),
@@ -465,6 +491,36 @@ dragoncoco dragoncoco(
   .sd_buff_din  ( sd_buff_din    ),
   .sd_buff_wr   ( sd_buff_wr     )
 );
+
+`ifdef USE_SDRAM
+sdram sdram (
+	.sd_addr(SDRAM_A),
+	.sd_data(SDRAM_DQ),
+	.sd_dqm({SDRAM_DQMH, SDRAM_DQML}),
+	.sd_we(SDRAM_nWE),
+	.sd_cas(SDRAM_nCAS),
+	.sd_ras(SDRAM_nRAS),
+	.sd_cs(SDRAM_nCS),
+	.sd_ba(SDRAM_BA),
+
+	.init(~pll_locked),
+	.clk(clk57),
+	.addr(ram_addr),
+	.din(ram_din),
+	.dout(ram_dout),
+	.oe(ram_rd),
+	.we(ram_wr),
+
+	.addr2(rom_addr),
+	.dout2(rom_dout),
+	.oe2(rom_rd)
+);
+`else
+assign SDRAM_nCS = 1;
+assign SDRAM_nRAS = 1;
+assign SDRAM_nCAS = 1;
+assign SDRAM_nWE = 1;
+`endif
 
 mist_dual_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(10), .OUT_COLOR_DEPTH(VGA_BITS), .USE_BLANKS(1'b1), .BIG_OSD(BIG_OSD), .VIDEO_CLEANER(1'b1)) mist_video(
 	.clk_sys        ( clk57            ),
