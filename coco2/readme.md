@@ -1,7 +1,7 @@
 # Information
 CoCo2/Dragon port based on the [MiST Core](https://github.com/gyurco/CoCo2-FPGA)
 # How to run
-A customized COCO2.ROM file have to be provided in the SD card root folder (or core folder), with the following layout, based on the mame project ROMS:
+A customized COCO2.ROM file must be provided in the SD card root folder (or core folder), with the following layout, based on the mame project ROMS:
 
 - bas12.rom.     Tandy CoCo2 basic ROM (8Kb) 0000 -  1FFF
 - extbas11.rom.  Extended Basic ROM (8Kb)    2000 -  3FFF
