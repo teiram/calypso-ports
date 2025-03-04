@@ -1,0 +1,5 @@
+CORE_ID=coco2
+PROJECT_NAME=CoCo2_calypso
+VERSION=0.1
+BITSTREAM_FILE=output_files/CoCo2_calypso.rbf
+EXTRA_BINARIES=readme.md
