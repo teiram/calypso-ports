@@ -66,7 +66,7 @@ set_location_assignment PIN_P2 -to VGA_B[1]
 set_location_assignment PIN_P1 -to VGA_B[0]
 set_location_assignment PIN_L16 -to VGA_HS
 set_location_assignment PIN_L15 -to VGA_VS
-set_location_assignment PIN_P11 -to EAR
+set_location_assignment PIN_P11 -to AUDIO_IN
 set_location_assignment PIN_D16 -to I2S_LRCK
 set_location_assignment PIN_D15 -to I2S_BCK
 set_location_assignment PIN_C15 -to I2S_DATA
@@ -271,6 +271,7 @@ set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
+set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
 set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
 
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:CoCo2-FPGA/mist/build_id.tcl"
