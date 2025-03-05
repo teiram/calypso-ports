@@ -25,4 +25,4 @@ The points you must pay attention to are:
 - Timing constraints. Since timing constraints (.sdc files) take into account the master clock frequency (period) it´s somehow recommended to provide a .sdc file for Calypso with the proper adaptations.
 
 ## Binaries
-This repository is only intended to store source code. My plan is to try to automate the creation of the binaries by means of github actions, but that it still under planning and so far you would need to use Quartus to generate the binaries from the available sources.
+This repository is only intended to store source code. There is a counterpart [binaries repository](https://github.com/teiram/calypso-binaries) with a github action to synthesize any new core detected on this repository (looks for core.definition files and generates any missing core version)
