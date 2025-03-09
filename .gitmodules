@@ -109,3 +109,9 @@
 [submodule "mo/MO_MiSTer"]
 	path = mo/MO_MiSTer
 	url = https://github.com/Grabulosaure/MO_MiSTer.git
+[submodule "dkv/dvk-fpga"]
+	path = dkv/dvk-fpga
+	url = https://github.com/xolod79/dvk-fpga.git
+[submodule "dkv/mist-modules"]
+	path = dkv/mist-modules
+	url = https://github.com/mist-devel/mist-modules.git

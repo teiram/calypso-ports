@@ -80,11 +80,12 @@ module video_sync(
     localparam V_N_BP     = 26;             // Y Back Porch Len
     localparam V_N_ACTIVE = 200;            // Y Active Pixels
 
+    localparam H_TIMER_STA = 300;
     reg [9:0] VS_STA, VS_END, VA_END, SCREEN, VS_TIMER_START;
 
     assign VS_STA = ~i_ntsc ? V_P_ACTIVE + V_P_FP : V_N_ACTIVE + V_N_FP;  // vertical sync start
     assign VS_END = VS_STA + (~i_ntsc ? V_P_SYNC : V_N_SYNC);             // vertical sync end
-    assign VS_TIMER_START = VS_END + 10'd2;                             // Vertical timer start for int
+    assign VS_TIMER_START = VS_STA;                                       // Vertical timer start for int
     assign VA_END = ~i_ntsc ? V_P_ACTIVE : V_N_ACTIVE;                    // vertical active pixel end
     assign SCREEN = VS_END + (~i_ntsc ? V_P_BP : V_N_BP);                 // complete screen (lines)
 
@@ -119,7 +120,7 @@ module video_sync(
     logic timer_tick, timer_line;
     logic [5:0] timer_count;
     logic [9:0] timer_duration;
-    assign timer_line = ((v_count == VS_TIMER_START) & (h_count == LINE - 1));
+    assign timer_line = ((v_count == VS_TIMER_START) & (h_count == H_TIMER_STA - 1));
     assign o_timer = timer_tick;
 
     // Vertical and Horizontal counts
@@ -141,18 +142,14 @@ module video_sync(
                 // Loop at screen end
                 if (v_count + 1 == SCREEN) v_count <= 0;
                 else v_count <= v_count + 1;
-                
-                if (timer_count == 0 || timer_line) 
-                begin 
+            end else h_count <= h_count + 1;
+
+            if (h_count == H_TIMER_STA - 1) begin
+                if (timer_count == 0 || timer_line) begin
                     timer_count <= TIMER_LINES - 1;
                     timer_tick <= 1'b1;
-                end
-                else timer_count <= timer_count - 1;
-
+                end else timer_count <= timer_count - 1;
             end
-            else 
-                h_count <= h_count + 1;
-
         end
     end
 endmodule
