@@ -153,7 +153,7 @@ localparam CONF_STR = {
 	`SEP
 	"O56,CRT Color,Auto,Green,White,Amber;",
 	"OIJ,Fake Color,None,CGA,EGA;",
-	"O7,Video System,PAL,NTSC;",
+	"O7,Video Sync,50Hz,60Hz;",
 	"O13,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	`SEP
 	"OAC,Joystick,None,Kempston,Spectravideo,Cascade,DKTronics;",
