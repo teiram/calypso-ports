@@ -365,12 +365,12 @@ module pcw_core(
                         8'h9f: cpudi = (joy_type==JOY_KEMPSTON) ? {3'b0,joy0[4:0]} : 8'hff; // Fire,Up,Down,Left,Right
                         // Floppy controller
                         8'b0000000?: cpudi = fdc_dout;    // Floppy read or write
-                        default: cpudi = 8'hff;             
+                        default: cpudi = 8'hff;
                 endcase
             end
         end
         else begin
-            cpudi = kbd_sel ? kbd_data : cpu_ram_dout;
+            cpudi = kbd_sel ? kbd_data : memr ? 8'hff : cpu_ram_dout;
         end
     end
 
@@ -468,7 +468,6 @@ module pcw_core(
     logic nmi_line = 1'b0;
     logic clear_timer = 1'b0;
     logic last_cpum1;
-    
     // Timer flag and interrupt flag drivers
     always @(posedge clk_sys)
     begin
@@ -502,7 +501,6 @@ module pcw_core(
         end
         
         // Clear interrupts: Check if this makes sense
-        
         if (int_mode_pe) begin
             if (disk_to_int) clear_nmi_flag <= 1'b1;
         end 
@@ -860,6 +858,7 @@ module pcw_core(
     assign LED[7] = vid_timer;
     wire fdcreadreq /* synthesis keep */= ~fdc_sel | ior;
     wire fdcwritereq /* synthesis keep */= ~fdc_sel | iow;
+    /*
     assign AUX[0] = fdc_int;
     assign AUX[1] = cpuiorq;
     assign AUX[2] = cpurd;
@@ -868,7 +867,7 @@ module pcw_core(
     assign AUX[5] = int_sig;
     assign AUX[6] = fdc_int_latch;
     assign AUX[7] = nmi_sig;
-    
+    */
     logic fdc_int /* synthesis keep */;
     
     u765 u765
