@@ -1,18 +1,17 @@
 //
-//  Файл конфигурации собираемой ЭВМ
+//  Configuration file of the assembled computer
 //
 //======================================================================================================
-// Тип процессорной платы. 
+// Processor board type
 //
-//  Плата       Процессор     ЭВМ           Тактовая частота
+//  Board       CPU          Computer          Clock frequency
 //-------------------------------------------------------------
-//  МС1201.01   К1801ВМ1     ДВК-1,ДВК-2       100 Мгц
-//  МС1201.02   К1801ВМ2     ДВК-3             100 Мгц
-//  МС1260      М2 (LSI-11)  Электроника-60     75 Мгц
-//  МС1280      М4 (LSI-11M)                    50 МГц
+//  МС1201.01   К1801ВМ1     DVK-1,DVK-2       100 Мhz
+//  МС1201.02   К1801ВМ2     DVK-3             100 Мhz
+//  МС1260      М2 (LSI-11)  Electronika-60     75 Мhz
+//  МС1280      М4 (LSI-11M)                    50 Мhz
 //------------------------------------------------------------
-// Раскомментируйте одну из строк для включения выбранной платы в схему
-
+// Do not uncomment these lines. This is selected in the specific qsf file
 //`define mc1201_01_board
 //`define mc1201_02_board
 //`define mc1260_board
@@ -20,46 +19,46 @@
 
 //======================================================================================================
 //
-//  Включаемые компоненты
-//  Закомментируйте ненужные модули, если хотите исключить их из схемы.
+//  Included components
+//  Comment out unnecessary modules if you want to exclude them from the design.
 //
 
-`define KSM_module        // текстовый контроллер КСМ
-`define KGD_module        // графический контроллер КГД
-`define IRPS2_module      // второй последовательный порт ИРПС
-//`define IRPR_module       // параллельный порт ИРПР
-`define RK_module         // диск RK-11/RK05
-`define DM_module         // диск RK611/RK07
-`define DW_module         // жесткий диск DW
-`define DX_module         // гибкий диск RX01
-`define MY_module         // гибкий диск двойной плотности MY
-//`define bootrom_module    // монитор-загрузчик M9312
+`define KSM_module        // Text controller КSМ
+`define KGD_module        // Graphic controller KGD
+`define IRPS2_module      // Second serial port IRPS
+//`define IRPR_module     // Paraller port IRPR
+`define RK_module         // disk RK-11/RK05
+`define DM_module         // disk RK611/RK07
+`define DW_module         // DW hard drive
+`define DX_module         // Floppy Disk RX01
+`define MY_module         // DD Floppy Disk MY
+//`define bootrom_module    // Monitor-Loader M9312
 
 //======================================================================================================
 //
-// Пзу пользователя в пространстве 140000-157776
-// Для включения ПЗУ в схему раскомментируйте строку, и укажите имя mif-файла, загружаемого в ПЗУ.
-// Размер загружаемого дампа не должен превышать 8Кб
+// User ROM in space 140000-157776
+// To include the ROM in the circuit, uncomment the line and specify the name of the mif file loaded into the ROM.
+// The size of the rom should not exceed 8Kb
 
 //`define userrom "../../rom/013-basic.mif"
 //`define userrom "../../rom/058-focal.mif"
 
 //======================================================================================================
 //
-// Выбор файла шрифта текстового терминала КСМ
-// Раскомментируйте одну из строк, указывающих на нужный файл шрифта
+// Selecting a font file for the KSM text terminal
+// Uncomment one of the lines pointing to the desired font file.
 
-//   * font-main - шрифт 8*12, ровный и хорошо читаемый на LCD-мониторах
+//   * font-main - 8*12 font, smooth and easy to read on LCD monitors
 `define fontrom_file "dvk-fpga/ksm-firmware/font/font-main.mif"
 
-//   * font-ksm - шрифт 8*8, из ПЗУ знакогенератора КСМ. С ним экран будет выглядеть в точности как оригинальный КСМ.
-//     Шрифт довольно корявый, интересный только с исторической точки зрения.
-//`define fontrom_file "../../ksm-firmware/font/font-ksm.mif"
+//   * font-ksm - 8*8 font, from the ROM of the KSM character generator. With it, the screen will look exactly like the original KSM.
+//     The font is rather clumsy, interesting only from a historical point of view.
+//`define fontrom_file "dvk-fpga/ksm-firmware/font/font-ksm.mif"
 
 //======================================================================================================
-// Выбор начальных скоростей последовательных портов
+// Initial serial port speed
 // 
-//  Индексы скорости последовательного порта:
+//  Serial Port Speed ​​Indexes:
 //  0 - 1200
 //  1 - 2400
 //  2 - 4800
@@ -69,66 +68,66 @@
 //  6 - 57600
 //  7 - 115200
 
-// начальная скорость терминала
+// Initial terminal speed
 `define TERMINAL_SPEED 3'd5
 
-// скорость второго последовательного интерфейса
+// Speed of the second serial interface
 `define UART2SPEED 3'd5
 
 //======================================================================================================
 //
-//  Сдвиг фазы строчного синхроимпульса, выдаваемого модулем КСМ на VGA.
-//  Если на вашем мониторе или устройстве видеозахвата картинка уезжает за левый край экрана, то раскомментируйте эту строку и
-//  укажите величину горизонтального сдвига в пикселях.
-//  Если картинка выглядит нормально без коррекции, оставьте строку закомметированной.
+//  Phase shift of the horizontal sync pulse generated by the KSM module on VGA.
+//  If the picture on your monitor or video capture device goes beyond the left edge of the screen, then uncomment this line and
+//  specify the horizontal shift value in pixels.
+//  If the image looks fine without correction, leave the line commented.
 //
 `define hsync_shift 11'd27
 
 //======================================================================================================
 //
 // DRAM CAS Latency
-// Этот параметр может принимать значение 2 или 3. 
-// При CL=2 обмен идет быстрее, но не все типы DRAM его поддерживают.
+// This parameter can take the value 2 or 3.
+// With CL=2 the exchange is faster, but not all types of DRAM support it.
 `define cas_latency 2
 
 //======================================================================================================
 //
-// Индивидуальные настройки процессорных плат
+// Individual settings for processor boards
 //--------------------------------------------------
 
 `ifdef mc1280_board
 //****************************************
 //*   МС1280
 //****************************************
- `define BOARD mc1280        // имя подключаемого модуля процессорной платы
- `define clkref 50000000     // тактовая частота процессора в герцах
- `define PLL_MUL 50          // умножитель PLL
- `define PLL_DIV 27          // делитель PLL
+ `define BOARD mc1280        // Name of the plug-in module of the processor board
+ `define clkref 50000000     // CPU clock speed in hz
+ `define PLL_MUL 50          // PLL multiplier
+ `define PLL_DIV 12          // PLL divider
  
 //-------------------------------------------------- 
 `elsif mc1260_board
 //****************************************
 //*   МС1260
 //****************************************
- `define BOARD mc1260        // имя подключаемого модуля процессорной платы
- `define clkref 75000000     // тактовая частота процессора в герцах
- `define PLL_MUL 75          // умножитель PLL
- `define PLL_DIV 27          // делитель PLL
- `define CPUSLOW 15          // число тактов, пропускаемых процессором в режиме замедления
+ `define BOARD mc1260        // Name of the plug-in module of the processor board
+ `define clkref 75000000     // CPU clock speed in hz
+ `define PLL_MUL 75          // PLL multiplier
+ `define PLL_DIV 12          // PLL divider
+ `define CPUSLOW 15          // Number of cycles the processor skips in slowdown mode
  
 //--------------------------------------------------
 `elsif mc1201_02_board
 //****************************************
 //*   МС1201.02
 //****************************************
- `define BOARD mc1201_02     // имя подключаемого модуля процессорной платы
- `define clkref 100000000    // тактовая частота процессора в герцах
- `define PLL_MUL 100         // умножитель PLL
- `define PLL_DIV 12          // делитель PLL
- `define CPUSLOW 21          // число тактов, пропускаемых процессором в режиме замедления
+ `define BOARD mc1201_02     // Name of the plug-in module of the processor board
+ `define clkref 100000000    // CPU clock speed in hz
+ `define PLL_MUL 100         // PLL multiplier
+ `define PLL_DIV 12          // PLL divider
+ `define CPUSLOW 21          // Number of cycles the processor skips in slowdown mode
  `define timer_init 1'b1     // Начальное состояние таймера: 0 - выключен, 1 - включен
 
-  // Выбор версии теневого ПЗУ - 055 или 279
+  // Selecting the version of the shadow ROM - 055 or 279
   
   //`define mc1201_02_rom "dvk-fpga/rom/055.mif"
  `define mc1201_02_rom "dvk-fpga/rom/279.mif"
@@ -138,26 +137,26 @@
 //****************************************
 //*   МС1201.01
 //****************************************
- `define BOARD mc1201_01     // имя подключаемого модуля процессорной платы
- `define clkref 100000000    // тактовая частота процессора в герцах
- `define PLL_MUL 100         // умножитель PLL
- `define PLL_DIV 27          // делитель PLL
- `define CPUSLOW 21          // число тактов, пропускаемых процессором в режиме замедления
- `define timer_init 1'b1     // Начальное состояние таймера: 0 - выключен, 1 - включен 
+ `define BOARD mc1201_01     // Name of the plug-in module of the processor board
+ `define clkref 100000000    // тCPU clock speed in hz
+ `define PLL_MUL 100         // PLL multiplier
+ `define PLL_DIV 12          // PLL divider
+ `define CPUSLOW 21          // Number of cycles the processor skips in slowdown mode
+ `define timer_init 1'b1     // Initial state of the timer: 0 - off, 1 - on
   
 `endif  
 
 
 //==========================================================================================================================================
-//------------------ конец списка настраиваемых параметров -------------------------------------------------------------
+//------------------ end of list of configurable parameters -------------------------------------------------------------
 //==========================================================================================================================================
 
-// удаление графического модуля при отсутствии текcтового терминала
+// Removing a graphic module when there is no text terminal
 `ifndef KSM_module
 `undef KGD_module
 `endif
 
-// Выбор ведущего и ведомых SDSPI
+// Selecting SDSPI Master and Slaves
 `ifdef RK_module
   `define RK_sdmode 1'b1  
   `define DM_sdmode 1'b0  

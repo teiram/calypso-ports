@@ -107,13 +107,13 @@ module pll (
 				.vcounderrange ());
 	defparam
 		altpll_component.bandwidth_type = "AUTO",
-		altpll_component.clk0_divide_by = 3,
+		altpll_component.clk0_divide_by = `PLL_DIV,
 		altpll_component.clk0_duty_cycle = 50,
-		altpll_component.clk0_multiply_by = 25,
+		altpll_component.clk0_multiply_by = `PLL_MUL,
 		altpll_component.clk0_phase_shift = "0",
-		altpll_component.clk1_divide_by = 3,
+		altpll_component.clk1_divide_by = `PLL_DIV,
 		altpll_component.clk1_duty_cycle = 50,
-		altpll_component.clk1_multiply_by = 25,
+		altpll_component.clk1_multiply_by = `PLL_MUL,
 		altpll_component.clk1_phase_shift = "5000",
 		altpll_component.clk2_divide_by = 6,
 		altpll_component.clk2_duty_cycle = 50,
