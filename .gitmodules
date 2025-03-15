@@ -115,3 +115,12 @@
 [submodule "dkv/mist-modules"]
 	path = dvk/mist-modules
 	url = https://github.com/mist-devel/mist-modules.git
+[submodule "mtx512/MTX512-poseidon"]
+	path = mtx512/MTX512-poseidon
+	url = https://github.com/retrocrypta/MTX512-poseidon.git
+[submodule "common/mist-modules"]
+	path = common/mist-modules
+	url = https://github.com/mist-devel/mist-modules.git
+[submodule "common/T80"]
+	path = common/T80
+	url = https://github.com/mist-devel/T80.git
