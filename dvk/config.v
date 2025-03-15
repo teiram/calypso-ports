@@ -40,8 +40,8 @@
 // To include the ROM in the circuit, uncomment the line and specify the name of the mif file loaded into the ROM.
 // The size of the rom should not exceed 8Kb
 
-//`define userrom "../../rom/013-basic.mif"
-//`define userrom "../../rom/058-focal.mif"
+//`define userrom "dvk-fpga/rom/013-basic.mif"
+//`define userrom "dvk-fpga/rom/058-focal.mif"
 
 //======================================================================================================
 //

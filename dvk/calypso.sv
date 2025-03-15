@@ -81,6 +81,15 @@ module calypso(
 //********************************************
 wire dm_led, rk_led, dw_led, my_led, dx_led, timer_led;
 
+assign 	   LED[0] = status[2];
+assign     LED[1] = buzzer;
+assign     LED[2] = ~timer_led;
+assign     LED[3] = ~dm_led;
+assign     LED[4] = ~rk_led;
+assign     LED[5] = ~dw_led;
+assign     LED[6] = ~my_led;
+assign     LED[7] = ~dx_led;
+
 //************************************************
 //* тактовый генератор 
 //************************************************
@@ -89,22 +98,16 @@ wire clk_n;
 wire sdclock /* synthesis keep */;
 wire clkrdy /* synthesis keep */;
 wire clk50;
-wire pixelclk;
 
 pll pll1 (
    .inclk0(CLK12M),
    .c0(clk_p),     // 100Mhz forward phase, main clock frequency
    .c1(clk_n),     // 100Mhz inverted phase
-   .c2(clk50),     // 50 MHz terminal subsystem clock signal
-   .c3(pixelclk),  // 40 MHz pixelclock clock signal
+   .c2(clk50),     // 50 MHz clock signal
+   .c3(sdclock),   // 12.5 MHz sd clock
    .locked(clkrdy) // PLL ready flag
 );
 
-reg [2:0] counter = 0;   // 12.5 МГц тактовый сигнал SD-карты
-always @(posedge clk_p)  // Делитель частоты на 8 для SD-Card
-    counter <= counter + 1'b1;
-
-assign sdclock = counter[2]; // 12.5 МГц тактовый сигнал SD-карты
 
 //**********************************
 //* SDRAM module
@@ -180,16 +183,12 @@ sdram sdram(
    );
 
 // формирователь сигнала подверждения транзакции
-//reg  [1:0] dack;
 reg        dack;
 
-//assign sdram_ack = sdram_stb & (dack[1]);
 assign sdram_ack = sdram_stb & dack & sdr_ack ;
 
 // задержка сигнала подтверждения на 1 такт clk
 always @ (posedge clk_p)  begin
-//   dack[0] <= sdram_stb & sdr_ack;
-//   dack[1] <= sdram_stb & dack[0];
    dack <= sdram_stb;
 end
 
@@ -213,7 +212,7 @@ topboard kernel(
    .clk_p(clk_p),                   // тактовая частота процессора, прямая фаза
    .clk_n(clk_n),                   // тактовая частота процессора, инверсная фаза
    .sdclock(sdclock),               // тактовая частота SD-карты
-   .pixelclk(pixelclk),             // тактовая частота Pixelclock
+   .pixelclk(clk50),             // тактовая частота Pixelclock
    .clkrdy(clkrdy),                 // готовность PLL
 
    .bt_reset(status[2]),            // общий сброс
@@ -223,7 +222,7 @@ topboard kernel(
    
    .sw_diskbank({2'b00,status[9:8]}),   // выбор дискового банка
    .sw_console(status[7]),          // выбор консольного порта: 0 - терминальный модуль, 1 - ИРПС 2
-   .sw_cpuslow(status[6]),          // режим замедления процессора
+   .sw_cpuslow(~status[6]),          // режим замедления процессора
    
    // индикаторные светодиоды      
    .rk_led(rk_led),               // запрос обмена диска RK
@@ -269,18 +268,12 @@ topboard kernel(
    .irps_rxd(UART_RX)
 );
 
-//**********************************
-//*  MIST
-//**********************************
-
-// the configuration string is returned to the io controller to allow
-// it to control the menu on the OSD 
 `include "build_id.v"
 parameter CONF_STR = {
 			"DVK-FPGA;;",
 			"S0U,DSKIMG,Drive;",
 			"O4,Timer,On,Off;",
-			"O6,CPU slow,Off,On;",
+			"O6,Turbo,Off,On;",
 			"O7,Console,Terminal,UART;",
 			"O89,Disk bank,0,1,2,3;",
 			"O3,ODT,On,Off;",
@@ -326,14 +319,7 @@ always @(posedge clk_p) begin
 
 	if((old_mosi ^ sdcard_mosi) || (old_miso ^ sdcard_miso)) timeout <= 0;
 end
-assign 	   LED[0] = sd_act;
-assign     LED[1] = ~drs;
-assign     LED[2] = ~dm_led;
-assign     LED[3] = sd_rd[0];
-assign     LED[4] = ~rk_led;
-assign     LED[5] = ~dw_led;
-assign     LED[6] = ~my_led;
-assign     LED[7] = ~dx_led;
+
 
 wire        scandoubler_disable;
 wire        ypbpr;
@@ -354,7 +340,7 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .FEATURES(32'h0 | (BIG_OSD << 13)), .PS2D
 	    .ypbpr(ypbpr),
 	    .no_csync(no_csync),
          
-        .clk_sd(clk50),
+        .clk_sd(clk_p),
         .sd_conf(sd_conf),
         .sd_ack(sd_ack),
         .sd_ack_conf(sd_ack_conf),
@@ -376,7 +362,7 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .FEATURES(32'h0 | (BIG_OSD << 13)), .PS2D
 
 sd_card sd_card
 (
-        .clk_sys(clk50),
+        .clk_sys(clk_p),
         .sd_lba(sd_lba),
         .sd_rd(sd_rd[0]),
         .sd_wr(sd_wr[0]),
@@ -400,9 +386,8 @@ sd_card sd_card
         .sd_sdo(sdcard_miso)
 );
 
-
 mist_video #(.COLOR_DEPTH(6), .OUT_COLOR_DEPTH(4), .OSD_COLOR(3'd5), .SD_HCNT_WIDTH(10), .BIG_OSD(1)) mist_video (
-	.clk_sys     ( pixelclk    ),
+	.clk_sys     ( clk50    ),
 
 	// OSD SPI interface
 	.SPI_SCK     ( SPI_SCK    ),
