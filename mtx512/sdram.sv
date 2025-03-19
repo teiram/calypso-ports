@@ -73,7 +73,7 @@ localparam OP_MODE             = 2'b00;    // only 00 (standard operation) allow
 localparam NO_WRITE_BURST      = 1'b1;     // 0= write burst enabled, 1=only single access write
 localparam MODE                = {3'b000, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, BURST_LENGTH};
 
-localparam sdram_startup_cycles= 14'd24200;// 100us, plus a little more, @ 100MHz
+localparam sdram_startup_cycles= 14'd10200;// 200us, plus a little more, @ 100MHz
 localparam cycles_per_refresh  = 14'd780;  // (64000*100)/8192-1 Calc'd as (64ms @ 100MHz)/8192 rose
 localparam startup_refresh_max = 14'b11111111111111;
 
@@ -131,20 +131,18 @@ always @(posedge clk) begin
 	case(state)
 		STATE_STARTUP: begin
 			//------------------------------------------------------------------------
-			//-- This is the initial startup state, where we wait for at least 100us
+			//-- This is the initial startup state, where we wait for at least 200us
 			//-- before starting the start sequence
 			//-- 
 			//-- The initialisation is sequence is 
 			//--  * de-assert SDRAM_CKE
-			//--  * 100us wait, 
+			//--  * 200us wait, 
 			//--  * assert SDRAM_CKE
 			//--  * wait at least one cycle, 
 			//--  * PRECHARGE
 			//--  * wait 2 cycles
 			//--  * REFRESH, 
-			//--  * tREF wait
-			//--  * REFRESH, 
-			//--  * tREF wait 
+			//--  * tREF wait (8 times)
 			//--  * LOAD_MODE_REG 
 			//--  * 2 cycles wait
 			//------------------------------------------------------------------------
@@ -153,17 +151,29 @@ always @(posedge clk) begin
 			SDRAM_BA   <= 0;
 
 			// All the commands during the startup are NOPS, except these
-			if(refresh_count == startup_refresh_max-31) begin
+			if(refresh_count == startup_refresh_max- 79) begin
 				// ensure all rows are closed
 				command     <= CMD_PRECHARGE;
 				SDRAM_A[10] <= 1;  // all banks
 				SDRAM_BA    <= 2'b00;
-			end else if (refresh_count == startup_refresh_max-23) begin
+            end else if (refresh_count == startup_refresh_max - 71) begin
 				// these refreshes need to be at least tREF (66ns) apart
 				command     <= CMD_AUTO_REFRESH;
-			end else if (refresh_count == startup_refresh_max-15) 
+            end else if (refresh_count == startup_refresh_max - 63) begin
 				command     <= CMD_AUTO_REFRESH;
-			else if (refresh_count == startup_refresh_max-7) begin
+            end else if (refresh_count == startup_refresh_max - 55) begin
+				command     <= CMD_AUTO_REFRESH;
+            end else if (refresh_count == startup_refresh_max - 47) begin
+				command     <= CMD_AUTO_REFRESH;
+            end else if (refresh_count == startup_refresh_max - 39) begin
+				command     <= CMD_AUTO_REFRESH;
+            end else if (refresh_count == startup_refresh_max - 31) begin
+				command     <= CMD_AUTO_REFRESH;
+			end else if (refresh_count == startup_refresh_max - 23) begin
+				command     <= CMD_AUTO_REFRESH;
+			end else if (refresh_count == startup_refresh_max - 15) 
+				command     <= CMD_AUTO_REFRESH;
+			else if (refresh_count == startup_refresh_max - 7) begin
 				// Now load the mode register
 				command     <= CMD_LOAD_MODE;
 				SDRAM_A     <= MODE;

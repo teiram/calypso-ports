@@ -15,7 +15,6 @@ set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/vdp.vhd
 set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/mtx_kbd.vhd
 set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/ps2_kbd.vhd
 set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/sd_card.vhd
-set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/rememotech.vhd
 set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/mon_prom_graph.vhd
 set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/mon_prom_alpha.vhd
 set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/mon_cell.vhd
@@ -28,4 +27,5 @@ set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/Memory.vhd
 set_global_assignment -name VHDL_FILE MTX512-poseidon/rtl/Debug-Overlay.vhd
 set_global_assignment -name SDC_FILE mtx512.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE mtx512.sv
+set_global_assignment -name VHDL_FILE rememotech.vhd
 

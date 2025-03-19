@@ -96,7 +96,9 @@ module mtx512(
 	input         AUDIO_IN,
 `endif
 	input         UART_RX,
-	output        UART_TX
+	output        UART_TX,
+    
+    output  [7:0] AUX
 
 );
 
@@ -150,23 +152,24 @@ localparam CONF_STR = {
     "F0,ROM,Load ROM;",
     "O2,PAL,Normal,Marat;",
     "O3,Hz,60,50;",
-    "O57,Cpu Mhz,24,12,8,6,4.8,4,3.42,3;",
     "T0,Reset;",
     "V,calypso-",`BUILD_DATE 
 };
 
 /////////////////  CLOCKS  ////////////////////////
 
-wire clk_25Mhz,clk_ram,clk_ram_ph,locked,clk_50Mhz,clk_cpu;
+wire clk_25Mhz;
+wire clk_ram;
+wire locked;
+wire clk_50Mhz;
+wire clk_cpu;
 
-pll pll
-(
-	.inclk0(CLK12M),
-	.c0(clk_50Mhz),
-	.c1(clk_25Mhz),
-	.c2(clk_ram),
-	.c3(clk_ram_ph),
-	.locked(locked)
+pll pll(
+    .inclk0(CLK12M),
+    .c0(clk_ram),
+    .c1(clk_50Mhz),
+    .c2(clk_25Mhz),
+    .locked(locked)
 );
 
 wire clk_sys=clk_25Mhz;
@@ -179,16 +182,12 @@ wire [7:0]  sramData;
 wire [7:0]  sramDataIn;
 wire [7:0]  sramDataOut;
 
-
 wire n_sRamWE;
 wire n_sRamOE;
 wire n_sRamCS;
 
-
-
 wire ram_ready;
-sdram ram
-(
+sdram ram(
 	.*,
 	.init(~locked),
 	.clk(clk_ram),	
@@ -200,10 +199,7 @@ sdram ram
 	.rd(ioctl_download ? 1'b0        : ~n_sRamOE),
 	.ready(ram_ready)
 );
-assign SDRAM_CLK=clk_ram_ph;
-
-/////////////////  HPS  ///////////////////////////
-
+assign SDRAM_CLK=clk_ram;
 
 wire forced_scandoubler;
 wire  [1:0] buttons;
@@ -217,7 +213,6 @@ wire        key_pressed;
 wire [7:0]  key_code;
 wire        key_strobe;
 wire        key_extended;
-
 
 wire        ioctl_download;
 wire        ioctl_wr;
@@ -247,88 +242,87 @@ wire        sd_busy;
 wire        sd_sdhc;
 wire        sd_conf;
 
+user_io #(
+    .STRLEN($size(CONF_STR)>>3),
+    .SD_IMAGES(1),
+    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))) user_io(
 
-user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(1), .PS2DIV(500), .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))) user_io
-(	
-	.clk_sys        	(clk_sys         	),
-	.clk_sd           (clk_sys          ),
-	.conf_str       	(CONF_STR       	),
-	.SPI_CLK        	(SPI_SCK        	),
-	.SPI_SS_IO      	(CONF_DATA0     	),
-	.SPI_MISO       	(SPI_DO        	),
-	.SPI_MOSI       	(SPI_DI         	),
-	.buttons        	(buttons        	),
-	.switches       	(switches      	),
-	.ypbpr          	(ypbpr          	),
+    .clk_sys(clk_sys),
+    .clk_sd(clk_50Mhz),
+    .conf_str(CONF_STR),
+    .SPI_CLK(SPI_SCK),
+    .SPI_SS_IO(CONF_DATA0),
+    .SPI_MISO(SPI_DO),
+    .SPI_MOSI(SPI_DI),
+    .buttons(buttons),
+    .switches(switches),
+    .ypbpr(ypbpr),
 
-	.ps2_kbd_clk      (ps2_kbd_clk      ),
-	.ps2_kbd_data     (ps2_kbd_data     ),
-	.key_strobe     	(key_strobe     	),
-	.key_pressed    	(key_pressed    	),
-	.key_extended   	(key_extended   	),
-	.key_code       	(key_code       	),
-	.joystick_0       (joy1             ),
-	.joystick_1       (joy2             ),
-	.status         	(status         	),
-	// SD CARD
-   .sd_lba                      (sd_lba        ),
-	.sd_rd                       (sd_rd         ),
-	.sd_wr                       (sd_wr         ),
-	.sd_ack                      (sd_ack        ),
-	.sd_ack_conf                 (sd_ack_conf   ),
-	.sd_conf                     (sd_conf       ),
-	.sd_sdhc                     (sd_sdhc       ),
-	.sd_dout                     (sd_buff_dout  ),
-	.sd_din                      (sd_buff_din   ),
-	.sd_buff_addr                (sd_buff_addr  ),
-	.sd_dout_strobe              (sd_buff_wr),
-   .img_mounted                 (img_mounted   ),
-	.img_size                    (img_size      )
+    .ps2_kbd_clk(ps2_kbd_clk),
+    .ps2_kbd_data(ps2_kbd_data),
+    .key_strobe(key_strobe),
+    .key_pressed(key_pressed),
+    .key_extended(key_extended),
+    .key_code(key_code),
+    .joystick_0(joy1),
+    .joystick_1(joy2),
+    .status(status),
+
+    .sd_lba(sd_lba),
+    .sd_rd(sd_rd),
+    .sd_wr(sd_wr),
+    .sd_ack(sd_ack),
+    .sd_ack_conf(sd_ack_conf),
+    .sd_conf(sd_conf),
+    .sd_sdhc(sd_sdhc),
+    .sd_dout(sd_buff_dout),
+    .sd_din(sd_buff_din),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_dout_strobe(sd_buff_wr),
+    .img_mounted(img_mounted),
+    .img_size(img_size)
 );
 
 data_io data_io(
-	.clk_sys       ( clk_sys      ),
-	.SPI_SCK       ( SPI_SCK      ),
-	.SPI_SS2       ( SPI_SS2      ),
-	.SPI_DI        ( SPI_DI       ),
-	.clkref_n      ( 1'b0         ),
-	.ioctl_download( ioctl_download),
-	.ioctl_index   ( ioctl_index  ),
-	.ioctl_wr      ( ioctl_wr     ),
-	.ioctl_addr    ( ioctl_addr   ),
-	.ioctl_dout    ( ioctl_data   )
+    .clk_sys(clk_sys),
+    .SPI_SCK(SPI_SCK),
+    .SPI_SS2(SPI_SS2),
+    .SPI_DI(SPI_DI),
+    .clkref_n(1'b0),
+    .ioctl_download(ioctl_download),
+    .ioctl_index(ioctl_index),
+    .ioctl_wr(ioctl_wr),
+    .ioctl_addr(ioctl_addr),
+    .ioctl_dout(ioctl_data)
 );
 
 
-/////////////////  RESET  /////////////////////////
+wire reset = status[0] || ioctl_download || !locked;
+assign LED[0] = reset;
 
-wire reset = (!locked | status[0] | buttons[1] | ioctl_download );
+/*
+reg [31:0] reset_counter = 32'd10000000;
+wire reset = |reset_counter;
+assign LED[0] = reset;
 
-//////////////// LED ///////////////////////////
-
-////////////////  main  ////////////////////////
-
-
-//dac_dsm2v #(8) dac_l (
-//   .clock_i      (clk_sys),
-//   .reset_i      (0      ),
-//   .dac_i        (AudioOut),
-//   .dac_o        (AUDIO_L)
-//);
-
+always @(posedge clk_sys) begin
+    if (status[0] || ioctl_download || !locked) reset_counter <= 32'd10000000;
+    else if (|reset_counter) reset_counter <= reset_counter - 32'b1;
+end
+*/
 `ifdef I2S_AUDIO
 wire [31:0] clk_rate =  32'd25_000_000;
-i2s i2s (
-        .reset      (reset),
-        .clk        (clk_sys),
-        .clk_rate   (clk_rate),
+i2s i2s(
+    .reset(reset),
+    .clk(clk_sys),
+    .clk_rate(clk_rate),
 
-        .sclk       (I2S_BCK),
-        .lrclk      (I2S_LRCK),
-        .sdata      (I2S_DATA),
+    .sclk(I2S_BCK),
+    .lrclk(I2S_LRCK),
+    .sdata(I2S_DATA),
 
-        .left_chan  ({AudioOut,AudioOut}),
-        .right_chan ({AudioOut,AudioOut})       
+    .left_chan({AudioOut, AudioOut}),
+    .right_chan({AudioOut, AudioOut})       
 );
 `endif
 
@@ -338,89 +332,91 @@ wire HSync;
 wire VBlank;
 wire VSync;
 
+rememotech rememotech(
+    .CLOCK_50(clk_50Mhz),
 
-rememotech rememotech
-    (
-    .CLOCK_50            (clk_50Mhz),//(clk),//(status[9]),//(clk_50MhzM),
-    // SD card
-    .SD_CLK              (sdclk),
-    .SD_CMD              (sdmosi),
-    .SD_DAT              (sdmiso),
-    .SD_DAT3             (sdss),
-    // SDRAM
-	 .SRAM_CE_N           (n_sRamCS),
-    .SRAM_ADDR           (sramAddress),
-    .SRAM_LB_N           (),
-    .SRAM_UB_N           (),
-    .SRAM_OE_N           (n_sRamOE),
-    .SRAM_WE_N           (n_sRamWE),
-    .SRAM_D              (sramDataIn),
-	 .SRAM_Q              (sramDataOut),
-	 .SRAM_RDY            (ram_ready),
-    .LED                 (LED[0]),
-    // switches
-    .SW                  ({status[7:5],status[4],status[2],~status[3],2'b0,2'b0}), //Forzamos monitor(6), Pal normal-60Hz(5:4), y sin externalrom(1:0)
-    // key switches
-    .KEY                 ({reset,3'b111}),
-    // VGA output
-    .VGA_R               (r),
-    .VGA_G               (g),
-    .VGA_B               (b),
-    .VGA_HS              (HSync),
-    .VGA_VS              (VSync),
- 	 .VGA_HB              (HBlank),
-	 .VGA_VB              (VBlank),
+    .SD_CLK(sdclk),
+    .SD_CMD(sdmosi),
+    .SD_DAT(sdmiso),
+    .SD_DAT3(sdss),
 
-	 .clk_video_i         (clk_25Mhz),
-    .clk_cpu_o           (clk_cpu),
+	.SRAM_CE_N(n_sRamCS),
+    .SRAM_ADDR(sramAddress),
+    .SRAM_LB_N(),
+    .SRAM_UB_N(),
+    .SRAM_OE_N(n_sRamOE),
+    .SRAM_WE_N(n_sRamWE),
+    .SRAM_D(sramDataIn),
+	.SRAM_Q(sramDataOut),
+	.SRAM_RDY(ram_ready),
+    
+    .LED(LED[7]),
+
+    .SW({3'b101, status[4], status[2], ~status[3], 2'b0, 2'b0}),
+    //      |       |           |           |        |     +-----
+    //      |       |           |           |        +-----------
+    //      |       |           |           +-------------------- Frame rate (50/60hz)
+    //      |       |           +-------------------------------- PAL/NTSC
+    //      |       +-------------------------------------------- 80cols/VDP video out
+    //      +---------------------------------------------------- CPU Speed (hardcoded to 4.166MHz)
+
+    .KEY({reset, 3'b111}),
+
+    .VGA_R(r),
+    .VGA_G(g),
+    .VGA_B(b),
+    .VGA_HS(HSync),
+    .VGA_VS(VSync),
+ 	.VGA_HB(HBlank),
+	.VGA_VB(VBlank),
+
+	.clk_video_i(clk_25Mhz),
+    .clk_cpu_o(clk_cpu),
 	 
-	 .PS2_CLK             (ps2_kbd_clk),
-	 .PS2_DAT             (ps2_kbd_data),
-	 
-	 
-	 .EKey                (key_extended),
-    .key_ready           (key_strobe),
-    .key_stroke          (key_pressed),
-    .key_code            (key_code),
-    .sound_out           (AudioOut)
+	.PS2_CLK(ps2_kbd_clk),
+	.PS2_DAT(ps2_kbd_data),
+	  
+	.EKey(key_extended),
+    .key_ready(key_strobe),
+    .key_stroke(key_pressed),
+    .key_code(key_code),
+    
+    .sound_out(AudioOut)
 );
-
 
 
 wire [7:0] AudioOut;
 
-
-
-
 /////////////////  VIDEO  /////////////////////////
-
 wire [3:0] r,g,b;
 
-mist_video #(.COLOR_DEPTH(4), .SD_HCNT_WIDTH(11), .OUT_COLOR_DEPTH(VGA_BITS), .BIG_OSD(BIG_OSD)) mist_video (	
-	.clk_sys      (clk_25Mhz  ),
-	.SPI_SCK      (SPI_SCK    ),
-	.SPI_SS3      (SPI_SS3    ),
-	.SPI_DI       (SPI_DI     ),
-	.R            (r          ),
-	.G            (g          ),
-	.B            (b          ),
-	.HSync        (HSync      ),
-	.VSync        (VSync      ),
-	.HBlank       (HBlank     ),
-	.VBlank       (VBlank     ),
-	.VGA_R        (VGA_R      ),
-	.VGA_G        (VGA_G      ),
-	.VGA_B        (VGA_B      ),
-	.VGA_VS       (           ),
-	.VGA_HS       (           ),
-	.ce_divider   (1'b0       ),
+mist_video #(
+    .COLOR_DEPTH(4),
+    .SD_HCNT_WIDTH(11),
+    .OUT_COLOR_DEPTH(VGA_BITS),
+    .BIG_OSD(BIG_OSD)) mist_video (	
+	.clk_sys(clk_25Mhz),
+	.SPI_SCK(SPI_SCK),
+	.SPI_SS3(SPI_SS3),
+	.SPI_DI(SPI_DI),
+	.R(r),
+	.G(g),
+	.B(b),
+	.HSync(HSync),
+	.VSync(VSync),
+	.HBlank(HBlank),
+	.VBlank(VBlank),
+	.VGA_R(VGA_R),
+	.VGA_G(VGA_G),
+	.VGA_B(VGA_B),
+	.VGA_VS(),
+	.VGA_HS(),
+	.ce_divider(1'b0),
 	
-	.scandoubler_disable ( 1'b1 ),
-	.ypbpr       ( ypbpr      ),
-	.rotate      ( 2'b00      ),
-	.blend       ( 1'b0       ),
-
-
+	.scandoubler_disable(1'b1),
+	.ypbpr(ypbpr),
+	.rotate(2'b00),
+	.blend(1'b0)
 	);
 
 assign VGA_HS = HSync;
@@ -435,34 +431,43 @@ wire tape_in=TAPE_SOUND;
 wire sdclk;
 wire sdmosi;
 wire sdss;
-
 wire sdmiso;
 
-//assign sd_sdhc = 1'b0;
+reg sdcard_ss_delayed;
 
+always @(posedge clk_sys) begin
+  sdcard_ss_delayed <= sdss;
+end
 
-
-sd_card sd_card
-(
-
-		  .clk_sys(clk_sys),
-		  .img_mounted(img_mounted),
-		  .img_size(img_size),
-		  .sd_lba(sd_lba),
-		  .sd_wr(sd_wr),
-		  .sd_rd(sd_rd),
-		  .sd_ack(sd_ack),
-		  .sd_ack_conf(sd_ack_conf),
-		  .sd_sdhc(sd_sdhc),
-		  .sd_buff_dout(sd_buff_dout),
-		  .sd_buff_din(sd_buff_din),
-		  .sd_buff_addr(sd_buff_addr),
-		  .sd_buff_wr(sd_buff_wr),
+sd_card sd_card(
+    .clk_sys(clk_50Mhz),
+    .img_mounted(img_mounted),
+    .img_size(img_size),
+    .sd_lba(sd_lba),
+    .sd_wr(sd_wr),
+    .sd_rd(sd_rd),
+    .sd_ack(sd_ack),
+    .sd_ack_conf(sd_ack_conf),
+    .sd_sdhc(sd_sdhc),
+    .sd_buff_dout(sd_buff_dout),
+    .sd_buff_din(sd_buff_din),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_buff_wr(sd_buff_wr),
 		  
-		  .allow_sdhc(1'b0),
-        .sd_sck(sdclk),
-        .sd_cs(sdss),
-        .sd_sdi(sdmosi),
-        .sd_sdo(sdmiso)
+    .allow_sdhc(1'b0),
+    
+    .sd_sck(sdclk),
+    .sd_cs(sdss),
+    .sd_sdi(sdmosi),
+    .sd_sdo(sdmiso)
 );
+
+assign AUX[0] = sdclk;
+assign AUX[1] = sdss;
+assign AUX[2] = sdmosi;
+assign AUX[3] = sdmiso;
+assign AUX[4] = reset;
+assign AUX[5] = locked;
+assign AUX[6] = ioctl_download;
+assign AUX[7] = ioctl_download;
 endmodule
