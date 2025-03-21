@@ -270,6 +270,9 @@ set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 set_global_assignment -name TOP_LEVEL_ENTITY SVI328
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
+set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
+set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
+
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:SVI328-SiDi/sys/build_id.tcl"
 set_global_assignment -name QIP_FILE files.qip
 

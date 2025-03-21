@@ -34,5 +34,5 @@ set_global_assignment -name QIP_FILE ../common/T80/T80.qip
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
 set_global_assignment -name VHDL_FILE keyboard_svi.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
-set_global_assignment -name SYSTEMVERILOG_FILE svi328.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SVI328.sv
 

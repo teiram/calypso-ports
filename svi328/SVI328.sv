@@ -138,7 +138,6 @@ localparam CONF_STR = {
     "V,calypso-",`BUILD_DATE
 };
 
-/////////////////  CLOCKS  ////////////////////////
 wire clk_sys;
 wire pll_locked;
 
@@ -154,13 +153,11 @@ reg ce_21m3 = 0;
 always @(posedge clk_sys) begin
     reg [2:0] div;
 
-    div <= div+1'd1;
+    div <= div + 1'd1;
     ce_10m7 <= !div[1:0];
     ce_5m3  <= !div[2:0];
     ce_21m3 <= div[0];
 end
-
-/////////////////  HPS  ///////////////////////////
 
 wire [31:0] status;
 wire  [1:0] buttons;
@@ -187,6 +184,7 @@ user_io #(
 
     .clk_sys(clk_sys),
     .conf_str(CONF_STR),
+    
     .SPI_CLK(SPI_SCK),
     .SPI_SS_IO(CONF_DATA0),
     .SPI_MISO(SPI_DO),
@@ -219,7 +217,6 @@ data_io data_io(
 
 
 wire reset = status[0] | (ioctl_download && ioctl_isROM);
-
 
 wire [3:0] svi_row;
 wire [7:0] svi_col;
@@ -259,10 +256,11 @@ spram #(14) vram(
 
 wire sdram_rdy;
 
-wire sdram_we,sdram_rd;
+wire sdram_we;
+wire sdram_rd;
 wire [17:0] sdram_addr;
 wire  [7:0] sdram_din;
-wire ioctl_isROM = ioctl_index[5:0] < 6'd2; //Index osd File is 0 (ROM) or 1(Rom Cartridge)
+wire ioctl_isROM = ioctl_index[5:0] < 6'd2; //OSD file index is 0 (ROM) or 1 (ROM Cartridge)
 
 assign sdram_we = (ioctl_wr && ioctl_isROM) | ( isRam & ~(ram_we_n | ram_ce_n));
 assign sdram_addr = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : ram_a;
@@ -270,18 +268,28 @@ assign sdram_din = (ioctl_wr && ioctl_isROM) ? ioctl_dout : ram_do;
 
 assign sdram_rd = ~(ram_rd_n | ram_ce_n);
 assign SDRAM_CLK = clk_sys;
+
 sdram sdram(
-    .*,
+    .SDRAM_DQ(SDRAM_DQ),
+    .SDRAM_A(SDRAM_A),
+    .SDRAM_DQML(SDRAM_DQML),
+    .SDRAM_DQMH(SDRAM_DQMH),
+    .SDRAM_BA(SDRAM_BA),
+    .SDRAM_nCS(SDRAM_nCS),
+    .SDRAM_nWE(SDRAM_nWE),
+    .SDRAM_nRAS(SDRAM_nRAS),
+    .SDRAM_nCAS(SDRAM_nCAS),
+    .SDRAM_CKE(SDRAM_CKE),
+    
     .init(~pll_locked),
     .clk(clk_sys),
 
-   .wtbt(0),
-   .addr(sdram_addr), 
-   .rd(sdram_rd),
-   .dout(ram_di),
-   .din(sdram_din),
-   .we(sdram_we), 
-   .ready(sdram_rdy)
+    .wtbt(0),
+    .addr(sdram_addr), 
+    .rd(sdram_rd),
+    .we(sdram_we),
+    .din(sdram_din),
+    .dout(ram_di)
 );
 
 
@@ -300,7 +308,7 @@ svi_mapper RamMapper(
 wire [10:0] audio;
 
 `ifdef I2S_AUDIO
-wire [31:0] clk_rate =  32'd44_000_000;
+wire [31:0] clk_rate =  32'd42_660_000;
 i2s i2s(
     .reset(reset),
     .clk(clk_sys),
@@ -315,9 +323,6 @@ i2s i2s(
 );
 `endif
 
-
-//assign CLK_VIDEO = clk_sys;
-
 wire [7:0] R,G,B,ay_port_b;
 wire hblank, vblank;
 wire hsync, vsync;
@@ -328,62 +333,64 @@ wire [31:0] joyb = status[3] ? joy0 : joy1;
 
 wire svi_audio_in = status[15] ? tape_in : (CAS_status != 0 ? CAS_dout : 1'b0);
 
-cv_console console
-(
-	.clk_i(clk_sys),
-	.clk_en_10m7_i(ce_10m7),
-	.clk_en_5m3_i(ce_5m3),
-	.reset_n_i(~reset),
+cv_console console(
+    .clk_i(clk_sys),
+    .clk_en_10m7_i(ce_10m7),
+    .clk_en_5m3_i(ce_5m3),
+    .reset_n_i(~reset),
 
-   .svi_row_o(svi_row),
-   .svi_col_i(svi_col),	
+    .svi_row_o(svi_row),
+    .svi_col_i(svi_col),	
+
+    .svi_tap_i(svi_audio_in),
+
+    .motor_o(motor),
+
+    .joy0_i(~{joya[4],joya[0],joya[1],joya[2],joya[3]}), //SVI {Fire,Right, Left, Down, Up} // HPS {Fire,Up, Down, Left, Right}
+    .joy1_i(~{joyb[4],joyb[0],joyb[1],joyb[2],joyb[3]}),
+
+    .cpu_ram_a_o(cpu_ram_a),
+    .cpu_ram_we_n_o(ram_we_n),
+    .cpu_ram_ce_n_o(ram_ce_n),
+    .cpu_ram_rd_n_o(ram_rd_n),
+    .cpu_ram_d_i(ram_di),
+    .cpu_ram_d_o(ram_do),
+
+    .ay_port_b(ay_port_b),
 	
-	.svi_tap_i(svi_audio_in),//status[15] ? tape_in : (CAS_status != 0 ? CAS_dout : 1'b0)),
+    .vram_a_o(vram_a),
+    .vram_we_o(vram_we),
+    .vram_d_o(vram_do),
+    .vram_d_i(vram_di),
 
-   .motor_o(motor),
+    .border_i(status[6]),
+    .rgb_r_o(R),
+    .rgb_g_o(G),
+    .rgb_b_o(B),
+    .hsync_n_o(hsync),
+    .vsync_n_o(vsync),
+    .hblank_o(hblank),
+    .vblank_o(vblank),
 
-	.joy0_i(~{joya[4],joya[0],joya[1],joya[2],joya[3]}), //SVI {Fire,Right, Left, Down, Up} // HPS {Fire,Up, Down, Left, Right}
-	.joy1_i(~{joyb[4],joyb[0],joyb[1],joyb[2],joyb[3]}),
-
-	.cpu_ram_a_o(cpu_ram_a),
-	.cpu_ram_we_n_o(ram_we_n),
-	.cpu_ram_ce_n_o(ram_ce_n),
-	.cpu_ram_rd_n_o(ram_rd_n),
-	.cpu_ram_d_i(ram_di),
-	.cpu_ram_d_o(ram_do),
-
-	.ay_port_b(ay_port_b),
-	
-	.vram_a_o(vram_a),
-	.vram_we_o(vram_we),
-	.vram_d_o(vram_do),
-	.vram_d_i(vram_di),
-
-	.border_i(status[6]),
-	.rgb_r_o(R),
-	.rgb_g_o(G),
-	.rgb_b_o(B),
-	.hsync_n_o(hsync),
-	.vsync_n_o(vsync),
-	.hblank_o(hblank),
-	.vblank_o(vblank),
-
-	.audio_o(audio)
+    .audio_o(audio)
 );
 
+wire [1:0] scanlines = status[9:7];
 
-mist_video #(.COLOR_DEPTH(4),
+mist_video #(.COLOR_DEPTH(8),
              .SD_HCNT_WIDTH(11),
              .OUT_COLOR_DEPTH(VGA_BITS),
              .BIG_OSD(BIG_OSD))
 mist_video(
     .clk_sys(clk_sys),
+    
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
-    .R(R[7:2]),
-    .G(G[7:2]),
-    .B(B[7:2]),
+    
+    .R(R),
+    .G(G),
+    .B(B),
     .HSync(hsync),
     .VSync(vsync),
     .HBlank(hblank),
@@ -391,65 +398,20 @@ mist_video(
     .VGA_R(VGA_R),
     .VGA_G(VGA_G),
     .VGA_B(VGA_B),
-    .VGA_VS(),
-    .VGA_HS(),
+    .VGA_VS(VGA_VS),
+    .VGA_HS(VGA_HS),
+    .scanlines(scanlines),
     .ce_divider(1'b0),
 
-    .scandoubler_disable(1'b1),
+    .scandoubler_disable(1'b0),
     .ypbpr(ypbpr),
     .rotate(2'b00),
     .blend(1'b0)
 );
 
-assign VGA_HS = hsync;
-assign VGA_VS = vsync;
-
-/*
-wire [2:0] scale = status[9:7];
-wire [2:0] sl = scale ? scale - 1'd1 : 3'd0;
-
-reg hs_o, vs_o;
-always @(posedge CLK_VIDEO) begin
-	hs_o <= ~hsync;
-	if(~hs_o & ~hsync) vs_o <= ~vsync;
-end
-
-video_mixer #(.LINE_LENGTH(290)) video_mixer
-(
-	.*,
-
-	.ce_pix(ce_5m3),
-   .ce_pix_actual(ce_5m3),
-   
-	.scandoubler_disable(forced_scandoubler),
-	.hq2x(scale==1),
-	.mono(0),
-	.scanlines(forced_scandoubler ? 2'b00 : {scale==3, scale==2}),
-   .ypbpr_full(0),
-   .line_start(0),
-
-
-	.R(R[7:2]),
-	.G(G[7:2]),
-	.B(B[7:2]),
-
-	// Positive pulses.
-	.HSync(hs_o),
-	.VSync(vs_o),
-	.HBlank(hblank),
-	.VBlank(vblank)
-);
-
-*/
-
-
-/////////////////  Tape In   /////////////////////////
 
 wire tape_in;
 assign tape_in = TAPE_SOUND;
-
-
-///////////// OSD CAS load //////////
 
 wire CAS_dout;
 wire [2:0] CAS_status;
@@ -466,8 +428,6 @@ assign CAS_ram_cs = 1'b1;
 assign CAS_ram_addr = (ioctl_download && ioctl_isCAS) ? ioctl_addr[17:0] : CAS_addr;
 assign CAS_ram_wren = ioctl_wr && ioctl_isCAS; 
 
-//17 128
-//18 256
 spram #(14) CAS_ram(
     .clock(clk_sys),
     .cs(CAS_ram_cs),
@@ -477,12 +437,11 @@ spram #(14) CAS_ram(
     .q(CAS_di)
 );
 
-
 assign play = ~motor;
 assign rewind = status[13] | (ioctl_download && ioctl_isCAS) | reset; //status[13];
 
 cassette CASReader(
-    .clk(ce_21m3), //  42.666/2
+    .clk(ce_21m3),
     .play(play), 
     .rewind(rewind),
 

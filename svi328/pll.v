@@ -46,19 +46,19 @@ module pll (
 	output	  c0;
 	output	  locked;
 
-	wire [0:0] sub_wire2 = 1'h0;
-	wire [4:0] sub_wire3;
-	wire  sub_wire5;
-	wire  sub_wire0 = inclk0;
-	wire [1:0] sub_wire1 = {sub_wire2, sub_wire0};
-	wire [0:0] sub_wire4 = sub_wire3[0:0];
-	wire  c0 = sub_wire4;
-	wire  locked = sub_wire5;
+	wire [4:0] sub_wire0;
+	wire  sub_wire2;
+	wire [0:0] sub_wire5 = 1'h0;
+	wire [0:0] sub_wire1 = sub_wire0[0:0];
+	wire  c0 = sub_wire1;
+	wire  locked = sub_wire2;
+	wire  sub_wire3 = inclk0;
+	wire [1:0] sub_wire4 = {sub_wire5, sub_wire3};
 
 	altpll	altpll_component (
-				.inclk (sub_wire1),
-				.clk (sub_wire3),
-				.locked (sub_wire5),
+				.inclk (sub_wire4),
+				.clk (sub_wire0),
+				.locked (sub_wire2),
 				.activeclock (),
 				.areset (1'b0),
 				.clkbad (),
@@ -95,9 +95,9 @@ module pll (
 				.vcounderrange ());
 	defparam
 		altpll_component.bandwidth_type = "AUTO",
-		altpll_component.clk0_divide_by = 3,
+		altpll_component.clk0_divide_by = 9,
 		altpll_component.clk0_duty_cycle = 50,
-		altpll_component.clk0_multiply_by = 11,
+		altpll_component.clk0_multiply_by = 32,
 		altpll_component.clk0_phase_shift = "0",
 		altpll_component.compensate_clock = "CLK0",
 		altpll_component.inclk0_input_frequency = 83333,
@@ -172,9 +172,9 @@ endmodule
 // Retrieval info: PRIVATE: CUR_DEDICATED_CLK STRING "c0"
 // Retrieval info: PRIVATE: CUR_FBIN_CLK STRING "c0"
 // Retrieval info: PRIVATE: DEVICE_SPEED_GRADE STRING "Any"
-// Retrieval info: PRIVATE: DIV_FACTOR0 NUMERIC "1"
+// Retrieval info: PRIVATE: DIV_FACTOR0 NUMERIC "9"
 // Retrieval info: PRIVATE: DUTY_CYCLE0 STRING "50.00000000"
-// Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE0 STRING "44.000000"
+// Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE0 STRING "42.666668"
 // Retrieval info: PRIVATE: EXPLICIT_SWITCHOVER_COUNTER STRING "0"
 // Retrieval info: PRIVATE: EXT_FEEDBACK_RADIO STRING "0"
 // Retrieval info: PRIVATE: GLOCKED_COUNTER_EDIT_CHANGED STRING "1"
@@ -197,10 +197,10 @@ endmodule
 // Retrieval info: PRIVATE: LVDS_PHASE_SHIFT_UNIT0 STRING "deg"
 // Retrieval info: PRIVATE: MIG_DEVICE_SPEED_GRADE STRING "Any"
 // Retrieval info: PRIVATE: MIRROR_CLK0 STRING "0"
-// Retrieval info: PRIVATE: MULT_FACTOR0 NUMERIC "1"
+// Retrieval info: PRIVATE: MULT_FACTOR0 NUMERIC "32"
 // Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
-// Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "44.00000000"
-// Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "1"
+// Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "42.00000000"
+// Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT0 STRING "MHz"
 // Retrieval info: PRIVATE: PHASE_RECONFIG_FEATURE_ENABLED STRING "1"
 // Retrieval info: PRIVATE: PHASE_RECONFIG_INPUTS_CHECK STRING "0"
@@ -225,7 +225,7 @@ endmodule
 // Retrieval info: PRIVATE: SPREAD_FEATURE_ENABLED STRING "0"
 // Retrieval info: PRIVATE: SPREAD_FREQ STRING "50.000"
 // Retrieval info: PRIVATE: SPREAD_FREQ_UNIT STRING "KHz"
-// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.500"
+// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.000"
 // Retrieval info: PRIVATE: SPREAD_USE STRING "0"
 // Retrieval info: PRIVATE: SRC_SYNCH_COMP_RADIO STRING "0"
 // Retrieval info: PRIVATE: STICKY_CLK0 STRING "1"
@@ -238,9 +238,9 @@ endmodule
 // Retrieval info: PRIVATE: ZERO_DELAY_RADIO STRING "0"
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 // Retrieval info: CONSTANT: BANDWIDTH_TYPE STRING "AUTO"
-// Retrieval info: CONSTANT: CLK0_DIVIDE_BY NUMERIC "3"
+// Retrieval info: CONSTANT: CLK0_DIVIDE_BY NUMERIC "9"
 // Retrieval info: CONSTANT: CLK0_DUTY_CYCLE NUMERIC "50"
-// Retrieval info: CONSTANT: CLK0_MULTIPLY_BY NUMERIC "11"
+// Retrieval info: CONSTANT: CLK0_MULTIPLY_BY NUMERIC "32"
 // Retrieval info: CONSTANT: CLK0_PHASE_SHIFT STRING "0"
 // Retrieval info: CONSTANT: COMPENSATE_CLOCK STRING "CLK0"
 // Retrieval info: CONSTANT: INCLK0_INPUT_FREQUENCY NUMERIC "83333"
