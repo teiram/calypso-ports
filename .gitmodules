@@ -124,3 +124,6 @@
 [submodule "common/T80"]
 	path = common/T80
 	url = https://github.com/mist-devel/T80.git
+[submodule "svi328/SVI328-SiDi"]
+	path = svi328/SVI328-SiDi
+	url = https://github.com/RW-FPGA-devel-Team/SVI328-SiDi.git
