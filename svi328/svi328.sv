@@ -1,86 +1,83 @@
 module SVI328(       
-	input         CLK12M,
-	output [7:0]  LED,
-	output [VGA_BITS-1:0] VGA_R,
-	output [VGA_BITS-1:0] VGA_G,
-	output [VGA_BITS-1:0] VGA_B,
-	output        VGA_HS,
-	output        VGA_VS,
+    input         CLK12M,
+    output [7:0]  LED,
+    output [VGA_BITS-1:0] VGA_R,
+    output [VGA_BITS-1:0] VGA_G,
+    output [VGA_BITS-1:0] VGA_B,
+    output        VGA_HS,
+    output        VGA_VS,
 
 `ifdef USE_HDMI
-	output        HDMI_RST,
-	output  [7:0] HDMI_R,
-	output  [7:0] HDMI_G,
-	output  [7:0] HDMI_B,
-	output        HDMI_HS,
-	output        HDMI_VS,
-	output        HDMI_PCLK,
-	output        HDMI_DE,
-	inout         HDMI_SDA,
-	inout         HDMI_SCL,
-	input         HDMI_INT,
+    output        HDMI_RST,
+    output  [7:0] HDMI_R,
+    output  [7:0] HDMI_G,
+    output  [7:0] HDMI_B,
+    output        HDMI_HS,
+    output        HDMI_VS,
+    output        HDMI_PCLK,
+    output        HDMI_DE,
+    inout         HDMI_SDA,
+    inout         HDMI_SCL,
+    input         HDMI_INT,
 `endif
 
-	input         SPI_SCK,
-	inout         SPI_DO,
-	input         SPI_DI,
-	input         SPI_SS2,    // data_io
-	input         SPI_SS3,    // OSD
-	input         CONF_DATA0, // SPI_SS for user_io
+    input         SPI_SCK,
+    inout         SPI_DO,
+    input         SPI_DI,
+    input         SPI_SS2,    // data_io
+    input         SPI_SS3,    // OSD
+    input         CONF_DATA0, // SPI_SS for user_io
 
 `ifdef USE_QSPI
-	input         QSCK,
-	input         QCSn,
-	inout   [3:0] QDAT,
+    input         QSCK,
+    input         QCSn,
+    inout   [3:0] QDAT,
 `endif
 `ifndef NO_DIRECT_UPLOAD
-	input         SPI_SS4,
+    input         SPI_SS4,
 `endif
 
-	output [12:0] SDRAM_A,
-	inout  [15:0] SDRAM_DQ,
-	output        SDRAM_DQML,
-	output        SDRAM_DQMH,
-	output        SDRAM_nWE,
-	output        SDRAM_nCAS,
-	output        SDRAM_nRAS,
-	output        SDRAM_nCS,
-	output  [1:0] SDRAM_BA,
-	output        SDRAM_CLK,
-	output        SDRAM_CKE,
+    output [12:0] SDRAM_A,
+    inout  [15:0] SDRAM_DQ,
+    output        SDRAM_DQML,
+    output        SDRAM_DQMH,
+    output        SDRAM_nWE,
+    output        SDRAM_nCAS,
+    output        SDRAM_nRAS,
+    output        SDRAM_nCS,
+    output  [1:0] SDRAM_BA,
+    output        SDRAM_CLK,
+    output        SDRAM_CKE,
 
 `ifdef DUAL_SDRAM
-	output [12:0] SDRAM2_A,
-	inout  [15:0] SDRAM2_DQ,
-	output        SDRAM2_DQML,
-	output        SDRAM2_DQMH,
-	output        SDRAM2_nWE,
-	output        SDRAM2_nCAS,
-	output        SDRAM2_nRAS,
-	output        SDRAM2_nCS,
-	output  [1:0] SDRAM2_BA,
-	output        SDRAM2_CLK,
-	output        SDRAM2_CKE,
+    output [12:0] SDRAM2_A,
+    inout  [15:0] SDRAM2_DQ,
+    output        SDRAM2_DQML,
+    output        SDRAM2_DQMH,
+    output        SDRAM2_nWE,
+    output        SDRAM2_nCAS,
+    output        SDRAM2_nRAS,
+    output        SDRAM2_nCS,
+    output  [1:0] SDRAM2_BA,
+    output        SDRAM2_CLK,
+    output        SDRAM2_CKE,
 `endif
 
-	output        AUDIO_L,
-	output        AUDIO_R,
 `ifdef I2S_AUDIO
-	output        I2S_BCK,
-	output        I2S_LRCK,
-	output        I2S_DATA,
+    output        I2S_BCK,
+    output        I2S_LRCK,
+    output        I2S_DATA,
 `endif
 `ifdef SPDIF_AUDIO
-	output        SPDIF,
+    output        SPDIF,
 `endif
 `ifdef USE_AUDIO_IN
-	input         AUDIO_IN,
+    input         AUDIO_IN,
 `endif
-	input         UART_RX,
-	output        UART_TX,
+    input         UART_RX,
+    output        UART_TX,
     
     output  [7:0] AUX
-
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -127,44 +124,40 @@ wire TAPE_SOUND = UART_RX;
  
 assign LED[0]  =  svi_audio_in;
 
-
-
-
 `include "build_id.v" 
 localparam CONF_STR = {
-	"SVI328;;",
-	"F,BINROM,Load Cartridge;",
-	"F,CAS,Cas File;",
-	"OF,Tape Input,File,Line;",
-	"TD,Tape Rewind;",
-	"O79,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
-	"O6,Border,No,Yes;",
-	"O3,Joysticks swap,No,Yes;",
-	"T0,Reset;",
-	"V,calypso-",`BUILD_DATE
+    "SVI328;;",
+    "F,BINROM,Load Cartridge;",
+    "F,CAS,Cas File;",
+    "OF,Tape Input,File,Line;",
+    "TD,Rewind Tape;",
+    "O79,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
+    "O6,Show border,No,Yes;",
+    "O3,Swap joysticks,No,Yes;",
+    "T0,Reset;",
+    "V,calypso-",`BUILD_DATE
 };
 
 /////////////////  CLOCKS  ////////////////////////
 wire clk_sys;
 wire pll_locked;
 
-pll pll
-(
-	.inclk0(CLK12M),
-	.c0(clk_sys),
-	.locked(pll_locked)
+pll pll(
+    .inclk0(CLK12M),
+    .c0(clk_sys),
+    .locked(pll_locked)
 );
 
 reg ce_10m7 = 0;
 reg ce_5m3 = 0;
 reg ce_21m3 = 0;
 always @(posedge clk_sys) begin
-	reg [2:0] div;
-	
-	div <= div+1'd1;
-	ce_10m7 <= !div[1:0];
-	ce_5m3  <= !div[2:0];
-	ce_21m3 <= div[0];
+    reg [2:0] div;
+
+    div <= div+1'd1;
+    ce_10m7 <= !div[1:0];
+    ce_5m3  <= !div[2:0];
+    ce_21m3 <= div[0];
 end
 
 /////////////////  HPS  ///////////////////////////
@@ -266,12 +259,10 @@ spram #(14) vram(
 
 wire sdram_rdy;
 
-
 wire sdram_we,sdram_rd;
 wire [17:0] sdram_addr;
 wire  [7:0] sdram_din;
 wire ioctl_isROM = ioctl_index[5:0] < 6'd2; //Index osd File is 0 (ROM) or 1(Rom Cartridge)
-
 
 assign sdram_we = (ioctl_wr && ioctl_isROM) | ( isRam & ~(ram_we_n | ram_ce_n));
 assign sdram_addr = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : ram_a;
@@ -306,10 +297,7 @@ svi_mapper RamMapper(
     .ram(isRam)
 );
 
-
-
 wire [10:0] audio;
-
 
 `ifdef I2S_AUDIO
 wire [31:0] clk_rate =  32'd44_000_000;
@@ -480,14 +468,13 @@ assign CAS_ram_wren = ioctl_wr && ioctl_isCAS;
 
 //17 128
 //18 256
-spram #(14) CAS_ram
-(
-	.clock(clk_sys),
-	.cs(CAS_ram_cs),
-	.address(CAS_ram_addr),	
-	.wren(CAS_ram_wren), 
-	.data(ioctl_dout),
-	.q(CAS_di)
+spram #(14) CAS_ram(
+    .clock(clk_sys),
+    .cs(CAS_ram_cs),
+    .address(CAS_ram_addr),
+    .wren(CAS_ram_wren),
+    .data(ioctl_dout),
+    .q(CAS_di)
 );
 
 
@@ -495,18 +482,16 @@ assign play = ~motor;
 assign rewind = status[13] | (ioctl_download && ioctl_isCAS) | reset; //status[13];
 
 cassette CASReader(
+    .clk(ce_21m3), //  42.666/2
+    .play(play), 
+    .rewind(rewind),
 
-  .clk(ce_21m3), //  42.666/2
-  .play(play), 
-  .rewind(rewind),
+    .sdram_addr(CAS_addr),
+    .sdram_data(CAS_di),
+    .sdram_rd(CAS_rd),
 
-  .sdram_addr(CAS_addr),
-  .sdram_data(CAS_di),
-  .sdram_rd(CAS_rd),
-
-  .data(CAS_dout),
-  .status(CAS_status)
-
+    .data(CAS_dout),
+    .status(CAS_status)
 );
 
 endmodule
