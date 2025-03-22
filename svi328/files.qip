@@ -1,6 +1,4 @@
 set_global_assignment -name QIP_FILE SVI328-SiDi/rtl/Jt49/jt49.qip
-set_global_assignment -name SYSTEMVERILOG_FILE SVI328-SiDi/rtl/YM2149.sv
-set_global_assignment -name VERILOG_FILE SVI328-SiDi/rtl/cassette.v
 set_global_assignment -name VERILOG_FILE SVI328-SiDi/rtl/square_gen.v
 set_global_assignment -name VERILOG_FILE SVI328-SiDi/rtl/jt8255.v
 set_global_assignment -name VERILOG_FILE SVI328-SiDi/rtl/svi_mapper.v
@@ -32,6 +30,7 @@ set_global_assignment -name VHDL_FILE SVI328-SiDi/rtl/74ls74.vhd
 
 set_global_assignment -name QIP_FILE ../common/T80/T80.qip
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name VERILOG_FILE cassette.v
 set_global_assignment -name VHDL_FILE keyboard_svi.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE SVI328.sv

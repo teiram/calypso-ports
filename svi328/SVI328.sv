@@ -121,20 +121,20 @@ wire TAPE_SOUND = AUDIO_IN;
 wire TAPE_SOUND = UART_RX;
 `endif
 
- 
 assign LED[0]  =  svi_audio_in;
 
 `include "build_id.v" 
 localparam CONF_STR = {
     "SVI328;;",
     "F,BINROM,Load Cartridge;",
-    "F,CAS,Cas File;",
+    "F2,CAS,Cas File;",
     "OF,Tape Input,File,Line;",
     "TD,Rewind Tape;",
     "O79,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
     "O6,Show border,No,Yes;",
     "O3,Swap joysticks,No,Yes;",
     "T0,Reset;",
+    "T1,Hard reset;",
     "V,calypso-",`BUILD_DATE
 };
 
@@ -170,7 +170,6 @@ wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 wire        forced_scandoubler;
-wire [21:0] gamma_bus;
 wire [7:0]  key_code;
 wire        key_strobe;
 wire        key_pressed;
@@ -180,7 +179,9 @@ wire        ypbpr;
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
     .SD_IMAGES(1),
-    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))) user_io(
+    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
+
+user_io(
 
     .clk_sys(clk_sys),
     .conf_str(CONF_STR),
@@ -206,6 +207,7 @@ data_io data_io(
     .clk_sys(clk_sys),
     .SPI_SCK(SPI_SCK),
     .SPI_SS2(SPI_SS2),
+    .SPI_SS4(SPI_SS4),
     .SPI_DI(SPI_DI),
     .clkref_n(1'b0),
     .ioctl_download(ioctl_download),
@@ -216,7 +218,36 @@ data_io data_io(
 );
 
 
-wire reset = status[0] | (ioctl_download && ioctl_isROM);
+wire reset = status[0] | (ioctl_download && ioctl_isROM) | in_hard_reset;
+
+wire hard_reset = status[1];
+reg [15:0] cleanup_addr = 16'd0;
+reg cleanup_we;
+wire in_hard_reset = |cleanup_addr;
+
+always @(posedge clk_sys) begin
+    reg hard_reset_last;
+    reg ce_last;
+    
+    hard_reset_last <= hard_reset;
+    ce_last <= ce_5m3;
+    if (~hard_reset_last & hard_reset) begin
+        cleanup_addr <= 16'hffff;
+        cleanup_we <= 1'b1;
+    end
+    else if (~ce_last & ce_5m3) begin
+        if (|cleanup_addr) begin
+            case (cleanup_we) 
+                1'b0: cleanup_we <= 1'b1;
+                1'b1: begin
+                    cleanup_we <= 1'b0;
+                    cleanup_addr <= cleanup_addr - 1'b1;
+                end
+            endcase
+        end
+    end
+end
+
 
 wire [3:0] svi_row;
 wire [7:0] svi_col;
@@ -229,8 +260,8 @@ sviKeyboard KeyboardSVI(
     .pressed(key_pressed),
     .extended(key_extended),
     
-    .svi_row (svi_row),
-    .svi_col (svi_col)
+    .svi_row(svi_row),
+    .svi_col(svi_col)
 );
 
 
@@ -253,7 +284,6 @@ spram #(14) vram(
     .q(vram_di)
 );
 
-
 wire sdram_rdy;
 
 wire sdram_we;
@@ -262,11 +292,17 @@ wire [17:0] sdram_addr;
 wire  [7:0] sdram_din;
 wire ioctl_isROM = ioctl_index[5:0] < 6'd2; //OSD file index is 0 (ROM) or 1 (ROM Cartridge)
 
-assign sdram_we = (ioctl_wr && ioctl_isROM) | ( isRam & ~(ram_we_n | ram_ce_n));
-assign sdram_addr = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : ram_a;
-assign sdram_din = (ioctl_wr && ioctl_isROM) ? ioctl_dout : ram_do;
+assign sdram_we = (ioctl_wr && ioctl_isROM) | ( isRam & ~(ram_we_n | ram_ce_n)) | (in_hard_reset & cleanup_we);
 
-assign sdram_rd = ~(ram_rd_n | ram_ce_n);
+assign sdram_addr = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : 
+        in_hard_reset ? {1'b1, cleanup_addr} :
+        ram_a;
+        
+assign sdram_din = (ioctl_wr && ioctl_isROM) ? ioctl_dout : 
+    in_hard_reset ? 8'h00 :
+    ram_do;
+
+assign sdram_rd = ~(ram_rd_n | ram_ce_n) & ~in_hard_reset;
 assign SDRAM_CLK = clk_sys;
 
 sdram sdram(
@@ -289,9 +325,10 @@ sdram sdram(
     .rd(sdram_rd),
     .we(sdram_we),
     .din(sdram_din),
-    .dout(ram_di)
+    .dout(ram_di),
+    
+    .ready(sdram_rdy)
 );
-
 
 wire [17:0] ram_a;
 wire isRam;
@@ -330,7 +367,6 @@ wire hsync, vsync;
 wire [31:0] joya = status[3] ? joy1 : joy0;
 wire [31:0] joyb = status[3] ? joy0 : joy1;
 
-
 wire svi_audio_in = status[15] ? tape_in : (CAS_status != 0 ? CAS_dout : 1'b0);
 
 cv_console console(
@@ -346,7 +382,7 @@ cv_console console(
 
     .motor_o(motor),
 
-    .joy0_i(~{joya[4],joya[0],joya[1],joya[2],joya[3]}), //SVI {Fire,Right, Left, Down, Up} // HPS {Fire,Up, Down, Left, Right}
+    .joy0_i(~{joya[4],joya[0],joya[1],joya[2],joya[3]}),
     .joy1_i(~{joyb[4],joyb[0],joyb[1],joyb[2],joyb[3]}),
 
     .cpu_ram_a_o(cpu_ram_a),
@@ -355,7 +391,6 @@ cv_console console(
     .cpu_ram_rd_n_o(ram_rd_n),
     .cpu_ram_d_i(ram_di),
     .cpu_ram_d_o(ram_do),
-
     .ay_port_b(ay_port_b),
 	
     .vram_a_o(vram_a),
@@ -425,10 +460,10 @@ wire CAS_ram_wren, CAS_ram_cs;
 wire ioctl_isCAS = (ioctl_index[5:0] == 6'd2);
 
 assign CAS_ram_cs = 1'b1;
-assign CAS_ram_addr = (ioctl_download && ioctl_isCAS) ? ioctl_addr[17:0] : CAS_addr;
-assign CAS_ram_wren = ioctl_wr && ioctl_isCAS; 
+assign CAS_ram_addr  = (ioctl_download && ioctl_isCAS) ? ioctl_addr[17:0] : CAS_addr;
+assign CAS_ram_wren  = ioctl_wr && ioctl_isCAS; 
 
-spram #(14) CAS_ram(
+spram #(15) CAS_ram(
     .clock(clk_sys),
     .cs(CAS_ram_cs),
     .address(CAS_ram_addr),
@@ -438,7 +473,7 @@ spram #(14) CAS_ram(
 );
 
 assign play = ~motor;
-assign rewind = status[13] | (ioctl_download && ioctl_isCAS) | reset; //status[13];
+assign rewind = status[13] | (ioctl_download && ioctl_isCAS) | reset;
 
 cassette CASReader(
     .clk(ce_21m3),
