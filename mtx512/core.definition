@@ -1,0 +1,5 @@
+CORE_ID=mtx512
+PROJECT_NAME=mtx512
+VERSION=0.1
+BITSTREAM_FILE=output_files/mtx512.rbf
+EXTRA_BINARIES=readme.md
