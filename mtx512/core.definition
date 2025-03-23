@@ -3,3 +3,4 @@ PROJECT_NAME=mtx512
 VERSION=0.1
 BITSTREAM_FILE=output_files/mtx512.rbf
 EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/T80/T80.qip ../common/mist-modules/mist.qip
