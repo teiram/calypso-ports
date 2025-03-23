@@ -75,9 +75,7 @@ module SVI328(
     input         AUDIO_IN,
 `endif
     input         UART_RX,
-    output        UART_TX,
-    
-    output  [7:0] AUX
+    output        UART_TX    
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -139,11 +137,13 @@ localparam CONF_STR = {
 };
 
 wire clk_sys;
+wire clk_21m3;
 wire pll_locked;
 
 pll pll(
     .inclk0(CLK12M),
     .c0(clk_sys),
+    .c1(clk_21m3),
     .locked(pll_locked)
 );
 
@@ -284,25 +284,31 @@ spram #(14) vram(
     .q(vram_di)
 );
 
-wire sdram_rdy;
-
+wire sdram_ready;
 wire sdram_we;
 wire sdram_rd;
-wire [17:0] sdram_addr;
+wire sdram_cas_rd;
+wire [20:0] sdram_cas_addr;
+wire [22:0] sdram_addr;
 wire  [7:0] sdram_din;
 wire ioctl_isROM = ioctl_index[5:0] < 6'd2; //OSD file index is 0 (ROM) or 1 (ROM Cartridge)
+wire ioctl_cas_download = ioctl_download & ioctl_index[5:0] == 6'd2;
 
-assign sdram_we = (ioctl_wr && ioctl_isROM) | ( isRam & ~(ram_we_n | ram_ce_n)) | (in_hard_reset & cleanup_we);
+assign sdram_we = ioctl_wr | 
+                  (isRam & ~(ram_we_n | ram_ce_n)) | 
+                  (in_hard_reset & cleanup_we);
 
-assign sdram_addr = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : 
+assign sdram_addr = (ioctl_download && ioctl_isROM) ? {6'd0, ioctl_index[0], ioctl_addr[15:0]} : 
+        ioctl_cas_download ? {2'b11, ioctl_addr[20:0]} :
         in_hard_reset ? {1'b1, cleanup_addr} :
+        sdram_cas_rd ? {2'b11, sdram_cas_addr[20:0]} :
         ram_a;
-        
-assign sdram_din = (ioctl_wr && ioctl_isROM) ? ioctl_dout : 
+
+assign sdram_din = ioctl_wr ? ioctl_dout : 
     in_hard_reset ? 8'h00 :
     ram_do;
 
-assign sdram_rd = ~(ram_rd_n | ram_ce_n) & ~in_hard_reset;
+assign sdram_rd = ~(ram_rd_n | ram_ce_n) | sdram_cas_rd;
 assign SDRAM_CLK = clk_sys;
 
 sdram sdram(
@@ -327,7 +333,7 @@ sdram sdram(
     .din(sdram_din),
     .dout(ram_di),
     
-    .ready(sdram_rdy)
+    .ready(sdram_ready)
 );
 
 wire [17:0] ram_a;
@@ -363,15 +369,16 @@ i2s i2s(
 wire [7:0] R,G,B,ay_port_b;
 wire hblank, vblank;
 wire hsync, vsync;
-
+wire cpu_rfsh_n;
 wire [31:0] joya = status[3] ? joy1 : joy0;
 wire [31:0] joyb = status[3] ? joy0 : joy1;
 
-wire svi_audio_in = status[15] ? tape_in : (CAS_status != 0 ? CAS_dout : 1'b0);
+wire svi_audio_in = status[15] ? tape_in : (cas_status != 0 ? cas_data_out : 1'b0);
+wire ce_10m7_gated = ioctl_cas_download ? 1'b0 : ce_10m7;
 
 cv_console console(
     .clk_i(clk_sys),
-    .clk_en_10m7_i(ce_10m7),
+    .clk_en_10m7_i(ce_10m7_gated),
     .clk_en_5m3_i(ce_5m3),
     .reset_n_i(~reset),
 
@@ -391,6 +398,7 @@ cv_console console(
     .cpu_ram_rd_n_o(ram_rd_n),
     .cpu_ram_d_i(ram_di),
     .cpu_ram_d_o(ram_do),
+    .cpu_rfsh_n_o(cpu_rfsh_n),
     .ay_port_b(ay_port_b),
 	
     .vram_a_o(vram_a),
@@ -444,48 +452,29 @@ mist_video(
     .blend(1'b0)
 );
 
-
 wire tape_in;
 assign tape_in = TAPE_SOUND;
 
-wire CAS_dout;
-wire [2:0] CAS_status;
+wire cas_data_out;
+wire [2:0] cas_status;
 wire play, rewind;
-wire CAS_rd;
-wire [25:0] CAS_addr;
-wire [7:0] CAS_di;
-
-wire [25:0] CAS_ram_addr;
-wire CAS_ram_wren, CAS_ram_cs;
-wire ioctl_isCAS = (ioctl_index[5:0] == 6'd2);
-
-assign CAS_ram_cs = 1'b1;
-assign CAS_ram_addr  = (ioctl_download && ioctl_isCAS) ? ioctl_addr[17:0] : CAS_addr;
-assign CAS_ram_wren  = ioctl_wr && ioctl_isCAS; 
-
-spram #(15) CAS_ram(
-    .clock(clk_sys),
-    .cs(CAS_ram_cs),
-    .address(CAS_ram_addr),
-    .wren(CAS_ram_wren),
-    .data(ioctl_dout),
-    .q(CAS_di)
-);
 
 assign play = ~motor;
-assign rewind = status[13] | (ioctl_download && ioctl_isCAS) | reset;
+assign rewind = status[13] | ioctl_cas_download | reset;
 
 cassette CASReader(
-    .clk(ce_21m3),
-    .play(play), 
+    .clk(clk_21m3),
+    .play(play),
     .rewind(rewind),
+    .reset(reset),
 
-    .sdram_addr(CAS_addr),
-    .sdram_data(CAS_di),
-    .sdram_rd(CAS_rd),
-
-    .data(CAS_dout),
-    .status(CAS_status)
+    .sdram_addr(sdram_cas_addr),
+    .sdram_data(ram_di),
+    .sdram_rd(sdram_cas_rd),
+    .sdram_available(~cpu_rfsh_n),
+    .sdram_ready(sdram_ready),
+    .data(cas_data_out),
+    .status(cas_status)
 );
 
 endmodule

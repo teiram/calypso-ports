@@ -24,7 +24,6 @@ set_global_assignment -name VHDL_FILE SVI328-SiDi/rtl/cv_addr_dec.vhd
 set_global_assignment -name VHDL_FILE SVI328-SiDi/rtl/cv_bus_mux.vhd
 set_global_assignment -name VHDL_FILE SVI328-SiDi/rtl/cv_clock.vhd
 set_global_assignment -name VHDL_FILE SVI328-SiDi/rtl/cv_por.vhd
-set_global_assignment -name VHDL_FILE SVI328-SiDi/rtl/cv_console.vhd
 set_global_assignment -name VHDL_FILE SVI328-SiDi/rtl/ps2kbd_pkg.vhd
 set_global_assignment -name VHDL_FILE SVI328-SiDi/rtl/74ls74.vhd
 
@@ -34,4 +33,5 @@ set_global_assignment -name VERILOG_FILE cassette.v
 set_global_assignment -name VHDL_FILE keyboard_svi.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE SVI328.sv
+set_global_assignment -name VHDL_FILE cv_console.vhd
 

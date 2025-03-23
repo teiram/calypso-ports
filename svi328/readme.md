@@ -1,0 +1,8 @@
+# Information
+Spectravideo SVI328 port from [SiDi core](https://github.com/RW-FPGA-devel-Team/SVI328-SiDi)
+
+# How to run
+SVI328.ROM file must be provided in the SD card root folder (or core folder)
+
+# Changelog
+- 0.1. Initial release

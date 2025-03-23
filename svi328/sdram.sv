@@ -48,7 +48,7 @@ module sdram
                                   // 8bit mode:  2'b00 - use addr[0] to decide which byte to write
                                   // Ignored while reading.
                                   //
-   input      [24:0] addr,        // 25 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
+   input      [22:0] addr,        // 23 bit address for 8bit mode. addr[0] = 0 for 16bit mode for correct operations.
    output     [15:0] dout,        // data output to cpu
    input      [15:0] din,         // data input from cpu
    input             we,          // cpu requests write
@@ -90,7 +90,7 @@ localparam CMD_LOAD_MODE       = 4'b0000;
 
 reg [13:0] refresh_count = startup_refresh_max - sdram_startup_cycles;
 reg  [3:0] command = CMD_INHIBIT;
-reg [24:0] save_addr;
+reg [22:0] save_addr;
 
 reg        latched;
 reg [15:0] data;
@@ -264,7 +264,7 @@ always @(posedge clk) begin
 
 	old_rd <= rd;
 	if(rd & ~old_rd) begin
-		if(ready & ~save_we & (save_addr[24:1] == addr[24:1])) save_addr <= addr;
+		if(ready & ~save_we & (save_addr[22:1] == addr[22:1])) save_addr <= addr;
 			else {ready, new_rd} <= {1'b0, 1'b1};
 	end
 end
