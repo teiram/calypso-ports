@@ -3,3 +3,4 @@ PROJECT_NAME=SVI328
 VERSION=0.1
 BITSTREAM_FILE=output_files/SVI328.rbf
 EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/T80 ../common/mist-modules
