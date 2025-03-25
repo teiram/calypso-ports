@@ -127,3 +127,6 @@
 [submodule "svi328/SVI328-SiDi"]
 	path = svi328/SVI328-SiDi
 	url = https://github.com/RW-FPGA-devel-Team/SVI328-SiDi.git
+[submodule "adam/Adam_Coleco"]
+	path = adam/Adam_Coleco
+	url = https://github.com/BigMist/Adam_Coleco
