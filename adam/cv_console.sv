@@ -70,11 +70,13 @@ module cv_console
   (
    // Global Interface -------------------------------------------------------
    input                        clk_i,
+   input                        clk_adamnet_i,
 	input                        clk_100_i,
 	input                        clk_25_i,
 	input                        sprite_max_i,
 	input                        scan_lines_i,
    input                        clk_en_10m7_i,
+   input                        clk_en_5m3_i,
    input                        reset_n_i,
         input                        mode,
    output logic                 por_n_o,
@@ -185,7 +187,7 @@ module cv_console
   logic          clk_en_3m58_n_s;
 
   // CPU signals
-  logic          wait_n_s;
+  logic          wait_n_s /* synthesis keep */;
   logic          nmi_n_s;
   logic          int_n_s;
   logic          iorq_n_s;
@@ -194,12 +196,12 @@ module cv_console
   logic          rd_n_s, rd_n_s_d;
   logic          wr_n_s, wr_n_s_d;
   logic          mreq_n_s;
-  logic          rfsh_n_s;
+  logic          rfsh_n_s /* synthesis keep */;
   logic [15:0]   a_s;
   logic [7:0]    d_to_cpu_s;
   logic [7:0]    d_from_cpu_s;
-  logic          adamnet_req_n;
-  logic          adamnet_ack_n;
+  logic          adamnet_req_n /* synthesis keep */;
+  logic          adamnet_ack_n /* synthesis keep */;
 
   // VDP18 signal
   logic [7:0]    d_from_vdp_s;
@@ -577,6 +579,7 @@ module cv_console
     .z80_addr(a_s),
     .z80_data_wr(d_from_cpu_s),
     .z80_data_rd(d_to_cpu_s),
+    .z80_rfsh(rfsh_n_s),
      // Dual port or mux into ADAM system memory
      .ramb_addr,
      .ramb_wr,

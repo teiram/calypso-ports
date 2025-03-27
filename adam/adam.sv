@@ -174,14 +174,14 @@ parameter CONF_STR = {
     "S2U,DDP,Load Tape 1;",
     "S3U,DDP,Load Tape 2;",
     `SEP
-    "O3,Joysticks swap,No,Yes;",
+    "O3,Swap Joysticks,No,Yes;",
     "OC,Mode,Computer,Console;",
     `SEP
     "OD,F18A Max Sprites,4,32;",
     "OE,F18A Scanlines,Off,On;",
     "-;",
     "T0,Reset;",
-    "V,v",`BUILD_DATE
+    "V,calypso-",`BUILD_DATE
 };
 
 /////////////////  CLOCKS  ////////////////////////
@@ -204,7 +204,7 @@ pll_vdp pll_vdp(
 );
 
 reg ce_10m7 = 0;
-reg ce_5m3 = 0;
+reg ce_5m3 /* synthesis keep */ = 0;
 always @(posedge clk_sys) begin
         reg [2:0] div;
 
@@ -213,7 +213,7 @@ always @(posedge clk_sys) begin
         ce_5m3  <= !div[2:0];
 end
 
-/////////////////  HPS  ///////////////////////////
+/////////////////  IO  ///////////////////////////
 
 wire [31:0] status;
 wire  [1:0] buttons;
@@ -229,11 +229,11 @@ wire        forced_scandoubler;
 
 wire [31:0] sd_lba[TOT_DISKS];
 wire [31:0] sd_lba_mux;
-reg   [TOT_DISKS-1:0] sd_rd;
+reg   [TOT_DISKS-1:0] sd_rd /* synthesis keep */;
 reg   [TOT_DISKS-1:0] sd_wr;
-wire  [TOT_DISKS-1:0] sd_ack;
+wire  [TOT_DISKS-1:0] sd_ack /* synthesis keep */;
 wire        sd_ack_mux;
-wire  [8:0] sd_buff_addr;
+wire  [8:0] sd_buff_addr /* synthesis keep */;
 wire  [7:0] sd_buff_dout;
 wire  [7:0] sd_buff_din[TOT_DISKS];
 wire  [7:0] sd_buff_din_mux;
@@ -274,14 +274,13 @@ always @(posedge clk_sys) begin
 	 end
 end
 
-wire [10:0] ps2_key; 
 wire        key_pressed;
 wire [7:0]  key_code;
 wire        key_strobe;
 wire        key_extended;
 
 
-assign ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
+wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
 
 
 user_io #(
@@ -348,7 +347,7 @@ wire        i2c_end;
 `endif
 
 
-data_io  data_io(
+data_io data_io(
     .clk_sys(clk_sys),
     .SPI_SCK(SPI_SCK),
     .SPI_SS2(SPI_SS2),
@@ -402,20 +401,20 @@ wire [14:0] writer_a;
 wire  [7:0] writer_d;
 
 wire [14:0] cpu_ram_a;
-wire cpu_ram_we_n;
-wire cpu_ram_rd_n;
+wire cpu_ram_we_n /* synthesis keep */;
+wire cpu_ram_rd_n /* synthesis keep */;
 wire  [7:0] cpu_ram_di;
 wire  [7:0] cpu_ram_do;
 
 wire [14:0] cpu_upper_ram_a;
-wire cpu_upper_ram_we_n;
-wire cpu_upper_ram_rd_n;
+wire cpu_upper_ram_we_n /* synthesis keep */;
+wire cpu_upper_ram_rd_n /* synthesis keep */;
 wire  [7:0] cpu_upper_ram_di;
 wire  [7:0] cpu_upper_ram_do;
 
 wire [14:0] lowerexpansion_ram_a;
-wire lowerexpansion_ram_rd_n;
-wire lowerexpansion_ram_we_n;
+wire lowerexpansion_ram_rd_n /* synthesis keep */;
+wire lowerexpansion_ram_we_n /* synthesis keep */;
 wire [7:0] lowerexpansion_ram_di;
 wire [7:0] lowerexpansion_ram_do;
 
@@ -423,27 +422,44 @@ wire [19:0] cart_a;
 wire  [7:0] cart_d;
 wire cart_rd /* synthesis keep */;
 
+wire [15:0] ramb_addr /* synthesis keep */;
+wire        ramb_wr /* synthesis keep */;
+wire        ramb_rd /* synthesis keep */;
+wire [7:0]  ramb_dout;
+logic [7:0]  ramb_din;
+logic       ramb_wr_ack /* synthesis keep */;
+logic       ramb_rd_ack /* synthesis keep */;
+wire ramb_access = ramb_wr | ramb_rd;
+
 wire [22:0] sdram_addr /* synthesis keep */;
 wire [7:0] sdram_din /* synthesis keep */;
 wire [7:0] sdram_dout /* synthesis keep */;
 wire sdram_rd /* synthesis keep */;
 wire sdram_we /* synthesis keep */;
+wire sdram_ready /* synthesis keep */;
 
 always @(*) begin
-    casex({ioctl_download, bios_rom_ce_n, eos_rom_ce_n, writer_rom_ce_n,
-            cpu_ram_ce_n, lowerexpansion_ram_ce_n, cpu_upper_ram_ce_n,
+    casex({
+            ioctl_download, bios_rom_ce_n, eos_rom_ce_n, writer_rom_ce_n,
+            cpu_ram_ce_n | (cpu_ram_we_n & cpu_ram_rd_n), 
+            lowerexpansion_ram_ce_n | (lowerexpansion_ram_we_n & lowerexpansion_ram_rd_n), 
+            cpu_upper_ram_ce_n | (cpu_upper_ram_we_n & cpu_upper_ram_rd_n),
             cart_rd,
+            ramb_access, ramb_addr[15],
             ioctl_index[0]
     })
-        'b1xxxxxxx_0: sdram_addr = {6'd0, ioctl_addr[15:0]};
-        'b1xxxxxxx_1: sdram_addr = {3'b001, ioctl_addr[19:0]};
-        'b00xxxxxx_x: sdram_addr = {10'd0, bios_a[12:0]};
-        'b010xxxxx_x: sdram_addr = {9'b000000001, eos_a[13:0]};
-        'b0110xxxx_x: sdram_addr = {8'b00000001, writer_a[14:0]};
-        'b01110xxx_x: sdram_addr = {8'b00000010, cpu_ram_a[14:0]};
-        'b011110xx_x: sdram_addr = {8'b00000011, lowerexpansion_ram_a[14:0]};
-        'b0111110x_x: sdram_addr = {8'b00000100, cpu_upper_ram_a[14:0]};
-        'b01111111_x: sdram_addr = {3'b001, cart_a[19:0]};        
+        'b1xxxxxxx_xx_0: sdram_addr = {6'd0, ioctl_addr[15:0]};
+        'b1xxxxxxx_xx_1: sdram_addr = {3'b001, ioctl_addr[19:0]};    
+        'b0xxxxxxx_10_x: sdram_addr = {8'b00000010, ramb_addr[14:0]};
+        'b0xxxxxxx_11_x: sdram_addr = {8'b00000100, ramb_addr[14:0]};  
+        'b00xxxxxx_0x_x: sdram_addr = {10'd0, bios_a[12:0]};
+        'b010xxxxx_0x_x: sdram_addr = {9'b000000001, eos_a[13:0]};
+        'b0110xxxx_0x_x: sdram_addr = {8'b00000001, writer_a[14:0]};
+        'b01110xxx_0x_x: sdram_addr = {8'b00000010, cpu_ram_a[14:0]};
+        'b011110xx_0x_x: sdram_addr = {8'b00000011, lowerexpansion_ram_a[14:0]};
+        'b0111110x_0x_x: sdram_addr = {8'b00000100, cpu_upper_ram_a[14:0]};
+        'b01111111_0x_x: sdram_addr = {3'b001, cart_a[19:0]};
+           
         default:   sdram_addr = {8'b00000010, cpu_ram_a[14:0]};
     endcase
 end
@@ -453,10 +469,13 @@ assign sdram_rd = ~(
     (cpu_ram_rd_n | cpu_ram_ce_n) &  
     (lowerexpansion_ram_rd_n | lowerexpansion_ram_ce_n) & 
     (cpu_upper_ram_rd_n | cpu_upper_ram_ce_n) &
-    ~cart_rd
+    ~cart_rd &
+    ~ramb_rd
 );
+
 assign sdram_we = ~(
     ~ioctl_wr & 
+    ~ramb_wr &
     (cpu_ram_we_n | cpu_ram_ce_n) & 
     (lowerexpansion_ram_we_n | lowerexpansion_ram_ce_n) & 
     (cpu_upper_ram_we_n | cpu_upper_ram_ce_n)
@@ -469,14 +488,49 @@ assign cpu_ram_di = cpu_ram_rd_n ? 8'hff : sdram_dout;
 assign cpu_upper_ram_di = cpu_upper_ram_rd_n ? 8'hff : sdram_dout;
 assign lowerexpansion_ram_di = lowerexpansion_ram_rd_n ? 8'hff : sdram_dout;
 assign cart_d = cart_rd ? sdram_dout : 8'hff;
+assign ramb_din = ramb_rd ? sdram_dout : 8'hff;
+
+logic ramb_wr_last;
+logic sample_wr_sdram_ready;
+
+logic ramb_rd_last;
+logic sample_rd_sdram_ready;
+
+always @(posedge clk_sys) begin
+    ramb_wr_last <= ramb_wr;
+    if (~ramb_wr_last & ramb_wr) begin
+        sample_wr_sdram_ready <= 1'b1;
+        ramb_wr_ack <= 1'b0;
+    end
+    if (sample_wr_sdram_ready == 1'b1) begin
+        if (sdram_ready == 1'b1) begin
+            ramb_wr_ack <= 1'b1;
+            sample_wr_sdram_ready <= 1'b0;
+        end
+    end
+end
+
+always @(posedge clk_sys) begin
+    ramb_rd_last <= ramb_rd;
+    if (~ramb_rd_last & ramb_rd) begin
+        sample_rd_sdram_ready <= 1'b1;
+        ramb_rd_ack <= 1'b0;
+    end
+    if (sample_rd_sdram_ready == 1'b1) begin
+        if (sdram_ready == 1'b1) begin
+            ramb_rd_ack <= 1'b1;
+            sample_rd_sdram_ready <= 1'b0;
+        end
+    end
+end
 
 assign sdram_din = 
     ioctl_wr ? ioctl_dout :
     ~cpu_ram_we_n ?  cpu_ram_do :
     ~cpu_upper_ram_we_n ? cpu_upper_ram_do :
-    ~lowerexpansion_ram_we_n ? lowerexpansion_ram_do : 8'h00;
+    ~lowerexpansion_ram_we_n ? lowerexpansion_ram_do : 
+    ramb_wr ? ramb_dout : 8'h00;
 
-wire sdram_ready;
 
 assign SDRAM_CLK = clk_sys;
 sdram sdram(
@@ -503,14 +557,7 @@ sdram sdram(
     .ready(sdram_ready)
 );
 
-logic [15:0] ramb_addr;
-logic        ramb_wr;
-logic        ramb_rd;
-logic [7:0]  ramb_dout;
-logic [7:0]  int_ramb_din[2];
-logic [7:0]  ramb_din;
-logic        ramb_wr_ack;
-logic        ramb_rd_ack;
+
 
 reg [5:0] cart_pages = 6'b0;
 always @(posedge clk_sys) if (ioctl_wr & ioctl_index[0] == 1'b1) cart_pages <= ioctl_addr[19:14];
@@ -561,6 +608,7 @@ cv_console #(
     .clk_100_i (clk_100),
     .clk_25_i  (clk_25),
     .clk_en_10m7_i(ce_10m7),
+    .clk_en_5m3_i(ce_5m3),
     .reset_n_i(~reset),
     
     .sprite_max_i(~status[13]),
@@ -600,12 +648,14 @@ cv_console #(
 
     .cpu_lowerexpansion_ram_a_o(lowerexpansion_ram_a),
     .cpu_lowerexpansion_ram_we_n_o(lowerexpansion_ram_we_n),
+    .cpu_lowerexpansion_ram_rd_n_o(lowerexpansion_ram_rd_n),
     .cpu_lowerexpansion_ram_ce_n_o(lowerexpansion_ram_ce_n),
     .cpu_lowerexpansion_ram_d_i(lowerexpansion_ram_di),
     .cpu_lowerexpansion_ram_d_o(lowerexpansion_ram_do),
 
     .cpu_upper_ram_a_o(cpu_upper_ram_a),
     .cpu_upper_ram_we_n_o(cpu_upper_ram_we_n),
+    .cpu_upper_ram_rd_n_o(cpu_upper_ram_rd_n),
     .cpu_upper_ram_ce_n_o(cpu_upper_ram_ce_n),
     .cpu_upper_ram_d_i(cpu_upper_ram_di),
     .cpu_upper_ram_d_o(cpu_upper_ram_do),
@@ -780,7 +830,14 @@ assign HDMI_PCLK = clk_25;
 
 `endif
 
-mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(9), .USE_BLANKS(1'b1), .OUT_COLOR_DEPTH(VGA_BITS), .BIG_OSD(BIG_OSD)) mist_video(
+mist_video #(
+    .COLOR_DEPTH(8),
+    .SD_HCNT_WIDTH(9),
+    .USE_BLANKS(1'b1),
+    .OSD_COLOR(3'b001),
+    .OUT_COLOR_DEPTH(VGA_BITS),
+    .BIG_OSD(BIG_OSD))
+mist_video(
 	.clk_sys        ( clk_25           ),
 	.SPI_SCK        ( SPI_SCK          ),
 	.SPI_SS3        ( SPI_SS3          ),
