@@ -752,8 +752,8 @@ module cv_adamnet
   logic        press_btn;
   logic [7:0]  code;
   logic        input_strobe;
-  logic [15:0] kbd_buffer;
-  logic [15:0] kbd_len;
+  logic [15:0] kbd_buffer /* synthesis keep */;
+  logic [15:0] kbd_len /* synthesis keep */;
   logic [15:0] kbd_ramb_addr;
   logic        clear_strobe;
   logic [7:0]  key_code;
@@ -790,7 +790,7 @@ module cv_adamnet
     set_lastblock <= '0;
     ramb_wr <= '0;
     ramb_rd <= '0;
-    
+
     if (watch_key & input_strobe & ~clear_strobe & ~z80_rfsh) begin
         ramb_addr <= kbd_buffer;
         ramb_wr <= '1;

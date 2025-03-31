@@ -438,6 +438,7 @@ wire sdram_rd /* synthesis keep */;
 wire sdram_we /* synthesis keep */;
 wire sdram_ready /* synthesis keep */;
 
+/*
 always @(*) begin
     casex({
             ioctl_download, bios_rom_ce_n, eos_rom_ce_n, writer_rom_ce_n,
@@ -448,18 +449,17 @@ always @(*) begin
             ramb_access, ramb_addr[15],
             ioctl_index[0]
     })
-        'b1xxxxxxx_xx_0: sdram_addr = {6'd0, ioctl_addr[15:0]};
-        'b1xxxxxxx_xx_1: sdram_addr = {3'b001, ioctl_addr[19:0]};    
-        'b0xxxxxxx_10_x: sdram_addr = {8'b00000010, ramb_addr[14:0]};
-        'b0xxxxxxx_11_x: sdram_addr = {8'b00000100, ramb_addr[14:0]};  
-        'b00xxxxxx_0x_x: sdram_addr = {10'd0, bios_a[12:0]};
-        'b010xxxxx_0x_x: sdram_addr = {9'b000000001, eos_a[13:0]};
-        'b0110xxxx_0x_x: sdram_addr = {8'b00000001, writer_a[14:0]};
-        'b01110xxx_0x_x: sdram_addr = {8'b00000010, cpu_ram_a[14:0]};
-        'b011110xx_0x_x: sdram_addr = {8'b00000011, lowerexpansion_ram_a[14:0]};
-        'b0111110x_0x_x: sdram_addr = {8'b00000100, cpu_upper_ram_a[14:0]};
-        'b01111111_0x_x: sdram_addr = {3'b001, cart_a[19:0]};
-           
+        'b1xxxxxxx_xx_0: sdram_addr = {6'd0, ioctl_addr[15:0]};                     //ioctl (roms).   @ 000000 - 00FFFF - 64Kb
+        'b1xxxxxxx_xx_1: sdram_addr = {3'b001, ioctl_addr[19:0]};                   //ioctl (cart).   @ 100000 - 1FFFFF - 1Mb
+        'b0xxxxxxx_10_x: sdram_addr = {8'b00000010, ramb_addr[14:0]};               //adamnet (low).  @ 010000 - 017FFF - 32Kb
+        'b0xxxxxxx_11_x: sdram_addr = {8'b00000100, ramb_addr[14:0]};               //adamnet (high). @ 020000 - 027FFF - 32Kb
+        'b00xxxxxx_0x_x: sdram_addr = {10'd0, bios_a[12:0]};                        //bios.           @ 000000 - 001FFF - 8kb
+        'b010xxxxx_0x_x: sdram_addr = {9'b000000001, eos_a[13:0]};                  //eos.            @ 004000 - 007FFF - 16kb
+        'b0110xxxx_0x_x: sdram_addr = {8'b00000001, writer_a[14:0]};                //writer.         @ 008000 - 00FFFF - 32kb
+        'b01110xxx_0x_x: sdram_addr = {8'b00000010, cpu_ram_a[14:0]};               //ram.            @ 010000 - 017FFF - 32kb
+        'b011110xx_0x_x: sdram_addr = {8'b00000011, lowerexpansion_ram_a[14:0]};    //lowram.         @ 018000 - 01FFFF - 32kb
+        'b0111110x_0x_x: sdram_addr = {8'b00000100, cpu_upper_ram_a[14:0]};         //upper ram.      @ 020000 - 027FFF - 32kb
+        'b01111111_0x_x: sdram_addr = {3'b001, cart_a[19:0]};                       //cart.           @ 100000 - 1FFFFF - 1Mb
         default:   sdram_addr = {8'b00000010, cpu_ram_a[14:0]};
     endcase
 end
@@ -490,18 +490,87 @@ assign lowerexpansion_ram_di = lowerexpansion_ram_rd_n ? 8'hff : sdram_dout;
 assign cart_d = cart_rd ? sdram_dout : 8'hff;
 assign ramb_din = ramb_rd ? sdram_dout : 8'hff;
 
-logic ramb_wr_last;
+
+assign sdram_din = 
+    ioctl_wr ? ioctl_dout :
+    ~cpu_ram_we_n ?  cpu_ram_do :
+    ~cpu_upper_ram_we_n ? cpu_upper_ram_do :
+    ~lowerexpansion_ram_we_n ? lowerexpansion_ram_do : 
+    ramb_wr ? ramb_dout : 8'h00;
+*/
+
+always @(posedge clk_sys) begin
+
+    casex({
+            ioctl_download, bios_rom_ce_n, eos_rom_ce_n, writer_rom_ce_n,
+            cpu_ram_ce_n | (cpu_ram_we_n & cpu_ram_rd_n), 
+            lowerexpansion_ram_ce_n | (lowerexpansion_ram_we_n & lowerexpansion_ram_rd_n), 
+            cpu_upper_ram_ce_n | (cpu_upper_ram_we_n & cpu_upper_ram_rd_n),
+            cart_rd,
+            ramb_access, ramb_addr[15],
+            ioctl_index[0]
+    })
+        'b1xxxxxxx_xx_0: sdram_addr <= {6'd0, ioctl_addr[15:0]};                     //ioctl (roms).   @ 000000 - 00FFFF - 64Kb
+        'b1xxxxxxx_xx_1: sdram_addr <= {3'b001, ioctl_addr[19:0]};                   //ioctl (cart).   @ 100000 - 1FFFFF - 1Mb
+        'b0xxxxxxx_10_x: sdram_addr <= {8'b00000010, ramb_addr[14:0]};               //adamnet (low).  @ 010000 - 017FFF - 32Kb
+        'b0xxxxxxx_11_x: sdram_addr <= {8'b00000100, ramb_addr[14:0]};               //adamnet (high). @ 020000 - 027FFF - 32Kb
+        'b00xxxxxx_0x_x: sdram_addr <= {10'd0, bios_a[12:0]};                        //bios.           @ 000000 - 001FFF - 8kb
+        'b010xxxxx_0x_x: sdram_addr <= {9'b000000001, eos_a[13:0]};                  //eos.            @ 004000 - 007FFF - 16kb
+        'b0110xxxx_0x_x: sdram_addr <= {8'b00000001, writer_a[14:0]};                //writer.         @ 008000 - 00FFFF - 32kb
+        'b01110xxx_0x_x: sdram_addr <= {8'b00000010, cpu_ram_a[14:0]};               //ram.            @ 010000 - 017FFF - 32kb
+        'b011110xx_0x_x: sdram_addr <= {8'b00000011, lowerexpansion_ram_a[14:0]};    //lowram.         @ 018000 - 01FFFF - 32kb
+        'b0111110x_0x_x: sdram_addr <= {8'b00000100, cpu_upper_ram_a[14:0]};         //upper ram.      @ 020000 - 027FFF - 32kb
+        'b01111111_0x_x: sdram_addr <= {3'b001, cart_a[19:0]};                       //cart.           @ 100000 - 1FFFFF - 1Mb
+        default:   sdram_addr <= sdram_addr;
+    endcase
+    
+    sdram_rd <= ~(
+        bios_rom_ce_n & eos_rom_ce_n & writer_rom_ce_n & 
+        (cpu_ram_rd_n | cpu_ram_ce_n) &  
+        (lowerexpansion_ram_rd_n | lowerexpansion_ram_ce_n) & 
+        (cpu_upper_ram_rd_n | cpu_upper_ram_ce_n) &
+        ~cart_rd &
+        ~ramb_rd
+    );
+    
+    sdram_we <= ~(
+        ~ioctl_wr & 
+        ~ramb_wr &
+        (cpu_ram_we_n | cpu_ram_ce_n) & 
+        (lowerexpansion_ram_we_n | lowerexpansion_ram_ce_n) & 
+        (cpu_upper_ram_we_n | cpu_upper_ram_ce_n)
+    );
+   
+    bios_d <= bios_rom_ce_n ? bios_d : sdram_dout;
+    eos_d <= eos_rom_ce_n ? eos_d : sdram_dout;
+    writer_d <= writer_rom_ce_n ? writer_d : sdram_dout;
+    cpu_ram_di <= (cpu_ram_rd_n | cpu_ram_ce_n) ? cpu_ram_di : sdram_dout;
+    cpu_upper_ram_di <= (cpu_upper_ram_rd_n | cpu_upper_ram_ce_n) ? cpu_upper_ram_di : sdram_dout;
+    lowerexpansion_ram_di <= (lowerexpansion_ram_rd_n | lowerexpansion_ram_ce_n) ? lowerexpansion_ram_di : sdram_dout;
+    cart_d <= cart_rd ? sdram_dout : cart_d;
+    ramb_din <= ramb_rd ? sdram_dout : ramb_din;
+
+    sdram_din <= 
+        ioctl_wr ? ioctl_dout :
+        ~(cpu_ram_we_n | cpu_ram_ce_n) ?  cpu_ram_do :
+        ~(cpu_upper_ram_we_n | cpu_upper_ram_ce_n) ? cpu_upper_ram_do :
+        ~(lowerexpansion_ram_we_n | lowerexpansion_ram_ce_n) ? lowerexpansion_ram_do : 
+        ramb_wr ? ramb_dout : sdram_din;
+end
+
+
+
+logic [1:0] ramb_wr_last;
 logic sample_wr_sdram_ready;
 
 logic ramb_rd_last;
 logic sample_rd_sdram_ready;
 
 always @(posedge clk_sys) begin
-    ramb_wr_last <= ramb_wr;
-    if (~ramb_wr_last & ramb_wr) begin
-        sample_wr_sdram_ready <= 1'b1;
-        ramb_wr_ack <= 1'b0;
-    end
+    ramb_wr_last <= {ramb_wr_last[0], ramb_wr};
+    if (~ramb_wr_last[0] & ramb_wr) ramb_wr_ack <= 1'b0;
+
+    if (ramb_wr_last[1] == 1'b1) sample_wr_sdram_ready <= 1'b1;
     if (sample_wr_sdram_ready == 1'b1) begin
         if (sdram_ready == 1'b1) begin
             ramb_wr_ack <= 1'b1;
@@ -524,12 +593,6 @@ always @(posedge clk_sys) begin
     end
 end
 
-assign sdram_din = 
-    ioctl_wr ? ioctl_dout :
-    ~cpu_ram_we_n ?  cpu_ram_do :
-    ~cpu_upper_ram_we_n ? cpu_upper_ram_do :
-    ~lowerexpansion_ram_we_n ? lowerexpansion_ram_do : 
-    ramb_wr ? ramb_dout : 8'h00;
 
 
 assign SDRAM_CLK = clk_sys;
