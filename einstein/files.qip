@@ -1,0 +1,38 @@
+set_global_assignment -name QIP_FILE Tatung-Einstein-TC01-poseidon/rtl/jt49/jt49.qip
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/ram.v
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/rom.v
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/dpram.v
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/x74138.v
+set_global_assignment -name SYSTEMVERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/keyboard.sv
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/T7475.v
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/T74148.v
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/T74244.v
+
+#set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/ctc/ctc.vhd
+#set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/ctc/ctc_channel.vhd
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/ctc/z80ctc.v
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/ctc/z80reti.v
+
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_pack-p.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_pattern.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_sprite.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_clk_gen.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_col_pack-p.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_col_mux.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_cpuio.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_ctrl.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_hor_vert.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_addr_mux.vhd
+set_global_assignment -name VHDL_FILE Tatung-Einstein-TC01-poseidon/rtl/vdp18/vdp18_core.vhd
+
+set_global_assignment -name SYSTEMVERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/fdc/wd1793.sv
+
+set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/ADC0844.v
+
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name VERILOG_FILE tatung.v
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
+set_global_assignment -name SDC_FILE einstein.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE einstein.sv

@@ -130,3 +130,6 @@
 [submodule "adam/Adam_Coleco"]
 	path = adam/Adam_Coleco
 	url = https://github.com/BigMist/Adam_Coleco
+[submodule "einstein/Tatung-Einstein-TC01-poseidon"]
+	path = einstein/Tatung-Einstein-TC01-poseidon
+	url = https://github.com/retrocrypta/Tatung-Einstein-TC01-poseidon
