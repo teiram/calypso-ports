@@ -2,7 +2,7 @@
 module tatung(
   input clk_sys, // 32
   input clk_cpu, // 4
-  input clk_vdp, // 10,7
+  input clk_vdp, // 21.333
   input clk_fdc, // cen 4
   input reset,
 
@@ -238,41 +238,9 @@ always @(posedge ROM_n, posedge reset)
   else
     I025a <= ~I025a;
 
-
 // Memories
-
-   
-wire [7:0] rom_a_dout, rom_b_dout;
-
 wire rom_a = rom_en && ~I025a && ~cpu_addr[14];
 wire rom_b = rom_en && ~I025a && cpu_addr[14] && diagnostic;
-
-/*
-rom #(.ROMFILE("roms/rom.mem"), .SIZE(16383)) I023(
-  .clk(clk_sys),
-  .cs(~rom_a),
-  .addr(cpu_addr[13:0]),
-  .q(rom_a_dout)
-);
-
-rom #(.ROMFILE("roms/diagnostic.mem"), .SIZE(1625)) I024(
-  .clk(clk_sys),
-  .cs(~rom_b),
-  .addr(cpu_addr[13:0]),
-  .q(rom_b_dout)
-);
-
-wire [7:0] ram_dout;
-
-ram #(.ADDRWIDTH(16), .DATAWIDTH(8)) ram(
-  .clk(clk_sys),
-  .addr(cpu_addr),
-  .din(cpu_dout),
-  .q(ram_dout),
-  .wr_n(wr_n),
-  .ce_n(~ram_en)
-);
-*/
 
 wire vram_we;
 wire [13:0] vram_addr;
@@ -291,11 +259,14 @@ ram #(.ADDRWIDTH(14), .DATAWIDTH(8)) vram(
 
 // VDP
 
+reg ce_10m7;
+always @(posedge clk_vdp) ce_10m7 <= ce_10m7 + 3'd1;
+
 wire [7:0] vdp_dout;
 
 vdp18_core vdp18(
   .clk_i(clk_vdp),
-  .clk_en_10m7_i(1'b1),
+  .clk_en_10m7_i(ce_10m7),
   .reset_n_i(~reset),
 
   .csr_n_i(VDP_n|rd_n),

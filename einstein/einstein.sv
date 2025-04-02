@@ -45,9 +45,9 @@ module einstein_calypso(
 	input         SPI_SCK,
 	inout         SPI_DO,
 	input         SPI_DI,
-	input         SPI_SS2,    // data_io
-	input         SPI_SS3,    // OSD
-	input         CONF_DATA0, // SPI_SS for user_io
+	input         SPI_SS2,
+	input         SPI_SS3,
+	input         CONF_DATA0,
 
 `ifdef USE_QSPI
 	input         QSCK,
@@ -160,17 +160,16 @@ wire [2:0] scanlines = status[5:3];
 localparam CONF_STR = {
     "EINSTEIN;;",
     "S0U,DSK,Mount Disk 0:;",
-    "O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+    "O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
     "O1,Swap Joysticks,No,Yes;",
     "O2,Joystick,Digital,Analog;",
-    "O6,Diagnostic ROM mounted,Off,On;",
+    "O6,Enable Diagnostics ROM,Off,On;",
     "O7,Border,Off,On;",
     "T0,Reset;",
     "V,calypso-",`BUILD_DATE 
 };
 
 wire clk_sys;
-wire clk_vdp;
 wire clk_vid;
 wire locked;
 
@@ -178,9 +177,8 @@ pll pll(
     .inclk0(CLK12M),
     .areset(1'b0),
     .locked(locked),
-    .c0(clk_sys), // 32   Mhz
-    .c1(clk_vdp), // 10.7 Mhz
-    .c2(clk_vid) //  42   Mhz
+    .c0(clk_sys), // 32.000 Mhz
+    .c1(clk_vid) //  21.333 Mhz
 );
 
 wire reset = status[0] | buttons[1] | ioctl_download | !locked;
@@ -208,7 +206,7 @@ wire [31:0] img_size;
 wire img_readonly;
 
 wire [31:0] joy0, joy1;
-wire [15:0] ajoy0, ajoy1;
+wire [31:0] ajoy0, ajoy1;
 
 wire        key_pressed;
 wire [7:0]  key_code;
@@ -220,7 +218,7 @@ wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code};
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
     .SD_IMAGES(1'b1),
-    .FEATURES(32'h8 | (BIG_OSD << 13) | (HDMI << 14)))
+    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
 user_io(
     .clk_sys(clk_sys),
     .clk_sd(clk_sys),
@@ -266,7 +264,9 @@ user_io(
     .img_size(img_size),
 
     .joystick_0(joy0),
-    .joystick_1(joy1)
+    .joystick_1(joy1),
+    .joystick_analog_0(ajoy0),
+    .joystick_analog_1(ajoy1)
 );
 
 //////////////////////////////////////////////////////////////////
@@ -284,13 +284,6 @@ keyboard keyboard(
     .modif({ctrl, graph, shift}),
     .press_btn(press_btn)
 );
-
-
-wire ce_pix = pxcnt[2];
-reg [2:0] pxcnt;
-
-always @(posedge clk_vid)
-    pxcnt <= pxcnt + 3'd1;
 
 `ifdef USE_HDMI
 wire        i2c_start;
@@ -335,12 +328,12 @@ data_io data_io(
 );
 
 
-wire [22:0] sdram_addr /* synthesis keep */;
-wire [7:0] sdram_din /* synthesis keep */;
-wire [7:0] sdram_dout /* synthesis keep */;
-wire sdram_rd /* synthesis keep */;
-wire sdram_we /* synthesis keep */;
-wire sdram_ready /* synthesis keep */;
+wire [22:0] sdram_addr;
+wire [7:0] sdram_din;
+wire [7:0] sdram_dout;
+wire sdram_rd;
+wire sdram_we;
+wire sdram_ready;
 
 wire [15:0] cpu_sdram_addr;
 wire [7:0] cpu_sdram_din;
@@ -353,9 +346,9 @@ wire cpu_romb_rd;
 always @(*) begin
     casex({ioctl_download, cpu_ram_rd | cpu_ram_wr, cpu_roma_rd, cpu_romb_rd})
         'b1xxx:  sdram_addr = {7'd0, ioctl_addr[14:0]};         //ioctl (roms).   @ 00000 - 07FFF - 32Kb
+        'b0x10:  sdram_addr = {8'd0, cpu_sdram_addr[13:0]};     //ROM   (16Kb).   @ 00000 - 03FFF - 16Kb
+        'b0x01:  sdram_addr = {8'd1, cpu_sdram_addr[13:0]};     //DIAG  (16Kb).   @ 04000 - 07FFF - 16Kb 
         'b0100:  sdram_addr = {7'd1, cpu_sdram_addr[15:0]};     //RAM   (64Kb).   @ 10000 - 1FFFF - 64Kb
-        'b0010:  sdram_addr = {8'd0, cpu_sdram_addr[13:0]};     //ROM   (16Kb).   @ 00000 - 03FFF - 16Kb
-        'b0001:  sdram_addr = {8'd1, cpu_sdram_addr[13:0]};     //DIAG  (16Kb).   @ 04000 - 07FFF - 16Kb                     //cart.           @ 100000 - 1FFFFF - 1Mb
         default: sdram_addr = {7'd1, cpu_sdram_addr[15:0]};
     endcase
 end
@@ -367,6 +360,7 @@ assign sdram_din = ioctl_wr ? ioctl_dout :
 assign cpu_sdram_dout = sdram_rd ? sdram_dout : 8'hff;
 
 assign SDRAM_CLK = clk_sys;
+
 sdram sdram(
     .SDRAM_DQ(SDRAM_DQ),
     .SDRAM_A(SDRAM_A),
@@ -401,7 +395,7 @@ wire [31:0] joyb = status[2] ? joy0 : joy1;
 
 tatung tatung(
     .clk_sys(clk_sys),
-    .clk_vdp(clk_vdp),
+    .clk_vdp(clk_vid),
     .clk_cpu(clk_cpu),
     .clk_fdc(clk_fdc),
     .reset(reset),
@@ -438,8 +432,8 @@ tatung tatung(
 
     .joystick_0(joya),
     .joystick_1(joyb),
-//    .joystick_analog_0(joystick_analog_0),
-//    .joystick_analog_1(joystick_analog_1),
+    .joystick_analog_0(ajoy0),
+    .joystick_analog_1(ajoy1),
 
     .diagnostic(status[6]),
     .border(status[7]),
@@ -507,7 +501,7 @@ i2c_master #(100_000_000) i2c_master (
 );
 
 mist_video #(.COLOR_DEPTH(8), .SD_HCNT_WIDTH(9), .USE_BLANKS(1), .OUT_COLOR_DEPTH(8), .BIG_OSD(BIG_OSD), .VIDEO_CLEANER(1)) hdmi_video(
-	.clk_sys        ( clk_vid          ),
+	.clk_sys        ( clk_sys          ),
 	.SPI_SCK        ( SPI_SCK          ),
 	.SPI_SS3        ( SPI_SS3          ),
 	.SPI_DI         ( SPI_DI           ),
@@ -536,14 +530,13 @@ assign HDMI_PCLK = clk_25;
 `endif
 
 mist_video #(
-    .COLOR_DEPTH(4),
+    .COLOR_DEPTH(8),
     .SD_HCNT_WIDTH(9),
-    .USE_BLANKS(1'b1),
     .OSD_COLOR(3'b001),
     .OUT_COLOR_DEPTH(VGA_BITS),
     .BIG_OSD(BIG_OSD))
 mist_video(
-	.clk_sys(clk_sys),
+	.clk_sys(clk_vid),
 	.SPI_SCK(SPI_SCK),
 	.SPI_SS3(SPI_SS3),
 	.SPI_DI(SPI_DI),
