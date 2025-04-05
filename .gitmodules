@@ -133,3 +133,6 @@
 [submodule "einstein/Tatung-Einstein-TC01-poseidon"]
 	path = einstein/Tatung-Einstein-TC01-poseidon
 	url = https://github.com/retrocrypta/Tatung-Einstein-TC01-poseidon
+[submodule "common/jt49"]
+	path = common/jt49
+	url = https://github.com/jotego/jt49.git
