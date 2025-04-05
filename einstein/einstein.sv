@@ -166,7 +166,7 @@ localparam CONF_STR = {
     "O6,Enable Diagnostics ROM,Off,On;",
     "O7,Border,Off,On;",
     "T0,Reset;",
-    "V,calypso-",`BUILD_DATE 
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 wire clk_sys;
