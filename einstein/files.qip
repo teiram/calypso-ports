@@ -1,4 +1,3 @@
-set_global_assignment -name QIP_FILE Tatung-Einstein-TC01-poseidon/rtl/jt49/jt49.qip
 set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/ram.v
 set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/rom.v
 set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/dpram.v
@@ -29,6 +28,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl
 
 set_global_assignment -name VERILOG_FILE Tatung-Einstein-TC01-poseidon/rtl/ADC0844.v
 
+set_global_assignment -name QIP_FILE ../common/jt49/syn/quartus/jt49.qip
 set_global_assignment -name QIP_FILE ../common/T80/T80.qip
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
 
