@@ -390,8 +390,8 @@ wire [7:0] R,G,B;
 wire hblank, vblank;
 wire hsync, vsync;
 wire [9:0] sound;
-wire [31:0] joya = status[2] ? joy1 : joy0;
-wire [31:0] joyb = status[2] ? joy0 : joy1;
+wire [31:0] joya = status[1] ? joy1 : joy0;
+wire [31:0] joyb = status[1] ? joy0 : joy1;
 
 tatung tatung(
     .clk_sys(clk_sys),
@@ -459,8 +459,8 @@ i2s i2s (
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
 
-	.left_chan({sound, 6'b0}),
-	.right_chan({sound, 6'b0})
+	.left_chan({~sound[9], sound[8:0], 6'b0}),
+	.right_chan({~sound[9], sound[8:0], 6'b0})
 );
 `ifdef I2S_AUDIO_HDMI
 assign HDMI_MCLK = 0;
