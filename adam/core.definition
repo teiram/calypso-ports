@@ -1,0 +1,6 @@
+CORE_ID=adam
+PROJECT_NAME=adam
+VERSION=0.1
+BITSTREAM_FILE=output_files/adam.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/T80 ../common/mist-modules ../common/jt49

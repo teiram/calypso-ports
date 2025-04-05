@@ -181,7 +181,7 @@ parameter CONF_STR = {
     "OE,F18A Scanlines,Off,On;",
     "-;",
     "T0,Reset;",
-    "V,calypso-",`BUILD_DATE
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 /////////////////  CLOCKS  ////////////////////////
