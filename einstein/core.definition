@@ -3,4 +3,4 @@ PROJECT_NAME=einstein
 VERSION=0.1
 BITSTREAM_FILE=output_files/einstein.rbf
 EXTRA_BINARIES=readme.md
-EXTRA_SUBMODULES=../common/T80 ../common/mist-modules
+EXTRA_SUBMODULES=../common/T80 ../common/mist-modules ../common/jt49
