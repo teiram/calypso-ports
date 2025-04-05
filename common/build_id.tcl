@@ -1,20 +1,22 @@
-# ================================================================================
-#
-# Build ID Verilog Module Script
-# Jeff Wiencrot - 8/1/2011
-#
-# Generates a Verilog module that contains a timestamp,
-# from the current build. These values are available from the build_date, build_time,
-# physical_address, and host_name output ports of the build_id module in the build_id.v
-# Verilog source file.
-#
-# ================================================================================
-
 proc generateBuildID_Verilog {} {
 
-	# Get the timestamp (see: http://www.altera.com/support/examples/tcl/tcl-date-time-stamp.html)
 	set buildDate [ clock format [ clock seconds ] -format %y%m%d ]
 	set buildTime [ clock format [ clock seconds ] -format %H%M%S ]
+
+	set coreDefinitionFileName "core.definition"
+	set version {}
+	if { ![catch {open $coreDefinitionFileName r} coreDefinitionFile] } {
+		fconfigure $coreDefinitionFile -buffering line
+		gets $coreDefinitionFile data
+		while {$data != ""} {
+     		gets $coreDefinitionFile data
+     		if { [regexp {VERSION=(.*)} "$data" all version] == 1 } {
+     			break
+     		}
+		}
+		close $coreDefinitionFile
+	}
+	
 
 	# Create a Verilog file for output
 	set outputFileName "build_id.v"
@@ -23,12 +25,14 @@ proc generateBuildID_Verilog {} {
 	# Output the Verilog source
 	puts $outputFile "`define BUILD_DATE \"$buildDate\""
 	puts $outputFile "`define BUILD_TIME \"$buildTime\""
+	puts $outputFile "`define BUILD_VERSION \"calypso-$version\""
 	close $outputFile
 
 	# Send confirmation message to the Messages window
 	post_message "Generated build identification Verilog module: [pwd]/$outputFileName"
 	post_message "Date:             $buildDate"
 	post_message "Time:             $buildTime"
+	post_message "Version:          $version"
 }
 
 # Comment out this line to prevent the process from automatically executing when the file is sourced:
