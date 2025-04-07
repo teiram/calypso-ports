@@ -62,25 +62,20 @@ entity sordM5 is
     ioctl_wr        : in std_logic;
     ioctl_download  : in std_logic;
     casSpeed        : in std_logic;
-    -- DDRAM --------------------------------------------------------
-    -- DDRAM_CLK       : out std_logic;
-    -- DDRAM_BUSY      : in std_logic;
-    -- DDRAM_BURSTCNT  : out std_logic_vector( 7 downto 0);
-    -- DDRAM_ADDR      : out std_logic_vector( 28 downto 0);
-    -- DDRAM_DOUT      : in std_logic_vector( 63 downto 0);
-    -- DDRAM_DOUT_READY :in std_logic;
-    -- DDRAM_RD        : out std_logic;
-    -- DDRAM_DIN       : out std_logic_vector( 63 downto 0);
-    -- DDRAM_BE        : out std_logic_vector( 7 downto 0);
-    -- DDRAM_WE        : out std_logic
+    
+    SDRAM_A         : out std_logic_vector(12 downto 0);
+    SDRAM_DQ        : inout std_logic_vector(15 downto 0);
+    SDRAM_DQML      : out std_logic;
+    SDRAM_DQMH      : out std_logic;
+    SDRAM_nWE       : out std_logic;
+    SDRAM_nCAS      : out std_logic;
+    SDRAM_nRAS      : out std_logic;
+    SDRAM_nCS       : out std_logic;
+    SDRAM_BA        : out std_logic_vector(1 downto 0);
+    SDRAM_CLK       : out std_logic;
+    SDRAM_CKE       : out std_logic;
 
-    AUDIO_INPUT : in std_logic;
-
-    --SRAM
-    SRAM_A			:	 OUT STD_LOGIC_VECTOR(20 DOWNTO 0);
-    SRAM_Q			:	 INOUT STD_LOGIC_VECTOR(15 DOWNTO 0);
-    SRAM_WE			:	 OUT STD_LOGIC
-
+    AUDIO_INPUT : in std_logic
   );
 
 end sordM5;
@@ -415,12 +410,18 @@ begin
       ioctl_index    => ioctl_index,
       ioctl_wr       => ioctl_wr,
       ioctl_download => ioctl_download,
-
-      SRAM_A		=> SRAM_A,
-      SRAM_Q		=> SRAM_Q,
-      SRAM_WE		=> SRAM_WE
-
-	 );
+      SDRAM_A        => SDRAM_A,
+      SDRAM_DQ       => SDRAM_DQ,
+      SDRAM_DQML     => SDRAM_DQML,
+      SDRAM_DQMH     => SDRAM_DQMH,
+      SDRAM_nWE      => SDRAM_nWE,
+      SDRAM_nCAS     => SDRAM_nCAS,
+      SDRAM_nRAS     => SDRAM_nRAS,
+      SDRAM_nCS      => SDRAM_nCS,
+      SDRAM_BA       => SDRAM_BA,
+      SDRAM_CLK      => SDRAM_CLK,
+      SDRAM_CKE      => SDRAM_CKE
+     );
 
  -----------------------------------------------------------------------------
  -- Interupt CTC

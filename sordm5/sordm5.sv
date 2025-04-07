@@ -138,6 +138,7 @@ wire TAPE_SOUND=UART_RX;
 
 assign LED[0] = ioctl_download; 
 
+`include "build_id.v"
 parameter CONF_STR = {
     "SordM5;;",
     "-;",
@@ -189,7 +190,7 @@ always @(posedge clk_sys) begin
 end
 
 wire ram_mode_changed = old_ram_mode == status[4:0] ? 1'b0 : 1'b1 ;
-wire reset = !RESET_N | ram_mode_changed | status[17] | (ioctl_index == 8'd1 & ioctl_download);
+wire reset =  ram_mode_changed | status[17] | (ioctl_index == 8'd1 & ioctl_download);
 
 
 
@@ -293,40 +294,13 @@ data_io data_io(
 );
 
 
-assign SDRAM_CLK = clk_sys;
-sdram sdram(
-    .SDRAM_DQ(SDRAM_DQ),
-    .SDRAM_A(SDRAM_A),
-    .SDRAM_DQML(SDRAM_DQML),
-    .SDRAM_DQMH(SDRAM_DQMH),
-    .SDRAM_BA(SDRAM_BA),
-    .SDRAM_nCS(SDRAM_nCS),
-    .SDRAM_nWE(SDRAM_nWE),
-    .SDRAM_nRAS(SDRAM_nRAS),
-    .SDRAM_nCAS(SDRAM_nCAS),
-    .SDRAM_CKE(SDRAM_CKE),
-    
-    .init(~pll_locked),
-    .clk(clk_sys),
-
-    .wtbt(0),
-    .addr(sdram_addr),
-    .rd(sdram_rd),
-    .dout(sdram_dout),
-    .din(sdram_din),
-    .we(sdram_we),
-    .ready(sdram_ready)
-);
-
-
-
-
 ////////////////  Console  ////////////////////////
 wire [10:0] audio;
 wire [7:0] R,G,B;
 wire hblank, vblank;
 wire hsync, vsync;
-
+wire [15:0] audio_left;
+wire [15:0] audio_right;
 assign audio_left = {audio, 5'd0};
 assign audio_right = {audio, 5'd0};
 
@@ -351,18 +325,19 @@ sordM5 SordM5(
     .ioctl_index(ioctl_index),
     .ioctl_wr (ioctl_wr),
     .ioctl_download (ioctl_download),
-    // .DDRAM_BUSY ( DDRAM_BUSY),
-    // .DDRAM_BURSTCNT ( DDRAM_BURSTCNT),
-    // .DDRAM_ADDR ( DDRAM_ADDR),
-    // .DDRAM_DOUT ( DDRAM_DOUT),
-    // .DDRAM_DOUT_READY ( DDRAM_DOUT_READY),
-    // .DDRAM_RD ( DDRAM_RD),
-    // .DDRAM_DIN ( DDRAM_DIN),
-    // .DDRAM_BE ( DDRAM_BE),
-    // .DDRAM_WE ( DDRAM_WE),
-    // .DDRAM_CLK ( DDRAM_CLK),
+    .SDRAM_A(SDRAM_A),
+    .SDRAM_DQ(SDRAM_DQ),
+    .SDRAM_DQML(SDRAM_DQML),
+    .SDRAM_DQMH(SDRAM_DQMH),
+    .SDRAM_nWE(SDRAM_nWE),
+    .SDRAM_nCAS(SDRAM_nCAS),
+    .SDRAM_nRAS(SDRAM_nRAS),
+    .SDRAM_nCS(SDRAM_nCS),
+    .SDRAM_BA(SDRAM_BA),
+    .SDRAM_CLK(SDRAM_CLK),
+    .SDRAM_CKE(SDRAM_CKE),
 
-    .AUDIO_INPUT(AUDIO_INPUT),
+    .AUDIO_INPUT(AUDIO_IN),
 
     .casSpeed(status[9]),
     .tape_sound_i(status[10]),
@@ -400,7 +375,8 @@ mist_video #(
     .OSD_COLOR(3'b001),
     .OUT_COLOR_DEPTH(VGA_BITS),
     .BIG_OSD(BIG_OSD))
-mist_video(.clk_sys(clk_25),
+mist_video(
+    .clk_sys(clk_sys),
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),

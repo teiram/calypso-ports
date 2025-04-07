@@ -276,9 +276,9 @@ begin
       SDRAM_BA => SDRAM_BA,
       SDRAM_CKE => SDRAM_CKE,
       wtbt => "00",
-      addr => "000" & mmu_q_s(17 downto 12) & a_i(11 downto 0),
-      din => d_i,
-      dout => ramD1_q_s,
+      addr => "00000" & mmu_q_s(17 downto 12) & a_i(11 downto 0),
+      din => "00000000" & d_i,
+      dout(7 downto 0) => ramD1_q_s,
       we => ramD1_we_s,
       rd => ramD1_rd_s
    );
