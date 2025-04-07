@@ -46,12 +46,18 @@ port (
    ioctl_index            : in std_logic_vector( 7 downto 0);
    ioctl_wr               : in std_logic;
    ioctl_download         : in std_logic;
-
-   --SRAM
-   SRAM_A			:	 OUT STD_LOGIC_VECTOR(20 DOWNTO 0);
-   SRAM_Q			:	 INOUT STD_LOGIC_VECTOR(15 DOWNTO 0);
-   SRAM_WE			:	 OUT STD_LOGIC
-
+   --SDRAM
+    SDRAM_A               : out std_logic_vector(12 downto 0);
+    SDRAM_DQ              : inout std_logic_vector(15 downto 0);
+    SDRAM_DQML            : out std_logic;
+    SDRAM_DQMH            : out std_logic;
+    SDRAM_nWE             : out std_logic;
+    SDRAM_nCAS            : out std_logic;
+    SDRAM_nRAS            : out std_logic;
+    SDRAM_nCS             : out std_logic;
+    SDRAM_BA              : out std_logic_vector(1 downto 0);
+    SDRAM_CLK             : out std_logic;
+    SDRAM_CKE             : out std_logic
   );
 
 end sordM5_rams;
@@ -64,6 +70,7 @@ architecture rtl of sordM5_rams is
    signal rom_mmu_s       : std_logic_vector(4 downto 0);
    signal ramD1_q_s       : std_logic_vector(7 downto 0);
    signal ramD1_we_s      : std_logic;
+   signal ramD1_rd_s      : std_logic;
    signal rami_q_s        : std_logic_vector(7 downto 0);
    signal ram_q_s         : std_logic_vector(7 downto 0);
    signal rom_q_s         : std_logic_vector(7 downto 0);
@@ -89,19 +96,29 @@ architecture rtl of sordM5_rams is
          Z(i) := NOT(s1(i));
      END LOOP;
      RETURN Z;
-   END inv; 
+   END inv;
 
-   component spram_sram
+   component sdram
         port (
-        clka : in std_logic;
-        ena : in std_logic;
-        wea : in std_logic;
-        addra : in std_logic_vector (17 downto 0);
-        dina : in std_logic_vector (7 downto 0);
-        douta : out std_logic_vector (7 downto 0);
-        SRAM_ADDR : out std_logic_vector (20 downto 0);
-        SRAM_DATA : inout std_logic_vector (15 downto 0);
-        SRAM_WE_n : out std_logic
+        init : in std_logic;
+        clk  : in std_logic;
+        SDRAM_DQ: inout std_logic_vector(15 downto 0);
+        SDRAM_A: out std_logic_vector(12 downto 0);
+        SDRAM_DQML : out std_logic;
+        SDRAM_DQMH : out std_logic;
+        SDRAM_nWE : out std_logic;
+        SDRAM_nCAS : out std_logic;
+        SDRAM_nRAS : out std_logic;
+        SDRAM_nCS : out std_logic;
+        SDRAM_BA : out std_logic_vector(1 downto 0);
+        SDRAM_CKE : out std_logic;
+        wtbt : in std_logic_vector(1 downto 0);
+        addr : in std_logic_vector(22 downto 0);
+        dout : out std_logic_vector (15 downto 0);
+        din : in std_logic_vector (15 downto 0);
+        we : in std_logic;
+        rd : in std_logic;
+        ready : out std_logic
       );
     end component;
     
@@ -207,7 +224,7 @@ begin
    );
 
    ramD1_we_s <= '1' when ramD_cs_s = '1' and mmu_q_s(19 downto 18) = "00" and wr_n_i ='0' else '0';
-
+   ramD1_rd_s <= '1' when ramD_cs_s = '1' and mmu_q_s(19 downto 18) = "00" and rd_n_i ='0' else '0';
    -- Original on BRAM
 
    -- ramD1 : work.spram
@@ -225,26 +242,47 @@ begin
    
    -- SRAM version
 
-   ramD1 : spram_sram
+--   ramD1 : spram_sram
    -- generic map (
    --    AW => 18 
    -- )
-   port map (
-      clka => clk_i,
-      ena => '1',
-      addra => mmu_q_s(17 downto 12)&a_i(11 downto 0),
-      wea => ramD1_we_s,
-      dina => d_i,
-      douta => ramD1_q_s,
+--   port map (
+--      clka => clk_i,
+--      ena => '1',
+--      addra => mmu_q_s(17 downto 12)&a_i(11 downto 0),
+--      wea => ramD1_we_s,
+--      dina => d_i,
+--      douta => ramD1_q_s,
 
-      SRAM_ADDR		=> SRAM_A,
-      SRAM_DATA		=> SRAM_Q,
-      SRAM_WE_n		=> SRAM_WE
-   );   
+--      SRAM_ADDR		=> SRAM_A,
+--      SRAM_DATA		=> SRAM_Q,
+--      SRAM_WE_n		=> SRAM_WE
+--   );   
 
-
-
+   SDRAM_CLK <= clk_i;
    
+   ramD1 : sdram
+   port map (
+      init => not reset_n_i,
+      clk => clk_i,
+      SDRAM_DQ => SDRAM_DQ,
+      SDRAM_A => SDRAM_A,
+      SDRAM_DQML => SDRAM_DQML,
+      SDRAM_DQMH => SDRAM_DQMH,
+      SDRAM_nWE => SDRAM_nWE,
+      SDRAM_nCAS => SDRAM_nCAS,
+      SDRAM_nRAS => SDRAM_nRAS,
+      SDRAM_nCS => SDRAM_nCS,
+      SDRAM_BA => SDRAM_BA,
+      SDRAM_CKE => SDRAM_CKE,
+      wtbt => "00",
+      addr => "000" & mmu_q_s(17 downto 12) & a_i(11 downto 0),
+      din => d_i,
+      dout => ramD1_q_s,
+      we => ramD1_we_s,
+      rd => ramD1_rd_s
+   );
+
    rom_ioctl_we_s <= '1' when ioctl_index = "00000001" 
                           AND ioctl_wr = '1' 
                           AND ioctl_download = '1' 
