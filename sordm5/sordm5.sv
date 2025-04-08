@@ -136,7 +136,8 @@ localparam bit USE_AUDIO_IN = 0;
 wire TAPE_SOUND=UART_RX;
 `endif
 
-assign LED[0] = ioctl_download; 
+assign LED[0] = reset;
+assign LED[1] = ioctl_download; 
 
 `include "build_id.v"
 parameter CONF_STR = {
@@ -149,7 +150,7 @@ parameter CONF_STR = {
     "P1O6,EM64 mon. deactivate,Dis.,En.;",
     "P1O7,EM64 wp low 32KB,Dis.,En.;",
     "P1O8,EM64 boot on,ROM,RAM;",  
-    "F,binROM,Load to ROM;",
+    "F,BINROM,Load to ROM;",
     "F,CAS,Load Tape;",
     "O9,Fast Tape Load,On,Off;",
     "OA,Tape Sound,On,Off;",
@@ -163,10 +164,9 @@ parameter CONF_STR = {
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys;
+wire clk_sys /* synthesis keep */;
 wire pll_locked;
-pll pll
-(
+pll pll(
     .inclk0(CLK12M),
     .c0(clk_sys),
     .locked(pll_locked)
@@ -177,7 +177,7 @@ reg ce_5m3 = 0;
 always @(posedge clk_sys) begin
     reg [2:0] div;
     
-    div <= div+1'd1;
+    div <= div + 1'd1;
     ce_10m7 <= !div[1:0];
     ce_5m3  <= !div[2:0];
 end
@@ -190,9 +190,7 @@ always @(posedge clk_sys) begin
 end
 
 wire ram_mode_changed = old_ram_mode == status[4:0] ? 1'b0 : 1'b1 ;
-wire reset =  ram_mode_changed | status[17] | (ioctl_index == 8'd1 & ioctl_download);
-
-
+wire reset =  ~pll_locked | ram_mode_changed | status[17] | ioctl_download;
 
 /////////////////  IO  ///////////////////////////
 
@@ -207,6 +205,7 @@ wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 wire        forced_scandoubler;
+wire no_csync;
 wire ypbpr;
 
 wire        cart_enable = status[2:1] ==  2'b00 | status[2:0] == 3'b010;
@@ -236,7 +235,7 @@ user_io(
     .status(status),
     .scandoubler_disable(forced_scandoubler),
     .ypbpr(ypbpr),
-    .no_csync(),
+    .no_csync(no_csync),
     .buttons(buttons),
 	
     .key_strobe(key_strobe),
@@ -323,8 +322,8 @@ sordM5 SordM5(
     .ioctl_addr(ioctl_addr),
     .ioctl_dout(ioctl_dout),
     .ioctl_index(ioctl_index),
-    .ioctl_wr (ioctl_wr),
-    .ioctl_download (ioctl_download),
+    .ioctl_wr(ioctl_wr),
+    .ioctl_download(ioctl_download),
     .SDRAM_A(SDRAM_A),
     .SDRAM_DQ(SDRAM_DQ),
     .SDRAM_DQML(SDRAM_DQML),
@@ -336,7 +335,8 @@ sordM5 SordM5(
     .SDRAM_BA(SDRAM_BA),
     .SDRAM_CLK(SDRAM_CLK),
     .SDRAM_CKE(SDRAM_CKE),
-
+    .pll_locked_i(pll_locked),
+    
     .AUDIO_INPUT(AUDIO_IN),
 
     .casSpeed(status[9]),
@@ -371,8 +371,7 @@ end
 mist_video #(
     .COLOR_DEPTH(8),
     .SD_HCNT_WIDTH(9),
-    .USE_BLANKS(1'b1),
-    .OSD_COLOR(3'b001),
+    .OSD_COLOR(3'b110),
     .OUT_COLOR_DEPTH(VGA_BITS),
     .BIG_OSD(BIG_OSD))
 mist_video(
@@ -393,8 +392,8 @@ mist_video(
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
     .ce_divider(3'd0),
-    .scandoubler_disable( 1'b1 ),
-    .no_csync(1'b1),
+    .scandoubler_disable(forced_scandoubler),
+    .no_csync(no_csync),
     .scanlines(),
     .ypbpr(ypbpr)
 );

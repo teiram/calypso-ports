@@ -74,7 +74,7 @@ entity sordM5 is
     SDRAM_BA        : out std_logic_vector(1 downto 0);
     SDRAM_CLK       : out std_logic;
     SDRAM_CKE       : out std_logic;
-
+    pll_locked_i    : in  std_logic;
     AUDIO_INPUT : in std_logic
   );
 
@@ -420,7 +420,8 @@ begin
       SDRAM_nCS      => SDRAM_nCS,
       SDRAM_BA       => SDRAM_BA,
       SDRAM_CLK      => SDRAM_CLK,
-      SDRAM_CKE      => SDRAM_CKE
+      SDRAM_CKE      => SDRAM_CKE,
+      pll_locked_i   => pll_locked_i
      );
 
  -----------------------------------------------------------------------------

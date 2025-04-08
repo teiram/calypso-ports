@@ -40,7 +40,7 @@ port (
    rd_n_i                 : in  std_logic;
    wr_n_i                 : in  std_logic;
    ramMode_i              : in  std_logic_vector(8 downto 0);
-   -- hps_io --------------------------------------------------------
+   -- data io --------------------------------------------------------
    ioctl_addr             : in std_logic_vector( 24 downto 0);
    ioctl_dout             : in std_logic_vector( 7 downto 0);
    ioctl_index            : in std_logic_vector( 7 downto 0);
@@ -57,7 +57,8 @@ port (
     SDRAM_nCS             : out std_logic;
     SDRAM_BA              : out std_logic_vector(1 downto 0);
     SDRAM_CLK             : out std_logic;
-    SDRAM_CKE             : out std_logic
+    SDRAM_CKE             : out std_logic;
+    pll_locked_i          : in std_logic
   );
 
 end sordM5_rams;
@@ -69,6 +70,7 @@ architecture rtl of sordM5_rams is
    signal mmu_wr_s        : std_logic;
    signal rom_mmu_s       : std_logic_vector(4 downto 0);
    signal ramD1_q_s       : std_logic_vector(7 downto 0);
+   signal ramD1_s         : std_logic;
    signal ramD1_we_s      : std_logic;
    signal ramD1_rd_s      : std_logic;
    signal rami_q_s        : std_logic_vector(7 downto 0);
@@ -88,6 +90,31 @@ architecture rtl of sordM5_rams is
    signal kbf_mode_s      : std_logic_vector(7 downto 0);
    signal krx_mode_s      : std_logic_vector(7 downto 0);
    signal mmu_r_s         : MMU_RAM_t;
+   signal sdram_addr      : std_logic_vector(22 downto 0);
+   signal sdram_din       : std_logic_vector(15 downto 0);
+   signal sdram_dout      : std_logic_vector(15 downto 0);
+   signal sdram_we        : std_logic;
+   signal sdram_rd        : std_logic;
+   
+   attribute keep: boolean;
+   attribute keep of sdram_addr: signal is true;
+   attribute keep of sdram_din: signal is true;
+   attribute keep of sdram_dout: signal is true;
+   attribute keep of sdram_we: signal is true;
+   attribute keep of sdram_rd: signal is true;
+   attribute keep of iorq_n_i: signal is true;
+   attribute keep of mreq_n_i: signal is true;
+   attribute keep of rfsh_n_i: signal is true;
+   attribute keep of m1_n_i: signal is true;
+   attribute keep of rd_n_i: signal is true;
+   attribute keep of wr_n_i: signal is true;
+   attribute keep of ram_cs_s: signal is true;
+   attribute keep of rom_cs_s: signal is true;
+   attribute keep of ramD_cs_s: signal is true;
+   attribute keep of ioctl_wr: signal is true;
+   attribute keep of ioctl_download: signal is true;
+   attribute keep of ioctl_index: signal is true;
+
    
    FUNCTION inv(s1:std_logic_vector) return std_logic_vector is 
      VARIABLE Z : std_logic_vector(s1'high downto s1'low);
@@ -125,11 +152,13 @@ architecture rtl of sordM5_rams is
    
 begin
 
+   ramD1_s <= '1' when ramD_cs_s = '1' and mmu_q_s(19 downto 18) = "00" else '0';
+   ramD1_we_s <= '1' when ramD1_s = '1' and wr_n_i ='0' else '0';
+   ramD1_rd_s <= '1' when ramD1_s = '1' and rd_n_i ='0' else '0';
+   
    mmu_wr_s       <= '1' when iorq_n_i = '0' and m1_n_i = '1' and a_i(7 downto 2) = "011001" AND wr_n_i = '0' else '0'; -- mmu 0x64 - 0x67    
-   d_o            <= ram_q_s  when ram_cs_s  = '1' else
-                     rom_q_s  when rom_cs_s   = '1' else
-                     ramD1_q_s when mmu_q_s(19 downto 18) = "00" and ramD_cs_s  = '1' else
-                     (others => '1');
+   d_o            <= sdram_dout(7 downto 0) when ram_cs_s  = '1' or rom_cs_s   = '1' or ramD1_s = '1' 
+       else (others => '1');
    
    em64_boot_ram_s <= '1' when ramMode_i(2 downto 0) = "010" and ramMode_i(8) = '1' else '0';
    
@@ -222,48 +251,26 @@ begin
       krx_mode_i     => krx_mode_s
       
    );
-
-   ramD1_we_s <= '1' when ramD_cs_s = '1' and mmu_q_s(19 downto 18) = "00" and wr_n_i ='0' else '0';
-   ramD1_rd_s <= '1' when ramD_cs_s = '1' and mmu_q_s(19 downto 18) = "00" and rd_n_i ='0' else '0';
-   -- Original on BRAM
-
-   -- ramD1 : work.spram
-   -- generic map (
-   --    addr_width => 18 --18
-   -- )
-   -- port map (
-   --    clock => clk_i,
-   --    address => mmu_q_s(17 downto 12)&a_i(11 downto 0),
-   --    wren => ramD1_we_s,
-   --    data => d_i,
-   --    q => ramD1_q_s
-   -- );   
-
    
-   -- SRAM version
-
---   ramD1 : spram_sram
-   -- generic map (
-   --    AW => 18 
-   -- )
---   port map (
---      clka => clk_i,
---      ena => '1',
---      addra => mmu_q_s(17 downto 12)&a_i(11 downto 0),
---      wea => ramD1_we_s,
---      dina => d_i,
---      douta => ramD1_q_s,
-
---      SRAM_ADDR		=> SRAM_A,
---      SRAM_DATA		=> SRAM_Q,
---      SRAM_WE_n		=> SRAM_WE
---   );   
-
-   SDRAM_CLK <= clk_i;
+   rom_ioctl_we_s <= '1' when ioctl_wr = '1' and ioctl_download = '1'
+      else '0';
+                         
+   sdram_addr <= 
+            "000000" & ioctl_addr(16 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(0) = '0')           -- ROM upload 00000 - 17FFF
+       else "000000" & "1100" & ioctl_addr(12 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(0) = '1')  -- ROM upload 18000 - 1FFFF
+       else "000000" & rom_mmu_s(4 downto 0) & a_i(11 downto 0) when rom_cs_s = '1'                           -- ROM access 
+       else "0000010"  & a_i(15 downto 0) when ram_cs_s  = '1'                                                -- Normal RAM 20000 - 2FFFF
+       else "00001" & mmu_q_s(17 downto 12) & a_i(11 downto 0) when ramD1_s = '1'                             -- Extra RAM  200000 - ?
+       else (others => '0');
+                 
+   sdram_rd <= '1' when rd_n_i = '0' and mreq_n_i = '0' and rfsh_n_i = '1' else '0';
+   sdram_we <= '1' when ioctl_wr = '1' or (wr_n_i = '0' and (ram_cs_s = '1' or ramD1_s = '1')) else '0';
+   sdram_din <= "00000000" & ioctl_dout when rom_ioctl_we_s = '1' else "00000000" & d_i;
    
+   SDRAM_CLK <= clk_i;   
    ramD1 : sdram
    port map (
-      init => not reset_n_i,
+      init => not pll_locked_i,
       clk => clk_i,
       SDRAM_DQ => SDRAM_DQ,
       SDRAM_A => SDRAM_A,
@@ -276,46 +283,14 @@ begin
       SDRAM_BA => SDRAM_BA,
       SDRAM_CKE => SDRAM_CKE,
       wtbt => "00",
-      addr => "00000" & mmu_q_s(17 downto 12) & a_i(11 downto 0),
-      din => "00000000" & d_i,
-      dout(7 downto 0) => ramD1_q_s,
-      we => ramD1_we_s,
-      rd => ramD1_rd_s
+      addr => sdram_addr,
+      din => sdram_din,
+      dout => sdram_dout,
+      we => sdram_we,
+      rd => sdram_rd
    );
+  
 
-   rom_ioctl_we_s <= '1' when ioctl_index = "00000001" 
-                          AND ioctl_wr = '1' 
-                          AND ioctl_download = '1' 
-                          AND ioctl_addr(24 downto 13) = "000000000000"    -- Memory limit
-                         else '0';   
-   RAM : work.dpram
-   generic map (
-      addr_width => 16
-   )
-   port map (
-      clock => clk_i,
-      address_a => a_i(15 downto 0),
-      wren_a => ram_cs_s and not wr_n_i and not ram_wp_en_s,
-      data_a => d_i,
-      q_a => ram_q_s,
-      wren_b => '0'
-   );   
-   
-   ROM : work.dpram
-   generic map (
-      addr_width => 17,
-      mem_init_file => "rom/rom.MIF"
-   )
-   
-   port map (   
-      clock => clk_i,
-      address_a => rom_mmu_s(4 downto 0)&a_i(11 downto 0),
-      q_a => rom_q_s,
-      address_b => "1100"&ioctl_addr(12 downto 0),
-      data_b => ioctl_dout,
-      wren_b => rom_ioctl_we_s 
-   );   
- 
    process (clk_i)
       variable ram_addr_id : natural range 0 to 15;
    begin
@@ -324,7 +299,7 @@ begin
          if (mmu_wr_s = '1') then
             mmu_r_s(ram_addr_id) <= inv(d_i);
          end if; 
-         mmu_q_s <=mmu_r_s(ram_addr_id);
+         mmu_q_s <= mmu_r_s(ram_addr_id);
       end if;
    end process;
    
