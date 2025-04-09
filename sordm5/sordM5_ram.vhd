@@ -254,20 +254,56 @@ begin
    
    rom_ioctl_we_s <= '1' when ioctl_wr = '1' and ioctl_download = '1'
       else '0';
-                         
-   sdram_addr <= 
-            "000000" & ioctl_addr(16 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(0) = '0')           -- ROM upload 00000 - 17FFF
-       else "000000" & "1100" & ioctl_addr(12 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(0) = '1')  -- ROM upload 18000 - 1FFFF
-       else "000000" & rom_mmu_s(4 downto 0) & a_i(11 downto 0) when rom_cs_s = '1'                           -- ROM access 
-       else "0000010"  & a_i(15 downto 0) when ram_cs_s  = '1'                                                -- Normal RAM 20000 - 2FFFF
-       else "00001" & mmu_q_s(17 downto 12) & a_i(11 downto 0) when ramD1_s = '1'                             -- Extra RAM  200000 - ?
-       else (others => '0');
-                 
-   sdram_rd <= '1' when rd_n_i = '0' and mreq_n_i = '0' and rfsh_n_i = '1' else '0';
-   sdram_we <= '1' when ioctl_wr = '1' or (wr_n_i = '0' and (ram_cs_s = '1' or ramD1_s = '1')) else '0';
-   sdram_din <= "00000000" & ioctl_dout when rom_ioctl_we_s = '1' else "00000000" & d_i;
+     
+
+--   sdram_addr <= 
+--            "000000" & ioctl_addr(16 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "00")           -- ROM upload 00000 - 17FFF
+--       else "000000" & "1100" & ioctl_addr(12 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "01")  -- ROM upload 18000 - 1FFFF
+--       else "000000" & rom_mmu_s(4 downto 0) & a_i(11 downto 0) when rom_cs_s = '1'                           -- ROM access 
+--       else "0000010"  & a_i(15 downto 0) when ram_cs_s  = '1'                                                -- Normal RAM 20000 - 2FFFF
+--       else "00001" & mmu_q_s(17 downto 12) & a_i(11 downto 0) when ramD1_s = '1'                             -- Extra RAM  200000 - ?
+--       else "00010" & ioctl_addr(17 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "10")
+--       else (others => '0');
+
+   ramaddressprocess: process (clk_i) begin
+       if rising_edge(clk_i) then
+           if (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "00") then
+             sdram_addr <= "000000" & ioctl_addr(16 downto 0);
+           elsif (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "01") then
+             sdram_addr <= "000000" & "1100" & ioctl_addr(12 downto 0);
+           elsif rom_cs_s = '1' then
+             sdram_addr <= "000000" & rom_mmu_s(4 downto 0) & a_i(11 downto 0);
+           elsif ram_cs_s = '1' then
+             sdram_addr <= "0000010"  & a_i(15 downto 0);
+           elsif ramD1_s = '1' then
+             sdram_addr <= "00001" & mmu_q_s(17 downto 12) & a_i(11 downto 0);
+           elsif (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "10") then
+             sdram_addr <= "00010" & ioctl_addr(17 downto 0);
+           else
+             sdram_addr <= sdram_addr;
+           end if;
+           if rd_n_i = '0' and mreq_n_i = '0' and rfsh_n_i = '1' then
+             sdram_rd <= '1';
+           else 
+             sdram_rd <= '0';
+           end if;
+           if ioctl_wr = '1' or (wr_n_i = '0' and (ram_cs_s = '1' or ramD1_s = '1')) then
+             sdram_we <= '1';
+           else 
+             sdram_we <= '0';
+           end if;
+           if rom_ioctl_we_s = '1' then
+             sdram_din <= "00000000" & ioctl_dout;
+           else 
+             sdram_din <= "00000000" & d_i;
+           end if;
+       end if;
+   end process;
+--   sdram_rd <= '1' when rd_n_i = '0' and mreq_n_i = '0' and rfsh_n_i = '1' else '0';
+--   sdram_we <= '1' when ioctl_wr = '1' or (wr_n_i = '0' and (ram_cs_s = '1' or ramD1_s = '1')) else '0';
+--   sdram_din <= "00000000" & ioctl_dout when rom_ioctl_we_s = '1' else "00000000" & d_i;
    
-   SDRAM_CLK <= clk_i;   
+   SDRAM_CLK <= clk_i;
    ramD1 : sdram
    port map (
       init => not pll_locked_i,

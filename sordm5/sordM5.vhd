@@ -153,34 +153,12 @@ architecture struct of sordM5 is
   signal ram_d_s         : std_logic_vector( 7 downto 0);
   
   -- ddram buffer
-  signal buff_mem_addr    : std_logic_vector(27 downto 0);
-  signal buff_mem_dout    : std_logic_vector(7 downto 0);
-  signal buff_mem_din     : std_logic_vector(7 downto 0);
-  signal buff_mem_wr      : std_logic;
-  signal buff_mem_rd      : std_logic;
-  signal buff_mem_ready   : std_logic;
-  
-  -- component ddram is
-  --   port (
-  --     DDRAM_CLK       : in  std_logic;
-  --     DDRAM_BUSY      : in  std_logic;
-  --     DDRAM_BURSTCNT  : out std_logic_vector( 7 downto 0);
-  --     DDRAM_ADDR      : out std_logic_vector( 28 downto 0);
-  --     DDRAM_DOUT      : in  std_logic_vector( 63 downto 0);
-  --     DDRAM_DOUT_READY :in  std_logic;
-  --     DDRAM_RD        : out std_logic;
-  --     DDRAM_DIN       : out std_logic_vector( 63 downto 0);
-  --     DDRAM_BE        : out std_logic_vector( 7 downto 0);
-  --     DDRAM_WE        : out std_logic;
-  --     addr            : in  std_logic_vector( 27 downto 0);
-  --     dout            : out std_logic_vector( 7 downto 0);
-  --     din             : in  std_logic_vector( 7 downto 0);
-  --     we              : in  std_logic; 
-  --     rd              : in  std_logic; 
-  --     ready           : out std_logic;  
-  --     reset           : in  std_logic
-  --   );
-  -- end component ddram;  
+  signal cas_mem_addr    : std_logic_vector(27 downto 0);
+  signal cas_mem_dout    : std_logic_vector(7 downto 0);
+  signal cas_mem_din     : std_logic_vector(7 downto 0);
+  signal cas_mem_wr      : std_logic;
+  signal cas_mem_rd      : std_logic;
+  signal cas_mem_ready   : std_logic;
 
 begin
 
@@ -425,7 +403,7 @@ begin
      );
 
  -----------------------------------------------------------------------------
- -- Interupt CTC
+ -- Interrupt CTC
  -----------------------------------------------------------------------------
    
   ctc : work.ctc 
@@ -449,53 +427,26 @@ begin
  -- CAS player
  -----------------------------------------------------------------------------
  
-  -- tape : work.casPlayer
-  --   port map (
-  --   clk_i            => clk_i,
-  --   reset_n          => reset_n_i,
-  --   ioctl_addr_i     => ioctl_addr,
-  --   ioctl_dout_i     => ioctl_dout,
-  --   ioctl_index_i    => ioctl_index,
-  --   ioctl_wr_i       => ioctl_wr,
-  --   ioctl_download_i => ioctl_download,
-  --   casOut_o         => casOut_s,
-  --   mem_addr_o       => buff_mem_addr,
-  --   mem_dout_i       => buff_mem_dout,
-  --   mem_din_o        => buff_mem_din,
-  --   mem_wr_o         => buff_mem_wr,
-  --   mem_rd_o         => buff_mem_rd,
-  --   mem_ready_i      => buff_mem_ready,
-  --   casOn_i          => casOn_s,
-  --   casSpeed_i       => casSpeed
-  --   );
-    
------------------------------------------------------------------------------
--- BUFFER DDRAM
------------------------------------------------------------------------------
+tape : work.casPlayer
+  port map (
+    clk_i            => clk_i,
+    reset_n          => reset_n_i,
+    ioctl_addr_i     => ioctl_addr,
+    ioctl_dout_i     => ioctl_dout,
+    ioctl_index_i    => ioctl_index,
+    ioctl_wr_i       => ioctl_wr,
+    ioctl_download_i => ioctl_download,
+    casOut_o         => casOut_s,
+    mem_addr_o       => cas_mem_addr,
+    mem_dout_i       => cas_mem_dout,
+    mem_din_o        => cas_mem_din,
+    mem_wr_o         => cas_mem_wr,
+    mem_rd_o         => cas_mem_rd,
+    mem_ready_i      => cas_mem_ready,
+    casOn_i          => casOn_s,
+    casSpeed_i       => casSpeed
+);
 
-  -- DDRAM_CLK <= clk_i;
-  
-  -- buff : ddram
-  --   port map (
-  --     DDRAM_CLK => clk_i,
-  --     DDRAM_BUSY => DDRAM_BUSY,
-  --     DDRAM_BURSTCNT => DDRAM_BURSTCNT,
-  --     DDRAM_ADDR => DDRAM_ADDR,
-  --     DDRAM_DOUT => DDRAM_DOUT,
-  --     DDRAM_DOUT_READY => DDRAM_DOUT_READY,
-  --     DDRAM_RD => DDRAM_RD,
-  --     DDRAM_DIN => DDRAM_DIN,
-  --     DDRAM_BE => DDRAM_BE,
-  --     DDRAM_WE => DDRAM_WE,
-  --     addr => buff_mem_addr,
-  --     dout => buff_mem_dout,
-  --     din => buff_mem_din,
-  --     we => buff_mem_wr,
-  --     rd => buff_mem_rd,
-  --     ready => buff_mem_ready,
-  --     reset => not reset_n_i
-  --   ); 
 
-  
   end struct;
 

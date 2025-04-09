@@ -144,7 +144,7 @@ parameter CONF_STR = {
     "SordM5;;",
     "-;",
     "O02,Memory extension,None,EM-5,EM-64,64KBF,64KRX,BrnoMod;",
-    "O34,Cartrige,None,BASIC-I,BASIC-G,BASIC-F;",
+    "O34,Cartridge,None,BASIC-I,BASIC-G,BASIC-F;",
     "P1,EM64;",
     "P1O5,EM64 mode,64KB,32KB;",
     "P1O6,EM64 mon. deactivate,Dis.,En.;",
@@ -370,7 +370,7 @@ end
 
 mist_video #(
     .COLOR_DEPTH(8),
-    .SD_HCNT_WIDTH(9),
+    .SD_HCNT_WIDTH(11),
     .OSD_COLOR(3'b110),
     .OUT_COLOR_DEPTH(VGA_BITS),
     .BIG_OSD(BIG_OSD))
@@ -391,10 +391,10 @@ mist_video(
     .VGA_B(VGA_B),
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
-    .ce_divider(3'd0),
+    .ce_divider(3'd3),
     .scandoubler_disable(forced_scandoubler),
-    .no_csync(no_csync),
-    .scanlines(),
+    .no_csync(1'b1),
+    .scanlines(status[15:14]),
     .ypbpr(ypbpr)
 );
 

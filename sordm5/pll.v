@@ -46,19 +46,19 @@ module pll (
 	output	  c0;
 	output	  locked;
 
-	wire [0:0] sub_wire2 = 1'h0;
-	wire [4:0] sub_wire3;
-	wire  sub_wire5;
-	wire  sub_wire0 = inclk0;
-	wire [1:0] sub_wire1 = {sub_wire2, sub_wire0};
-	wire [0:0] sub_wire4 = sub_wire3[0:0];
-	wire  c0 = sub_wire4;
-	wire  locked = sub_wire5;
+	wire [4:0] sub_wire0;
+	wire  sub_wire2;
+	wire [0:0] sub_wire5 = 1'h0;
+	wire [0:0] sub_wire1 = sub_wire0[0:0];
+	wire  c0 = sub_wire1;
+	wire  locked = sub_wire2;
+	wire  sub_wire3 = inclk0;
+	wire [1:0] sub_wire4 = {sub_wire5, sub_wire3};
 
 	altpll	altpll_component (
-				.inclk (sub_wire1),
-				.clk (sub_wire3),
-				.locked (sub_wire5),
+				.inclk (sub_wire4),
+				.clk (sub_wire0),
+				.locked (sub_wire2),
 				.activeclock (),
 				.areset (1'b0),
 				.clkbad (),
@@ -199,7 +199,7 @@ endmodule
 // Retrieval info: PRIVATE: MIRROR_CLK0 STRING "0"
 // Retrieval info: PRIVATE: MULT_FACTOR0 NUMERIC "32"
 // Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
-// Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "42.66600000"
+// Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "42.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT0 STRING "MHz"
 // Retrieval info: PRIVATE: PHASE_RECONFIG_FEATURE_ENABLED STRING "1"
@@ -225,7 +225,7 @@ endmodule
 // Retrieval info: PRIVATE: SPREAD_FEATURE_ENABLED STRING "0"
 // Retrieval info: PRIVATE: SPREAD_FREQ STRING "50.000"
 // Retrieval info: PRIVATE: SPREAD_FREQ_UNIT STRING "KHz"
-// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.500"
+// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.000"
 // Retrieval info: PRIVATE: SPREAD_USE STRING "0"
 // Retrieval info: PRIVATE: SRC_SYNCH_COMP_RADIO STRING "0"
 // Retrieval info: PRIVATE: STICKY_CLK0 STRING "1"

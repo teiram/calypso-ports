@@ -3,11 +3,11 @@ set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name VHDL_FILE sordM5.vhd
 set_global_assignment -name VHDL_FILE sordM5_ram.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
+set_global_assignment -name VHDL_FILE tape.vhd
 set_global_assignment -name QIP_FILE ../common/T80/T80.qip
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
 set_global_assignment -name QIP_FILE SordM5_Poseidon/rtl/vdp18/vdp18.qip
 set_global_assignment -name QIP_FILE SordM5_Poseidon/rtl/sn76489/sn76489.qip
-set_global_assignment -name VHDL_FILE SordM5_Poseidon/rtl/Tape/tape.vhd
 set_global_assignment -name VHDL_FILE SordM5_Poseidon/rtl/CTC/ctc_channel.vhd
 set_global_assignment -name VHDL_FILE SordM5_Poseidon/rtl/CTC/ctc.vhd
 set_global_assignment -name VHDL_FILE SordM5_Poseidon/rtl/keyboard.vhd

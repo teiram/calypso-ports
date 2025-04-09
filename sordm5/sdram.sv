@@ -90,7 +90,7 @@ localparam CMD_LOAD_MODE       = 4'b0000;
 
 reg [13:0] refresh_count = startup_refresh_max - sdram_startup_cycles;
 reg  [3:0] command = CMD_INHIBIT;
-reg [22:0] save_addr;
+reg [22:0] save_addr /* synthesis keep */;
 
 reg        latched;
 reg [15:0] data;
@@ -113,8 +113,8 @@ always @(posedge clk) begin
 
 	reg [15:0] new_data;
 	reg  [1:0] new_wtbt;
-	reg        new_we;
-	reg        new_rd;
+	reg        new_we /* synthesis keep */;
+	reg        new_rd /* synthesis keep */;
 	reg        save_we = 1;
 
 	state_t state = STATE_STARTUP;
