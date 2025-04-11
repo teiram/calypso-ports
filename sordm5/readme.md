@@ -8,4 +8,4 @@ With no cartridge loaded, the screen will be just black. Load some game ROM or s
 
 # Changelog
 - 0.1. Initial release
-- 0.2. Remove non-working cas options. Enable audio on tape load
+- 0.2. Remove non-working cas options. Enable audio on tape load. Joystick support

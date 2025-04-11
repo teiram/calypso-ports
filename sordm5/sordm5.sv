@@ -152,6 +152,7 @@ parameter CONF_STR = {
     "P1O8,EM64 boot on,ROM,RAM;",  
     "F,BINROM,Load to ROM;",
     "OA,Tape Sound,On,Off;",
+    "O9,Swap joysticks,Off,On;",
     "-;",
     "OEF,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
     "OG,Border,No,Yes;",
@@ -300,7 +301,8 @@ wire [15:0] audio_left;
 wire [15:0] audio_right;
 assign audio_left = {audio, 5'd0};
 assign audio_right = {audio, 5'd0};
-
+wire [5:0] j0 = status[9] ? joy1[5:0] : joy0[5:0];
+wire [5:0] j1 = status[9] ? joy0[5:0] : joy1[5:0];
 
 sordM5 SordM5(
     .clk_i(clk_sys),
@@ -317,6 +319,8 @@ sordM5 SordM5(
     .vblank_o(vblank),
     .audio_o(audio),
     .ps2_key_i(ps2_key),
+    .joy0_i(j0),
+    .joy1_i(j1),
     .ioctl_addr(ioctl_addr),
     .ioctl_dout(ioctl_dout),
     .ioctl_index(ioctl_index),

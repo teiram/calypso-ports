@@ -39,6 +39,8 @@ entity sordM5 is
     por_n_o         : out std_logic;
     -- Interface
     ps2_key_i       : in  std_logic_vector(10 downto 0);
+    joy0_i          : in  std_logic_vector(5 downto 0);
+    joy1_i          : in  std_logic_vector(5 downto 0);
     ramMode_i       : in  std_logic_vector(8 downto 0);
     tape_sound_i    : in  std_logic;
     -- RGB Video Interface ----------------------------------------------------
@@ -300,6 +302,8 @@ begin
       reset_n_i    => reset_n_s,
       clk_i        => clk_i,
       ps2_code_i   => ps2_key_i,
+      joy0_i       => joy0_i,
+      joy1_i       => joy1_i,
       kb_addr_i	   => a_s(2 downto 0),
       kb_data_o	   => kb_do_s,
       kb_rst_o     => kb_rst_s
