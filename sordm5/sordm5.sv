@@ -151,8 +151,6 @@ parameter CONF_STR = {
     "P1O7,EM64 wp low 32KB,Dis.,En.;",
     "P1O8,EM64 boot on,ROM,RAM;",  
     "F,BINROM,Load to ROM;",
-    "F,CAS,Load Tape;",
-    "O9,Fast Tape Load,On,Off;",
     "OA,Tape Sound,On,Off;",
     "-;",
     "OEF,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",

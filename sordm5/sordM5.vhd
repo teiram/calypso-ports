@@ -163,7 +163,7 @@ architecture struct of sordM5 is
 begin
 
   vdd_s <= '1';
-  audio_o <= (casOut_s&psg_audio_s&"00") when tape_sound_i = '0' else ('0'&psg_audio_s&"00");
+  audio_o <= (AUDIO_INPUT & psg_audio_s & "00") when tape_sound_i = '0' else ('0' & psg_audio_s & "00");
   nmi_n_s <= '1'; 
 
   -----------------------------------------------------------------------------
@@ -346,8 +346,7 @@ begin
       ctc_ce_n_i      => ctc_ce_n_s,
       ctc_d_i         => d_from_ctc_s,
       int_vect_ce_n_i => int_vect_ce_n_s,
---      casOut_i        => casOut_s,
-	  casOut_i			=> AUDIO_INPUT,
+	  casOut_i	      => AUDIO_INPUT,
       rd_n_i          => rd_n_s,
       ram_d_i         => ram_d_s 
     );
