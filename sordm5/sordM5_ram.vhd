@@ -58,7 +58,12 @@ port (
     SDRAM_BA              : out std_logic_vector(1 downto 0);
     SDRAM_CLK             : out std_logic;
     SDRAM_CKE             : out std_logic;
-    pll_locked_i          : in std_logic
+    pll_locked_i          : in std_logic;
+    -- Cas signals
+    cas_rd_i              : in std_logic;
+    cas_addr_i            : in std_logic_vector(17 downto 0);
+    cas_data_o            : out std_logic_vector(7 downto 0);
+    cas_data_ready_o      : out std_logic
   );
 
 end sordM5_rams;
@@ -95,6 +100,13 @@ architecture rtl of sordM5_rams is
    signal sdram_dout      : std_logic_vector(15 downto 0);
    signal sdram_we        : std_logic;
    signal sdram_rd        : std_logic;
+   signal sdram_ready     : std_logic;
+   
+   signal sample_cas_data_ready_s : std_logic;
+   signal cas_data_ready_s: std_logic := '1';
+   signal rfsh_n_i_last: std_logic;
+   type cas_data_ready_t is (IDLE, WAIT_RFSH, WAIT_READ_START, WAIT_READY);
+   signal cas_data_state_s  : cas_data_ready_t := IDLE;
    
    attribute keep: boolean;
    attribute keep of sdram_addr: signal is true;
@@ -102,6 +114,7 @@ architecture rtl of sordM5_rams is
    attribute keep of sdram_dout: signal is true;
    attribute keep of sdram_we: signal is true;
    attribute keep of sdram_rd: signal is true;
+   attribute keep of sdram_ready: signal is true;
    attribute keep of iorq_n_i: signal is true;
    attribute keep of mreq_n_i: signal is true;
    attribute keep of rfsh_n_i: signal is true;
@@ -114,7 +127,7 @@ architecture rtl of sordM5_rams is
    attribute keep of ioctl_wr: signal is true;
    attribute keep of ioctl_download: signal is true;
    attribute keep of ioctl_index: signal is true;
-
+   attribute keep of cas_data_ready_s: signal is true;
    
    FUNCTION inv(s1:std_logic_vector) return std_logic_vector is 
      VARIABLE Z : std_logic_vector(s1'high downto s1'low);
@@ -254,54 +267,77 @@ begin
    
    rom_ioctl_we_s <= '1' when ioctl_wr = '1' and ioctl_download = '1'
       else '0';
-     
-
---   sdram_addr <= 
---            "000000" & ioctl_addr(16 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "00")           -- ROM upload 00000 - 17FFF
---       else "000000" & "1100" & ioctl_addr(12 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "01")  -- ROM upload 18000 - 1FFFF
---       else "000000" & rom_mmu_s(4 downto 0) & a_i(11 downto 0) when rom_cs_s = '1'                           -- ROM access 
---       else "0000010"  & a_i(15 downto 0) when ram_cs_s  = '1'                                                -- Normal RAM 20000 - 2FFFF
---       else "00001" & mmu_q_s(17 downto 12) & a_i(11 downto 0) when ramD1_s = '1'                             -- Extra RAM  200000 - ?
---       else "00010" & ioctl_addr(17 downto 0) when (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "10")
---       else (others => '0');
 
    ramaddressprocess: process (clk_i) begin
        if rising_edge(clk_i) then
            if (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "00") then
-             sdram_addr <= "000000" & ioctl_addr(16 downto 0);
+             sdram_addr <= "000000" & ioctl_addr(16 downto 0);                                -- Primary ROM upload 00000 - 17FFF
            elsif (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "01") then
-             sdram_addr <= "000000" & "1100" & ioctl_addr(12 downto 0);
+             sdram_addr <= "000000" & "1100" & ioctl_addr(12 downto 0);                       -- ROM upload         18000 - 1FFFF
            elsif rom_cs_s = '1' then
-             sdram_addr <= "000000" & rom_mmu_s(4 downto 0) & a_i(11 downto 0);
+             sdram_addr <= "000000" & rom_mmu_s(4 downto 0) & a_i(11 downto 0);               -- ROM access 
            elsif ram_cs_s = '1' then
-             sdram_addr <= "0000010"  & a_i(15 downto 0);
+             sdram_addr <= "0000010"  & a_i(15 downto 0);                                     -- Normal RAM         20000 - 2FFFF
            elsif ramD1_s = '1' then
-             sdram_addr <= "00001" & mmu_q_s(17 downto 12) & a_i(11 downto 0);
+             sdram_addr <= "00001" & mmu_q_s(17 downto 12) & a_i(11 downto 0);                -- Extra RAM          200000
            elsif (rom_ioctl_we_s = '1' and ioctl_index(1 downto 0) = "10") then
-             sdram_addr <= "00010" & ioctl_addr(17 downto 0);
+             sdram_addr <= "00010" & ioctl_addr(17 downto 0);                                 -- Tape buffer (writing)
+           elsif (cas_data_state_s = WAIT_READ_START) then
+             sdram_addr <= "00010" & cas_addr_i;                                              -- Tape read
            else
              sdram_addr <= sdram_addr;
            end if;
-           if rd_n_i = '0' and mreq_n_i = '0' and rfsh_n_i = '1' then
+           if (rd_n_i = '0' and mreq_n_i = '0' and rfsh_n_i = '1')
+             or (cas_data_state_s = WAIT_READ_START) then
              sdram_rd <= '1';
            else 
              sdram_rd <= '0';
            end if;
-           if ioctl_wr = '1' or (wr_n_i = '0' and (ram_cs_s = '1' or ramD1_s = '1')) then
+           if rom_ioctl_we_s = '1' or (wr_n_i = '0' and (ram_cs_s = '1' or ramD1_s = '1')) then
              sdram_we <= '1';
            else 
              sdram_we <= '0';
            end if;
            if rom_ioctl_we_s = '1' then
              sdram_din <= "00000000" & ioctl_dout;
-           else 
+           elsif wr_n_i = '0' and mreq_n_i = '0' then
              sdram_din <= "00000000" & d_i;
+           else
+             sdram_din <= sdram_din;
            end if;
        end if;
    end process;
---   sdram_rd <= '1' when rd_n_i = '0' and mreq_n_i = '0' and rfsh_n_i = '1' else '0';
---   sdram_we <= '1' when ioctl_wr = '1' or (wr_n_i = '0' and (ram_cs_s = '1' or ramD1_s = '1')) else '0';
---   sdram_din <= "00000000" & ioctl_dout when rom_ioctl_we_s = '1' else "00000000" & d_i;
+
+   cas_data_ready_o <= cas_data_ready_s;
+   
+   casprocess: process(clk_i) begin
+    if rising_edge(clk_i) then
+        rfsh_n_i_last <= rfsh_n_i;
+        case cas_data_state_s is
+        when IDLE =>
+            if cas_rd_i = '1' then
+                cas_data_state_s <= WAIT_RFSH;
+                cas_data_ready_s <= '0';
+            end if;
+        when WAIT_RFSH =>
+            if rfsh_n_i_last = '1' and rfsh_n_i = '0' then
+                cas_data_state_s <= WAIT_READ_START;
+            end if;
+        when WAIT_READ_START =>
+            if sdram_ready = '0' then
+                cas_data_state_s <= WAIT_READY;
+            end if;
+        when WAIT_READY =>
+            if sdram_ready = '1' then
+                cas_data_ready_s <= '1';
+                cas_data_state_s <= IDLE;
+                cas_data_o <= sdram_dout(7 downto 0);
+            end if;
+        when others =>
+            null;
+        end case;
+    end if;
+   end process;
    
    SDRAM_CLK <= clk_i;
    ramD1 : sdram
@@ -323,7 +359,8 @@ begin
       din => sdram_din,
       dout => sdram_dout,
       we => sdram_we,
-      rd => sdram_rd
+      rd => sdram_rd,
+      ready => sdram_ready
    );
   
 

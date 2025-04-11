@@ -159,11 +159,22 @@ architecture struct of sordM5 is
   signal cas_mem_wr      : std_logic;
   signal cas_mem_rd      : std_logic;
   signal cas_mem_ready   : std_logic;
-
+  signal cas_player_playing : std_logic;
+  signal tape_load_n_s   : std_logic;
+  signal cas_signal_s    : std_logic;
+  
+  attribute keep: boolean;
+  attribute keep of casOut_s: signal is true;
+  attribute keep of casOn_s: signal is true;
+  attribute keep of cas_mem_dout: signal is true;
+  attribute keep of cas_mem_addr: signal is true;
+  attribute keep of cas_mem_rd: signal is true;
+  
 begin
-
+  cas_signal_s <= casOut_s when cas_player_playing = '1' else AUDIO_INPUT;
   vdd_s <= '1';
-  audio_o <= (casOut_s&psg_audio_s&"00") when tape_sound_i = '0' else ('0'&psg_audio_s&"00");
+  audio_o <= (cas_signal_s & psg_audio_s & "00") when tape_sound_i = '0' 
+    else ('0' & psg_audio_s & "00");
   nmi_n_s <= '1'; 
 
   -----------------------------------------------------------------------------
@@ -189,6 +200,7 @@ begin
       clk_en_3m58_n_o => clk_en_3m58_n_s
     );
     
+    tape_load_n_s <= '0' when ioctl_download = '1' and ioctl_index(1 downto 0) = "10" else '1';
   -----------------------------------------------------------------------------
   -- T80 CPU
   -----------------------------------------------------------------------------
@@ -204,7 +216,7 @@ begin
       WAIT_n     => wait_n_s,
       INT_n      => int_n_s,
       NMI_n      => nmi_n_s,
-      BUSRQ_n    => vdd_s,
+      BUSRQ_n    => tape_load_n_s,
       M1_n       => m1_n_s,
       MREQ_n     => mreq_n_s,
       IORQ_n     => iorq_n_s,
@@ -346,8 +358,8 @@ begin
       ctc_ce_n_i      => ctc_ce_n_s,
       ctc_d_i         => d_from_ctc_s,
       int_vect_ce_n_i => int_vect_ce_n_s,
---      casOut_i        => casOut_s,
-	  casOut_i			=> AUDIO_INPUT,
+--      casOut_i        => casOut_s or AUDIO_INPUT,
+      casOut_i        => cas_signal_s,
       rd_n_i          => rd_n_s,
       ram_d_i         => ram_d_s 
     );
@@ -370,37 +382,41 @@ begin
 	 );
 	 
    sordM5_ram : work.sordM5_rams
-    port map (
-      clk_i          => clk_i,
-      reset_n_i      => reset_n_i,
-      a_i            => a_s,
-      d_i            => d_from_cpu_s,
-      d_o            => ram_d_s,
-      iorq_n_i       => iorq_n_s,
-      m1_n_i         => m1_n_s,
-      rd_n_i         => rd_n_s,
-      wr_n_i         => wr_n_s,
-      mreq_n_i       => mreq_n_s,
-      rfsh_n_i       => rfsh_n_s,
-      ramMode_i      => ramMode_i,
-      ioctl_addr     => ioctl_addr,
-      ioctl_dout     => ioctl_dout,
-      ioctl_index    => ioctl_index,
-      ioctl_wr       => ioctl_wr,
-      ioctl_download => ioctl_download,
-      SDRAM_A        => SDRAM_A,
-      SDRAM_DQ       => SDRAM_DQ,
-      SDRAM_DQML     => SDRAM_DQML,
-      SDRAM_DQMH     => SDRAM_DQMH,
-      SDRAM_nWE      => SDRAM_nWE,
-      SDRAM_nCAS     => SDRAM_nCAS,
-      SDRAM_nRAS     => SDRAM_nRAS,
-      SDRAM_nCS      => SDRAM_nCS,
-      SDRAM_BA       => SDRAM_BA,
-      SDRAM_CLK      => SDRAM_CLK,
-      SDRAM_CKE      => SDRAM_CKE,
-      pll_locked_i   => pll_locked_i
-     );
+   port map (
+      clk_i            => clk_i,
+      reset_n_i        => reset_n_i,
+      a_i              => a_s,
+      d_i              => d_from_cpu_s,
+      d_o              => ram_d_s,
+      iorq_n_i         => iorq_n_s,
+      m1_n_i           => m1_n_s,
+      rd_n_i           => rd_n_s,
+      wr_n_i           => wr_n_s,
+      mreq_n_i         => mreq_n_s,
+      rfsh_n_i         => rfsh_n_s,
+      ramMode_i        => ramMode_i,
+      ioctl_addr       => ioctl_addr,
+      ioctl_dout       => ioctl_dout,
+      ioctl_index      => ioctl_index,
+      ioctl_wr         => ioctl_wr,
+      ioctl_download   => ioctl_download,
+      SDRAM_A          => SDRAM_A,
+      SDRAM_DQ         => SDRAM_DQ,
+      SDRAM_DQML       => SDRAM_DQML,
+      SDRAM_DQMH       => SDRAM_DQMH,
+      SDRAM_nWE        => SDRAM_nWE,
+      SDRAM_nCAS       => SDRAM_nCAS,
+      SDRAM_nRAS       => SDRAM_nRAS,
+      SDRAM_nCS        => SDRAM_nCS,
+      SDRAM_BA         => SDRAM_BA,
+      SDRAM_CLK        => SDRAM_CLK,
+      SDRAM_CKE        => SDRAM_CKE,
+      pll_locked_i     => pll_locked_i,
+      cas_rd_i         => cas_mem_rd,
+      cas_addr_i       => cas_mem_addr(17 downto 0),
+      cas_data_o       => cas_mem_dout,
+      cas_data_ready_o => cas_mem_ready
+    );
 
  -----------------------------------------------------------------------------
  -- Interrupt CTC
@@ -444,7 +460,8 @@ tape : work.casPlayer
     mem_rd_o         => cas_mem_rd,
     mem_ready_i      => cas_mem_ready,
     casOn_i          => casOn_s,
-    casSpeed_i       => casSpeed
+    casSpeed_i       => casSpeed,
+    cas_playing_o    => cas_player_playing
 );
 
 

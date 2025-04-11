@@ -35,12 +35,13 @@ entity casPlayer is
     ioctl_download_i: in  std_logic;
     casOut_o        : out std_logic;
     mem_addr_o      : out std_logic_vector( 27 downto 0);
-	  mem_dout_i      : in  std_logic_vector( 7 downto 0);
-	  mem_din_o       : out std_logic_vector( 7 downto 0);
-	  mem_wr_o        : out std_logic;
-	  mem_rd_o        : out std_logic;
-	  mem_ready_i     : in  std_logic;
+    mem_dout_i      : in  std_logic_vector( 7 downto 0);
+    mem_din_o       : out std_logic_vector( 7 downto 0);
+    mem_wr_o        : out std_logic;
+    mem_rd_o        : out std_logic;
+    mem_ready_i     : in  std_logic;
     cas_border_o    : out std_logic_vector( 4 downto 0);
+    cas_playing_o   : out std_logic;
     casOn_i         : in  std_logic;
     casSpeed_i      : in  std_logic
   );
@@ -52,6 +53,7 @@ architecture rtl of casPlayer is
   signal data_lenght_s      : unsigned( 24 downto 0) := (others => '0');
   signal addr_play_s        : unsigned( 24 downto 0) := (others => '0');
   signal cas_write_buffer_s : std_logic;
+  signal last_cas_write_buffer_s : std_logic;
   signal cas_buffer_valid_s : std_logic := '0';
   signal cas_mem_rd_s       : std_logic;
   signal data_s             : std_logic_vector(7 downto 0);
@@ -61,17 +63,20 @@ architecture rtl of casPlayer is
   signal busy_s             : std_logic;
   signal casOut_s           : std_logic;
   signal casSpeed_s         : std_logic := '0';
-  
+  signal cas_playing_s      : std_logic := '0';
+     
+  attribute keep: boolean;
+  attribute keep of cas_write_buffer_s: signal is true;
 begin  
   
-  cas_write_buffer_s <= ioctl_wr_i and ioctl_download_i;
+  cas_write_buffer_s <= '1' when ioctl_wr_i = '1' and ioctl_download_i = '1' and ioctl_index_i(1 downto 0) = "10" else '0';
   mem_addr_o <= ("000"&ioctl_addr_i) when ioctl_download_i = '1' else ("000"&std_logic_vector(addr_play_s));
   mem_din_o <= ioctl_dout_i;
   mem_wr_o <= cas_write_buffer_s;
   mem_rd_o <= cas_mem_rd_s;
   casOut_o <= casOut_s;
   cas_border_o <= (casOut_s&data_s(3 downto 0));
-  
+  cas_playing_o <= cas_playing_s;
   last : process(cas_write_buffer_s)
   begin
     if rising_edge(cas_write_buffer_s) then
@@ -79,43 +84,47 @@ begin
     end if;
   end process;
   
-  validCheck: process(cas_write_buffer_s)
+  validCheck: process(clk_i)
   begin
-    if rising_edge(cas_write_buffer_s) then
-      if (ioctl_addr_i=(ioctl_addr_i'range=>'0'))  then 
-         cas_buffer_valid_s <= '1';
+    if rising_edge(clk_i) then
+        last_cas_write_buffer_s <= cas_write_buffer_s;
+    
+        if (last_cas_write_buffer_s = '0' and cas_write_buffer_s = '1') then
+          if (ioctl_addr_i=(ioctl_addr_i'range=>'0'))  then 
+             cas_buffer_valid_s <= '1';
+          end if;
+          if ioctl_addr_i(24 downto 4) = (ioctl_addr_i(24 downto 4)'range=>'0') then
+            case (ioctl_addr_i(3 downto 0)) is
+              when x"0" =>
+                if ioctl_dout_i /= X"53" then
+                  cas_buffer_valid_s <= '0';
+                end if;
+              when x"1" =>
+                if ioctl_dout_i /= X"4f" then
+                  cas_buffer_valid_s <= '0';
+                end if;
+              when x"2" =>
+                if ioctl_dout_i /= X"52" then
+                  cas_buffer_valid_s <= '0';
+                end if;
+              when x"3" =>
+                if ioctl_dout_i /= X"44" then
+                  cas_buffer_valid_s <= '0';
+                end if;
+              when x"4" =>
+                if ioctl_dout_i /= X"4D" then
+                  cas_buffer_valid_s <= '0';
+                end if;
+              when x"5" =>
+                if ioctl_dout_i /= X"35" then
+                  cas_buffer_valid_s <= '0';
+                end if;
+              when others =>
+                null;
+            end case;
+          end if;
+        end if;
       end if;
-      if ioctl_addr_i(24 downto 4) = (ioctl_addr_i(24 downto 4)'range=>'0') then
-        case (ioctl_addr_i(3 downto 0)) is
-          when x"0" =>
-            if ioctl_dout_i /= X"53" then
-              cas_buffer_valid_s <= '0';
-            end if;
-          when x"1" =>
-            if ioctl_dout_i /= X"4f" then
-              cas_buffer_valid_s <= '0';
-            end if;
-          when x"2" =>
-            if ioctl_dout_i /= X"52" then
-              cas_buffer_valid_s <= '0';
-            end if;
-          when x"3" =>
-            if ioctl_dout_i /= X"44" then
-              cas_buffer_valid_s <= '0';
-            end if;
-          when x"4" =>
-            if ioctl_dout_i /= X"4D" then
-              cas_buffer_valid_s <= '0';
-            end if;
-          when x"5" =>
-            if ioctl_dout_i /= X"35" then
-              cas_buffer_valid_s <= '0';
-            end if;
-          when others =>
-            null;
-        end case;
-      end if;
-    end if;
   end process;
   
   
@@ -126,6 +135,12 @@ begin
     variable play_state_v  : play_state_t := PLAY_IDLE;
   begin
     if rising_edge(clk_i) then
+      if play_state_v /= PLAY_IDLE then
+        cas_playing_s <= '1';
+      else
+        cas_playing_s <= '0';
+      end if;
+      
       if ioctl_download_i = '1' then 
         addr_play_s <= (4 => '1', others=>'0');
         play_state_v := PLAY_START;
@@ -155,7 +170,6 @@ begin
                 count_v := 64;
               end if;
               addr_play_s <= addr_play_s + 1;
-              cas_mem_rd_s <= '1';
               play_state_v := PLAY_SYNC;
             end if;
           when PLAY_SYNC => 
@@ -168,6 +182,7 @@ begin
             end if;
             if count_v = 0 then
               play_state_v := PLAY_READ_LENGHT;
+              cas_mem_rd_s <= '1';
             end if;
           when PLAY_READ_LENGHT =>
             cas_mem_rd_s <= '0';

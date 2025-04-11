@@ -189,8 +189,10 @@ always @(posedge clk_sys) begin
     old_ram_mode <= status[4:0];
 end
 
+wire rom_download = ioctl_download & ioctl_index[1] == 1'b0;
+ 
 wire ram_mode_changed = old_ram_mode == status[4:0] ? 1'b0 : 1'b1 ;
-wire reset =  ~pll_locked | ram_mode_changed | status[17] | ioctl_download;
+wire reset =  ~pll_locked | ram_mode_changed | status[17] | rom_download;
 
 /////////////////  IO  ///////////////////////////
 
