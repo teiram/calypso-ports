@@ -81,32 +81,32 @@ END ENTITY movideo;
 ARCHITECTURE rtl OF movideo IS
   FUNCTION sel_mo5(col : uv8; pix : uv8; pos : natural) RETURN uv IS
   BEGIN
-    IF pos<4     THEN RETURN mux(pix(0),col(7 DOWNTO 4),col(3 DOWNTO 0));
-    ELSIF pos<8  THEN RETURN mux(pix(7),col(7 DOWNTO 4),col(3 DOWNTO 0));
-    ELSIF pos<12 THEN RETURN mux(pix(6),col(7 DOWNTO 4),col(3 DOWNTO 0));
-    ELSIF pos<16 THEN RETURN mux(pix(5),col(7 DOWNTO 4),col(3 DOWNTO 0));
-    ELSIF pos<20 THEN RETURN mux(pix(4),col(7 DOWNTO 4),col(3 DOWNTO 0));
-    ELSIF pos<24 THEN RETURN mux(pix(3),col(7 DOWNTO 4),col(3 DOWNTO 0));
-    ELSIF pos<28 THEN RETURN mux(pix(2),col(7 DOWNTO 4),col(3 DOWNTO 0));
-    ELSE              RETURN mux(pix(1),col(7 DOWNTO 4),col(3 DOWNTO 0));
+    IF pos<4     THEN RETURN mux(pix(7),col(7 DOWNTO 4),col(3 DOWNTO 0));
+    ELSIF pos<8  THEN RETURN mux(pix(6),col(7 DOWNTO 4),col(3 DOWNTO 0));
+    ELSIF pos<12 THEN RETURN mux(pix(5),col(7 DOWNTO 4),col(3 DOWNTO 0));
+    ELSIF pos<16 THEN RETURN mux(pix(4),col(7 DOWNTO 4),col(3 DOWNTO 0));
+    ELSIF pos<20 THEN RETURN mux(pix(3),col(7 DOWNTO 4),col(3 DOWNTO 0));
+    ELSIF pos<24 THEN RETURN mux(pix(2),col(7 DOWNTO 4),col(3 DOWNTO 0));
+    ELSIF pos<28 THEN RETURN mux(pix(1),col(7 DOWNTO 4),col(3 DOWNTO 0));
+    ELSE              RETURN mux(pix(0),col(7 DOWNTO 4),col(3 DOWNTO 0));
     END IF;
   END FUNCTION;
   
   FUNCTION sel_bm4(col : uv8; pix : uv8; pos : natural) RETURN uv IS
-    VARIABLE i : natural := ((pos + 28) MOD 32) / 4;
+    VARIABLE i : natural := (pos MOD 32) / 4;
   BEGIN
     RETURN "00" & col(7-i) & pix(7-i);
   END FUNCTION;
   
   FUNCTION sel_80c(col : uv8; pix : uv8; pos : natural) RETURN uv IS
     VARIABLE t : uv16 := col & pix;
-    VARIABLE i : natural := ((pos + 28) MOD 32) / 2;
+    VARIABLE i : natural := (pos MOD 32) / 2;
   BEGIN
     RETURN "000" & t(7-i);
   END FUNCTION;
   
   FUNCTION sel_bm16(col : uv8; pix : uv8; pos : natural) RETURN uv IS
-    VARIABLE i : natural := ((pos + 28) MOD 32) / 8;
+    VARIABLE i : natural := (pos MOD 32) / 8;
     VARIABLE t : uv16 := pix & col;
   BEGIN
     --RETURN col(7-i) & col(3-i) & pix(7-i) & pix(3-i);
@@ -114,19 +114,19 @@ ARCHITECTURE rtl OF movideo IS
   END FUNCTION;
   
   FUNCTION sel_2col(col : uv8; pos : natural) RETURN uv IS
-    VARIABLE i : natural := ((pos + 28) MOD 32) / 4;
+    VARIABLE i : natural := (pos MOD 32) / 4;
   BEGIN
     RETURN "000" & col(7-i);
   END FUNCTION;
   
   FUNCTION sel_over2(col : uv8; pix : uv8; pos : natural) RETURN uv IS
-    VARIABLE i : natural := ((pos + 28) MOD 32) / 4;
+    VARIABLE i : natural := (pos MOD 32) / 4;
   BEGIN
     RETURN "000" & (col(7-i) AND pix(7-i));
   END FUNCTION;
   
   FUNCTION sel_over4(col : uv8; pix : uv8; pos : natural) RETURN uv IS
-    VARIABLE i : natural := ((pos + 28) MOD 32) / 8;
+    VARIABLE i : natural := (pos MOD 32) / 8;
   BEGIN
     IF col(7-i)='1' THEN RETURN "0001";
     ELSIF col(7-i-4)='1' THEN RETURN "0010";
@@ -162,7 +162,7 @@ ARCHITECTURE rtl OF movideo IS
     x"0A",x"0A",x"0A",x"0A",x"0F",x"0F",x"0F",x"05");
   
   ---------------------
-  SIGNAL dr_col,dr_precol,dr_pix : uv8;
+  SIGNAL dr_col,dr_precol,dr_pix, dr_prepix : uv8;
   SIGNAL vid_vs1,vid_vs2,vid_vs3 : std_logic;
   SIGNAL vid_hs1,vid_hs2,vid_hs3 : std_logic;
   SIGNAL vid_vde1,vid_vde2,vid_vde3 : std_logic;
@@ -206,29 +206,21 @@ BEGIN
       -- CC : 4 => 6 => 11 : B
       
       -----------------------------------
- --     divcpt<=(divcpt+1) MOD 32;
-      
---      IF counter = 0 THEN
---        vram_a <= pos;
---      ELSIF counter = 11 THEN
---        vram_a <= pos + 16#2000#;
---      ELSIF counter = 4 THEN
---        dr_precol <= vram_dr;       
---      ELSIF counter = 15 THEN
---        dr_pix <= vram_dr;
---        dr_col <= dr_precol;
---      END IF;
-      IF counter=0 THEN
-        vram_a<=pos;
-      ELSIF counter=1 THEN
-        vram_a<=pos + 16#2000#;
-      ELSIF counter=2 THEN
-        dr_precol<=vram_dr;
-      ELSIF counter=3 THEN
-        dr_pix<=vram_dr;
-        dr_col<=dr_precol;
+        
+      IF counter = 0 THEN
+        vram_a <= pos;
+      ELSIF counter = 4 THEN
+        dr_precol <= vram_dr;
+      ELSIF counter = 11 THEN
+        vram_a <= pos + 16#2000#;
+      ELSIF counter = 15 THEN
+        dr_prepix <= vram_dr;
+      ELSIF counter = 31 THEN
+        dr_pix <= dr_prefix;
+        dr_col <= dr_precol;
       END IF;
-      
+
+
       -----------------------------------
       CASE vmode IS
         ------------------------------------

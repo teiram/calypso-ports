@@ -735,14 +735,12 @@ BEGIN
           cpu2_E_delay <= cpu2_E;
            if rom_we = '1' then
              sdram_addr <= "0000010" & ioctl_addr(15 downto 0);
---           elsif cpu2_Q_delay = '0' and cpu2_Q = '1' and ram_e = '1' then
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and ram_e = '1' then
              sdram_addr <= "000000" & std_logic_vector(cpu_aram(16 downto 0));
---           elsif cpu2_Q_delay = '0' and cpu2_Q = '1' and rom_e = '1' then
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and rom_e = '1' then
              sdram_addr <= "0000010"  & std_logic_vector(cpu_arom(15 downto 0));
            elsif tick_video = '1' then
-             sdram_addr <= "000000000" & std_logic_vector(vram_a);
+             sdram_addr <= "0000000" & std_logic_vector(vpage & vram_a);
            else
              sdram_addr <= sdram_addr;
            end if;
@@ -758,7 +756,6 @@ BEGIN
            else 
              sdram_we <= '0';
            end if;
-           -- if rom_we = '1' then
            if ioctl_download = '1' then
              sdram_din <= "00000000" & ioctl_dout;
            else
