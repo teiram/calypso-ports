@@ -216,7 +216,7 @@ BEGIN
       ELSIF counter = 15 THEN
         dr_prepix <= vram_dr;
       ELSIF counter = 31 THEN
-        dr_pix <= dr_prefix;
+        dr_pix <= dr_prepix;
         dr_col <= dr_precol;
       END IF;
 

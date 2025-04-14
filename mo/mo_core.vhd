@@ -740,7 +740,7 @@ BEGIN
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and rom_e = '1' then
              sdram_addr <= "0000010"  & std_logic_vector(cpu_arom(15 downto 0));
            elsif tick_video = '1' then
-             sdram_addr <= "0000000" & std_logic_vector(vpage & vram_a);
+             sdram_addr <= "0000000" & std_logic_vector(vpage) & std_logic_vector(vram_a);
            else
              sdram_addr <= sdram_addr;
            end if;
