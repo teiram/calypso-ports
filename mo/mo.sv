@@ -149,7 +149,8 @@ localparam CONF_STR = {
 	"O9,Fast,Off,On;",
 	"TA,Rewind Tape;",
 	"-;",
-	"R0,Reset;",
+	"T0,Reset;",
+    "F0,ROM,Reload ROM;",
 	"V,calypso",`BUILD_DATE 
 };
 
@@ -180,6 +181,8 @@ user_io(
     .status(status)
 );
 
+wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
+
 data_io data_io(
     .clk_sys(clk_sys),
     .SPI_SCK(SPI_SCK),
@@ -194,44 +197,17 @@ data_io data_io(
     .ioctl_dout(ioctl_dout)
 );
 
-wire clk_sys;
+wire clk_sys /* synthesis keep */;
+wire clk_sdram /* synthesis keep */;
 wire pll_locked;
 pll pll(
     .inclk0(CLK12M),
-    .c0(clk_sys),
+    .c0(clk_sdram),
+    .c1(clk_sys),
     .locked(pll_locked)
 );
 
-wire reset = status[0] | !pll_locked;
-
-assign SDRAM_CLK = clk_sys;
-wire sdram_ready;
-
-sdram sdram(
-    .SDRAM_DQ(SDRAM_DQ),
-    .SDRAM_A(SDRAM_A),
-    .SDRAM_DQML(SDRAM_DQML),
-    .SDRAM_DQMH(SDRAM_DQMH),
-    .SDRAM_BA(SDRAM_BA),
-    .SDRAM_nCS(SDRAM_nCS),
-    .SDRAM_nWE(SDRAM_nWE),
-    .SDRAM_nRAS(SDRAM_nRAS),
-    .SDRAM_nCAS(SDRAM_nCAS),
-    .SDRAM_CKE(SDRAM_CKE),
-    
-    .init(~pll_locked),
-    .clk(clk_sys),
-
-    .wtbt(0),
-    .addr(sdram_addr), 
-    .rd(sdram_rd),
-    .we(sdram_we),
-    .din(sdram_din),
-    .dout(ram_di),
-    
-    .ready(sdram_ready)
-);
-
+wire reset = status[0] | !pll_locked | ioctl_download;
 
 `ifdef I2S_AUDIO
 wire [31:0] clk_rate =  32'd32_000_000;
@@ -261,6 +237,7 @@ wire [31:0] joyb = status[3] ? joy0 : joy1;
 
 mo_core mo_core(
 	.sysclk(clk_sys),
+    .sdramclk(clk_sdram),
 	.reset(reset),
 
 	.mo5(status[8]),
@@ -271,34 +248,32 @@ mo_core mo_core(
 	.ovo_ena(status[7]),
 	.capslock(LED[7]),
  
-//	.clk_video(CLK_VIDEO),
-//	.ce_pixel(CE_PIXEL),
 	.vga_r(R),
 	.vga_g(G),
 	.vga_b(B),
 	.vga_hs(hsync),
 	.vga_vs(vsync),
-//	.vga_de(VGA_DE),
 	
 	.audio_l(audio_left),
 	.audio_r(audio_right),
 	
+    .SDRAM_A(SDRAM_A),
+    .SDRAM_DQ(SDRAM_DQ),
+    .SDRAM_DQML(SDRAM_DQML),
+    .SDRAM_DQMH(SDRAM_DQMH),
+    .SDRAM_nWE(SDRAM_nWE),
+    .SDRAM_nCAS(SDRAM_nCAS),
+    .SDRAM_nRAS(SDRAM_nRAS),
+    .SDRAM_nCS(SDRAM_nCS),
+    .SDRAM_BA(SDRAM_BA),
+    .SDRAM_CLK(SDRAM_CLK),
+    .SDRAM_CKE(SDRAM_CKE),
+    .pll_locked(pll_locked),
+    
 	.ps2_key(ps2_key),
 	.ps2_mouse(ps2_mouse),
 	.joystick_0(joya),
 	.joystick_1(joyb),
-	
-	.ddram_clk(DDRAM_CLK),
-	.ddram_busy(DDRAM_BUSY),
-	.ddram_burstcnt(DDRAM_BURSTCNT),
-	.ddram_addr(DDRAM_ADDR),
-	.ddram_dout(DDRAM_DOUT),
-	.ddram_dout_ready(DDRAM_DOUT_READY),
-	.ddram_rd(DDRAM_RD),
-	.ddram_din(DDRAM_DIN),
-	.ddram_be(DDRAM_BE),
-	.ddram_we(DDRAM_WE),
-
 	.ioctl_download(ioctl_download),
 	.ioctl_index(ioctl_index),
 	.ioctl_wr(ioctl_wr),

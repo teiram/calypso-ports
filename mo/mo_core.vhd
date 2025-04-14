@@ -19,7 +19,7 @@ USE IEEE.numeric_std.all;
 
 LIBRARY work;
 USE work.base_pack.ALL;
-USE work.rom_pack.ALL;
+-- USE work.rom_pack.ALL;
 
 USE std.textio.ALL;
 
@@ -27,7 +27,7 @@ ENTITY mo_core IS
   PORT (
     -- Master input clock
     sysclk            : IN    std_logic;
-    
+    sdramclk          : IN    std_logic;
     -- Async reset from top-level module. Can be used as initial reset.
     reset             : IN    std_logic;
     
@@ -65,16 +65,18 @@ ENTITY mo_core IS
     joystick_analog_0 : IN  std_logic_vector(15 DOWNTO 0);
     joystick_analog_1 : IN  std_logic_vector(15 DOWNTO 0);
     
-    ddram_clk         : OUT std_logic;
-    ddram_busy        : IN  std_logic;
-    ddram_burstcnt    : OUT std_logic_vector(7 DOWNTO 0);
-    ddram_addr        : OUT std_logic_vector(28 DOWNTO 0);
-    ddram_dout        : IN  std_logic_vector(63 DOWNTO 0);
-    ddram_dout_ready  : IN  std_logic;
-    ddram_rd          : OUT std_logic;
-    ddram_din         : OUT std_logic_vector(63 DOWNTO 0);
-    ddram_be          : OUT std_logic_vector(7 DOWNTO 0);
-    ddram_we          : OUT std_logic;
+    SDRAM_A         : out std_logic_vector(12 downto 0);
+    SDRAM_DQ        : inout std_logic_vector(15 downto 0);
+    SDRAM_DQML      : out std_logic;
+    SDRAM_DQMH      : out std_logic;
+    SDRAM_nWE       : out std_logic;
+    SDRAM_nCAS      : out std_logic;
+    SDRAM_nRAS      : out std_logic;
+    SDRAM_nCS       : out std_logic;
+    SDRAM_BA        : out std_logic_vector(1 downto 0);
+    SDRAM_CLK       : out std_logic;
+    SDRAM_CKE       : out std_logic;
+    pll_locked      : in  std_logic;
     
     ioctl_download    : IN  std_logic;
     ioctl_index       : IN  std_logic_vector(7 DOWNTO 0);
@@ -87,7 +89,7 @@ END mo_core;
 
 ARCHITECTURE struct OF mo_core IS
   
-  CONSTANT CPU_ALTERNATE : boolean :=false;
+  CONSTANT CPU_ALTERNATE : boolean :=true;
   SIGNAL ioctl_download2 : std_logic;
   SIGNAL adrs : uv17;
   SIGNAL ps2_key_delay : std_logic_vector(10 DOWNTO 0);
@@ -107,6 +109,8 @@ ARCHITECTURE struct OF mo_core IS
     
   SIGNAL divclk : uint5;
   SIGNAL tick_cpu : std_logic;
+  SIGNAL tick_video: std_logic;
+  SIGNAL tick_video_ready: std_logic;
   SIGNAL cpu_reset,cpu_wake : std_logic;
   SIGNAL reset_cpt : uint3;
   
@@ -161,6 +165,7 @@ ARCHITECTURE struct OF mo_core IS
   
   ----------------------------------------
   SIGNAL cpu2_E,cpu2_Q,cpu2_irq_n,cpu2_firq_n,cpu2_nmi_n : std_logic;
+  SIGNAL cpu2_BS, cpu2_BA, cpu2_Q_delay, cpu2_E_delay: std_logic;
   SIGNAL cpu2_dw,cpu2_dr : uv8;
   SIGNAL cpu2_a : uv16;
   SIGNAL cpu2_lic,cpu2_halt_n,cpu2_rnw : std_logic;
@@ -168,6 +173,42 @@ ARCHITECTURE struct OF mo_core IS
   SIGNAL cpu2_ndmabreq : std_logic;
   SIGNAL cpu2_tick2,cpu2_reset_n : std_logic;
   
+  signal sdram_addr      : std_logic_vector(22 downto 0);
+  signal sdram_din       : std_logic_vector(15 downto 0);
+  signal sdram_dout      : std_logic_vector(15 downto 0);
+  signal sdram_cpu_data  : std_logic_vector(7 downto 0);
+  signal sdram_we        : std_logic;
+  signal sdram_rd        : std_logic;
+  signal rom_we         : std_logic;
+  signal rom_e          : std_logic;
+  signal ram_e          : std_logic;
+   attribute keep: boolean;
+   attribute keep of sdram_addr: signal is true;
+   attribute keep of sdram_din: signal is true;
+   attribute keep of sdram_dout: signal is true;
+   attribute keep of sdram_cpu_data: signal is true;
+   attribute keep of sdram_we: signal is true;
+   attribute keep of sdram_rd: signal is true;
+   attribute keep of ioctl_wr: signal is true;
+   attribute keep of ioctl_download: signal is true;
+   attribute keep of ioctl_index: signal is true;
+   attribute keep of cpu_req: signal is true;
+   attribute keep of cpu_ack: signal is true;
+   attribute keep of cpu_wr: signal is true;
+   attribute keep of cpu_a: signal is true;
+   attribute keep of cpu_dr: signal is true;
+   attribute keep of cpu_dw: signal is true;
+   attribute keep of cpu_reset: signal is true;
+   attribute keep of cpu2_Q: signal is true;
+   attribute keep of cpu2_E: signal is true;
+   attribute keep of vram_a: signal is true;
+   attribute keep of vram_dr: signal is true;
+   attribute keep of tick_cpu: signal is true;
+   attribute keep of vid_ce: signal is true;
+   attribute keep of tick_video: signal is true;
+   attribute keep of tick_video_ready: signal is true;
+
+
   COMPONENT mc6809i
     PORT (
       D : IN uv8;
@@ -191,17 +232,41 @@ ARCHITECTURE struct OF mo_core IS
       );
   END COMPONENT mc6809i;
   
+  COMPONENT sdram
+    PORT (
+        init : in std_logic;
+        clk  : in std_logic;
+        SDRAM_DQ: inout std_logic_vector(15 downto 0);
+        SDRAM_A: out std_logic_vector(12 downto 0);
+        SDRAM_DQML : out std_logic;
+        SDRAM_DQMH : out std_logic;
+        SDRAM_nWE : out std_logic;
+        SDRAM_nCAS : out std_logic;
+        SDRAM_nRAS : out std_logic;
+        SDRAM_nCS : out std_logic;
+        SDRAM_BA : out std_logic_vector(1 downto 0);
+        SDRAM_CKE : out std_logic;
+        wtbt : in std_logic_vector(1 downto 0);
+        addr : in std_logic_vector(22 downto 0);
+        dout : out std_logic_vector (15 downto 0);
+        din : in std_logic_vector (15 downto 0);
+        we : in std_logic;
+        rd : in std_logic;
+        ready : out std_logic
+      );
+  END COMPONENT;
+    
   ----------------------------------------
-  SHARED VARIABLE ROM : arr8(0 TO 65536-1) :=
-    ROM_BASIC6_0 & ROM_MO6_0 & ROM_BASIC6_1 & ROM_MO6_1 &
-    ROM_BASIC6_2 & ROM_BASIC6_3; -- 64k ROM
-  CONSTANT PAD : arr8(0 TO 63):=(OTHERS =>x"FF");
-  SHARED VARIABLE ROM_DISK : arr8(0 TO 2047); -- :=ROM_DISK & PAD; -- 2k ROM
-  
-  SHARED VARIABLE RAM : arr8(0 TO 65536*2-1); -- 128k RAM
-  ATTRIBUTE ramstyle : string;
-  ATTRIBUTE ramstyle OF ROM : VARIABLE IS "no_rw_check";
-  ATTRIBUTE ramstyle OF RAM : VARIABLE IS "no_rw_check";
+--  SHARED VARIABLE ROM : arr8(0 TO 65536-1) :=
+--    ROM_BASIC6_0 & ROM_MO6_0 & ROM_BASIC6_1 & ROM_MO6_1 &
+--    ROM_BASIC6_2 & ROM_BASIC6_3; -- 64k ROM
+--  CONSTANT PAD : arr8(0 TO 63):=(OTHERS =>x"FF");
+--  SHARED VARIABLE ROM_DISK : arr8(0 TO 2047); -- :=ROM_DISK & PAD; -- 2k ROM
+--  
+--  SHARED VARIABLE RAM : arr8(0 TO 65536*2-1); -- 128k RAM
+--  ATTRIBUTE ramstyle : string;
+--  ATTRIBUTE ramstyle OF ROM : VARIABLE IS "no_rw_check";
+--  ATTRIBUTE ramstyle OF RAM : VARIABLE IS "no_rw_check";
   
   SIGNAL ovo_in0  : unsigned(0 TO 32*5-1) :=(OTHERS =>'0');
   SIGNAL ovo_in1  : unsigned(0 TO 32*5-1) :=(OTHERS =>'0');
@@ -218,30 +283,38 @@ BEGIN
             '1' WHEN rising_edge(sysclk);
 
   PROCESS(sysclk,reset_na) IS
-    CONSTANT C_TICK : uv32 :="00000000000000000000000000000100";
-    CONSTANT C_E    : uv32 :="00000000000000001111111111111111";
+--    CONSTANT C_TICK : uv32 :="00000000000000000000000000000100";
+--    CONSTANT C_E    : uv32 :="00000000000000001111111111111111";
+--    CONSTANT C_Q    : uv32 :="00000000111111111111111100000000";
+    CONSTANT C_TICK : uv32 :="00100000000000000000000000000000";
+    CONSTANT C_E    : uv32 :="11111111111111110000000000000000";
     CONSTANT C_Q    : uv32 :="00000000111111111111111100000000";
-    
+    CONSTANT V_E    : uv32 :="00000000000000000000100000000001";
+    CONSTANT V_R    : uv32 :="00000000000000001000000000010000";
+
   BEGIN
     IF reset_na='0' THEN
       reset_cpt<=0;
       cpu_reset<='0';
     ELSIF rising_edge(sysclk) THEN
       
-      tick_cpu<=C_TICK(divclk);
-      cpu2_E  <=C_E(divclk);
-      cpu2_Q  <=C_Q(divclk);
+      tick_cpu <= C_TICK(divclk);
+      cpu2_E   <= C_E(divclk);
+      cpu2_Q   <= C_Q(divclk);
+      tick_video <= V_E(divclk);
+      tick_video_ready <= V_R(divclk);
+
+      divclk <= divclk + 1;
 
       cpu2_tick2<=tick_cpu;
       IF cpu2_tick2='1' THEN
         cpu2_dr<=cpu_dr;
       END IF;
-      
-      divclk<=(divclk+1) MOD 32;
-      tick_cpu<=to_std_logic(divclk=0);
-      IF fast='1' THEN
-        tick_cpu<=to_std_logic(divclk MOD 2 = 0);
-      END IF;
+--      divclk<=(divclk+1) MOD 32;
+--      tick_cpu<=to_std_logic(divclk=0);
+--      IF fast='1' THEN
+--        tick_cpu<=to_std_logic(divclk MOD 2 = 0);
+--      END IF;
       
       IF tick_cpu='1' THEN
         IF reset_cpt<5 THEN
@@ -260,14 +333,14 @@ BEGIN
   No:IF CPU_ALTERNATE GENERATE
   i_ccpu: mc6809i
     PORT MAP (
-      D      => cpu2_dr,
+      D      => cpu_dr,
       DOut   => cpu2_dw,
       ADDR   => cpu2_a,
       RnW    => cpu2_rnw,
       E      => cpu2_E,
       Q      => cpu2_Q,
-      BS     => OPEN,
-      BA     => OPEN,
+      BS     => cpu2_BS,
+      BA     => cpu2_BA,
       nIRQ   => cpu2_irq_n,
       nFIRQ  => cpu2_firq_n,
       nNMI   => cpu2_nmi_n,
@@ -372,13 +445,14 @@ BEGIN
   -- B000 : EFFF : BASIC ROM
   -- F000 : FFFF : MONITOR ROM
   
-  cpu_dr<=ram_dr     WHEN cpu_a2<x"A000" ELSE
-          pia1_dr    WHEN cpu_a2>=x"A7C0" AND cpu_a2<=x"A7C3" ELSE
-          pia2_dr    WHEN cpu_a2>=x"A7CC" AND cpu_a2<=x"A7CF" ELSE
-          reg_dr     WHEN cpu_a2>=x"A7DA" AND cpu_a2<=x"A7E7" ELSE
-          romdisk_dr WHEN cpu_a2>=x"A000" AND cpu_a2<=x"A7BF" ELSE
-          rom_dr     WHEN cpu_a2>=x"B000" ELSE
-          x"00";
+--  cpu_dr <= 
+--          unsigned(sdram_cpu_data(7 downto 0)) WHEN cpu_a < x"A000" ELSE
+--          pia1_dr    WHEN cpu_a2>=x"A7C0" AND cpu_a <= x"A7C3" ELSE
+--          pia2_dr    WHEN cpu_a2>=x"A7CC" AND cpu_a <= x"A7CF" ELSE
+--          reg_dr     WHEN cpu_a2>=x"A7DA" AND cpu_a <= x"A7E7" ELSE
+--          unsigned(sdram_cpu_data(7 downto 0)) WHEN cpu_a >=x"A000" AND cpu_a <=x"A7BF" ELSE
+--          unsigned(sdram_cpu_data(7 downto 0)) WHEN cpu_a >=x"B000" ELSE
+--          x"00";
   
   cpu_a2<=cpu_a WHEN rising_edge(sysclk);
   
@@ -408,7 +482,8 @@ BEGIN
       vid_vpos  => vid_vpos,
       vid_ce    => vid_ce,
       clk       => sysclk,
-      reset_na  => reset_na
+      reset_na  => reset_na,
+      counter   => divclk
       );
   
   ----------------------------------------------------------
@@ -628,20 +703,8 @@ BEGIN
     "1110" WHEN cpu_a(15 DOWNTO 13)="011" AND rambank="00101" ELSE -- 6000:7FFF
     "1111" WHEN cpu_a(15 DOWNTO 13)="100" AND rambank="00101" ELSE -- 8000:9FFF
     "1110";
-  
-  mem:PROCESS(sysclk) IS
-  BEGIN
-    IF rising_edge(sysclk) THEN
-      ram_dr<=ram(to_integer(cpu_aram));
-      IF cpu_wr='1' AND cpu_ack='1' AND cpu_a<=x"9FFF" THEN
-        ram(to_integer(cpu_aram)):= cpu_dw;
-      END IF;
 
-      vram_dr<=ram(to_integer(vpage & vram_a));
-    END IF;
-  END PROCESS;
-
-  ----------------------------------------------------------
+    ----------------------------------------------------------
   -- ROM
   -- C000:FFFF : 16kB
 
@@ -660,7 +723,110 @@ BEGIN
     '1' & pia1_pa_o(5)  & "11" WHEN cpu_a(15 DOWNTO 12)=x"E" AND basic='1' ELSE -- 
     '0' & pia1_pa_o(5)  & "11";
   
-  rom_dr<=ROM(to_integer(cpu_arom)) WHEN rising_edge(sysclk);
+   -------------------------------------------------------  
+   -- SDRAM
+   rom_we <= '1' when ioctl_download = '1' and ioctl_wr = '1' else '0';
+   ram_e <= '1' when cpu_a < x"A000" else '0';
+   rom_e <= '1' when (cpu_a >=x"A000" AND cpu_a <= x"A7BF") OR (cpu_a >= x"B000") else '0';
+
+   sdramprocess: process (sysclk) begin
+       if rising_edge(sysclk) then
+          cpu2_Q_delay <= cpu2_Q;
+          cpu2_E_delay <= cpu2_E;
+           if rom_we = '1' then
+             sdram_addr <= "0000010" & ioctl_addr(15 downto 0);
+--           elsif cpu2_Q_delay = '0' and cpu2_Q = '1' and ram_e = '1' then
+           elsif cpu2_E_delay = '0' and cpu2_E = '1' and ram_e = '1' then
+             sdram_addr <= "000000" & std_logic_vector(cpu_aram(16 downto 0));
+--           elsif cpu2_Q_delay = '0' and cpu2_Q = '1' and rom_e = '1' then
+           elsif cpu2_E_delay = '0' and cpu2_E = '1' and rom_e = '1' then
+             sdram_addr <= "0000010"  & std_logic_vector(cpu_arom(15 downto 0));
+           elsif tick_video = '1' then
+             sdram_addr <= "000000000" & std_logic_vector(vram_a);
+           else
+             sdram_addr <= sdram_addr;
+           end if;
+           if cpu2_E_delay = '0' and cpu2_E = '1' and (ram_e = '1' or rom_e = '1') and cpu_wr = '0' then
+             sdram_rd <= '1';
+           elsif tick_video = '1' then
+             sdram_rd <= '1';
+           else
+             sdram_rd <= '0';
+           end if;
+           if rom_we = '1' or (cpu2_E_delay = '0' and cpu2_E = '1' and (ram_e = '1' or rom_e = '1') and cpu_wr = '1') then
+             sdram_we <= '1';
+           else 
+             sdram_we <= '0';
+           end if;
+           -- if rom_we = '1' then
+           if ioctl_download = '1' then
+             sdram_din <= "00000000" & ioctl_dout;
+           else
+             sdram_din <= "00000000" & std_logic_vector(cpu_dw);
+           end if;
+           if tick_video_ready = '1' then
+             vram_dr <= unsigned(sdram_dout(7 downto 0));
+           end if;
+           if tick_cpu = '1' then
+             sdram_cpu_data <= sdram_dout(7 downto 0);
+           end if;
+           if cpu_a < x"A000" then
+             cpu_dr <= unsigned(sdram_cpu_data(7 downto 0));
+           elsif cpu_a >=x"A7C0" AND cpu_a <= x"A7C3" then
+             cpu_dr <= pia1_dr;
+           elsif cpu_a >=x"A7CC" AND cpu_a <= x"A7CF" then
+             cpu_dr <= pia2_dr;
+           elsif cpu_a >=x"A7DA" AND cpu_a <= x"A7E7" then
+             cpu_dr <= reg_dr;
+           elsif cpu_a >=x"A000" AND cpu_a <=x"A7BF" then
+             cpu_dr <= unsigned(sdram_cpu_data(7 downto 0));
+           elsif cpu_a >= x"B000" then
+             cpu_dr <= unsigned(sdram_cpu_data(7 downto 0));
+           else
+             cpu_dr <= x"00";
+           end if;
+       end if;
+   end process;
+  
+   SDRAM_CLK <= sdramclk;
+   sdram0 : sdram
+   PORT MAP (
+      init => not pll_locked,
+      clk => sdramclk,
+      SDRAM_DQ => SDRAM_DQ,
+      SDRAM_A => SDRAM_A,
+      SDRAM_DQML => SDRAM_DQML,
+      SDRAM_DQMH => SDRAM_DQMH,
+      SDRAM_nWE => SDRAM_nWE,
+      SDRAM_nCAS => SDRAM_nCAS,
+      SDRAM_nRAS => SDRAM_nRAS,
+      SDRAM_nCS => SDRAM_nCS,
+      SDRAM_BA => SDRAM_BA,
+      SDRAM_CKE => SDRAM_CKE,
+      wtbt => "00",
+      addr => sdram_addr,
+      din => sdram_din,
+      dout => sdram_dout,
+      we => sdram_we,
+      rd => sdram_rd
+   );
+  
+--  mem:PROCESS(sysclk) IS
+--  BEGIN
+--    IF rising_edge(sysclk) THEN
+--      ram_dr<=ram(to_integer(cpu_aram));
+--      IF cpu_wr='1' AND cpu_ack='1' AND cpu_a<=x"9FFF" THEN
+--        ram(to_integer(cpu_aram)):= cpu_dw;
+--      END IF;
+--
+--      vram_dr<=ram(to_integer(vpage & vram_a));
+--    END IF;
+--  END PROCESS;
+
+  
+
+  
+  -- rom_dr<=ROM(to_integer(cpu_arom)) WHEN rising_edge(sysclk);
   
   romdisk_dr<=x"FF";
   
@@ -1468,35 +1634,35 @@ BEGIN
   
   ----------------------------------------------------------
   -- Tape interface
-  i_motape: ENTITY work.motape
-    GENERIC MAP (SYSFREQ => 32000000)
-    PORT MAP (
-      motor_n        => tape_motor_n,
-      rk7            => rk7,
-      wk7            => wk7,
-      rewind         => rewind,
-      tratio         => tratio,
-      tpos           => tpos,
-      ioctl_download => ioctl_download,
-      ioctl_index    => ioctl_index,
-      ioctl_wr       => ioctl_wr,
-      ioctl_addr     => ioctl_addr,
-      ioctl_data     => ioctl_dout,
-      ioctl_wait     => ioctl_wait,
-      
-      ddram_clk        => ddram_clk,
-      ddram_busy       => ddram_busy,
-      ddram_burstcnt   => ddram_burstcnt,
-      ddram_addr       => ddram_addr,
-      ddram_dout       => ddram_dout,
-      ddram_dout_ready => ddram_dout_ready,
-      ddram_rd         => ddram_rd,
-      ddram_din        => ddram_din,
-      ddram_be         => ddram_be,
-      ddram_we         => ddram_we,
-      
-      fast           => fast,
-      sysclk         => sysclk,
-      reset_na       => reset_na);
+--  i_motape: ENTITY work.motape
+--    GENERIC MAP (SYSFREQ => 32000000)
+--    PORT MAP (
+--      motor_n        => tape_motor_n,
+--      rk7            => rk7,
+--      wk7            => wk7,
+--      rewind         => rewind,
+--      tratio         => tratio,
+--      tpos           => tpos,
+--      ioctl_download => ioctl_download,
+--      ioctl_index    => ioctl_index,
+--      ioctl_wr       => ioctl_wr,
+--      ioctl_addr     => ioctl_addr,
+--      ioctl_data     => ioctl_dout,
+--      ioctl_wait     => ioctl_wait,
+--      
+--      ddram_clk        => ddram_clk,
+--      ddram_busy       => ddram_busy,
+--      ddram_burstcnt   => ddram_burstcnt,
+--      ddram_addr       => ddram_addr,
+--      ddram_dout       => ddram_dout,
+--      ddram_dout_ready => ddram_dout_ready,
+--      ddram_rd         => ddram_rd,
+--      ddram_din        => ddram_din,
+--      ddram_be         => ddram_be,
+--      ddram_we         => ddram_we,
+--      
+--      fast           => fast,
+--      sysclk         => sysclk,
+--      reset_na       => reset_na);
   
 END ARCHITECTURE struct;
