@@ -180,6 +180,9 @@ BEGIN
   BEGIN
     IF reset_na='0' THEN
       pulse50hz<='0';
+      pos <= (OTHERS =>'0');
+      hcpt <= 0;
+      vcpt <= 0;
       
     ELSIF rising_edge(clk) THEN
       -----------------------------------
@@ -278,7 +281,7 @@ BEGIN
 
       pulse50hz<='0';
       IF counter MOD 32 = 31 AND hcpt<640 THEN
-        pos<=pos+1;
+        pos <= pos+1;
       END IF;
       
       -- Video Sweep

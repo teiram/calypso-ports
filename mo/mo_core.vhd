@@ -53,6 +53,8 @@ ENTITY mo_core IS
     vga_hs            : OUT   std_logic; -- positive pulse!
     vga_vs            : OUT   std_logic; -- positive pulse!
     vga_de            : OUT   std_logic; -- = not (VBlank or HBlank)
+    vga_vblank        : OUT   std_logic;
+    vga_hblank        : OUT   std_logic;
     
     -- AUDIO
     audio_l           : OUT std_logic_vector(15 DOWNTO 0);
@@ -486,108 +488,119 @@ BEGIN
       counter   => divclk
       );
   
+
+  
   ----------------------------------------------------------
-  i_ovo: ENTITY work.ovo
-    GENERIC MAP (
-      RGB => x"7F7F7F")
-    PORT MAP (
-      i_r     => vid_r,
-      i_g     => vid_g,
-      i_b     => vid_b,
-      i_hs    => vid_hs,
-      i_vs    => vid_vs,
-      i_de    => vid_de,
-      i_en    => vid_ce,
-      i_clk   => sysclk,
-      o_r     => vga_r_u,
-      o_g     => vga_g_u,
-      o_b     => vga_b_u,
-      o_hs    => vga_hs,
-      o_vs    => vga_vs,
-      o_de    => vga_de,
-      ena     => ovo_ena,
-      in0     => ovo_in0,
-      in1     => ovo_in1
-      );
-
-  ovo_in0 <=
-    "0000" & ps2_key(8) &
-    '0' & unsigned(ps2_key(7 DOWNTO 4)) &
-    '0' & unsigned(ps2_key(3 DOWNTO 0)) &
-    "10000" &
-    '0' & pia1_pb_o(7 DOWNTO 4) &
-    '0' & pia1_pb_o(3 DOWNTO 0) &
-    "10000" &
-    "0000" & pia1_pa_o(3) &
-    "10000" &
-    '0' & cpu_a(15 DOWNTO 12) &
-    '0' & cpu_a(11 DOWNTO 8) &
-    '0' & cpu_a(7 DOWNTO 4) &
-    '0' & cpu_a(3 DOWNTO 0) &
-    "10000" &
-    "000" & vpage &
-    "000" & vconf &
-    "000" & vfreq &
-    "00" & vmode &
-    "10000" &
-    "000" & cpu_irq & cpu_firq &
-    "10000" &
-    
-    "10000" &
-    "0000" & acc_a7dc &
-
-    "10000" &
-    '0' & unsigned(ioctl_addr(11 DOWNTO 8)) &
-    '0' & unsigned(ioctl_addr(7 DOWNTO 4)) &
-    '0' & unsigned(ioctl_addr(3 DOWNTO 0)) &
-    '0' & tratio(7 DOWNTO 4) &
-    '0' & tratio(3 DOWNTO 0) &
-    "10000" &
-    --"0000" & rk7 &
-    --"00" & tape_motor_n & '0' & ioctl_wr
-    "0000" & pia1_pa_o(4) &
-    "0000" & pia1_pa_o(3);
-  
-  ovo_in1 <=
-    '0' & tpos(31 DOWNTO 28) &
-    "10000" &
-    '0' & "000" & ta(12) &
-    '0' & ta(11 DOWNTO 8) &
-    '0' & ta(7 DOWNTO 4) &
-    '0' & ta(3 DOWNTO 0) &
-    "10000" &
-    '0' & "000" & l_ta(12) &
-    '0' & l_ta(11 DOWNTO 8) &
-    '0' & l_ta(7 DOWNTO 4) &
-    '0' & l_ta(3 DOWNTO 0) &
-    "10000" &
-    "10000" &
-    '0' & unsigned(xposu(11 DOWNTO 8)) &
-    '0' & unsigned(xposu(7 DOWNTO 4)) &
-    '0' & unsigned(xposu(3 DOWNTO 0)) &
-    "10000" &
-    '0' & unsigned(yposu(11 DOWNTO 8)) &
-    '0' & unsigned(yposu(7 DOWNTO 4)) &
-    '0' & unsigned(yposu(3 DOWNTO 0)) &
-  
-    "10000" &
-    "0000" & lpen_irq &
-    "0000" & lpen_button &
-    "10000" & 
-    "10000" & "10000" & "10000" & "10000" &
-    "10000" & "10000" & "10000" & "10000";
+--  i_ovo: ENTITY work.ovo
+--    GENERIC MAP (
+--      RGB => x"7F7F7F")
+--    PORT MAP (
+--      i_r     => vid_r,
+--      i_g     => vid_g,
+--      i_b     => vid_b,
+--      i_hs    => vid_hs,
+--      i_vs    => vid_vs,
+--      i_de    => vid_de,
+--      i_en    => vid_ce,
+--      i_clk   => sysclk,
+--      o_r     => vga_r_u,
+--      o_g     => vga_g_u,
+--      o_b     => vga_b_u,
+--      o_hs    => vga_hs,
+--      o_vs    => vga_vs,
+--      o_de    => vga_de,
+--      ena     => ovo_ena,
+--      in0     => ovo_in0,
+--      in1     => ovo_in1
+--      );
+--
+--  ovo_in0 <=
+--    "0000" & ps2_key(8) &
+--    '0' & unsigned(ps2_key(7 DOWNTO 4)) &
+--    '0' & unsigned(ps2_key(3 DOWNTO 0)) &
+--    "10000" &
+--    '0' & pia1_pb_o(7 DOWNTO 4) &
+--    '0' & pia1_pb_o(3 DOWNTO 0) &
+--    "10000" &
+--    "0000" & pia1_pa_o(3) &
+--    "10000" &
+--    '0' & cpu_a(15 DOWNTO 12) &
+--    '0' & cpu_a(11 DOWNTO 8) &
+--    '0' & cpu_a(7 DOWNTO 4) &
+--    '0' & cpu_a(3 DOWNTO 0) &
+--    "10000" &
+--    "000" & vpage &
+--    "000" & vconf &
+--    "000" & vfreq &
+--    "00" & vmode &
+--    "10000" &
+--    "000" & cpu_irq & cpu_firq &
+--    "10000" &
+--    
+--    "10000" &
+--    "0000" & acc_a7dc &
+--
+--    "10000" &
+--    '0' & unsigned(ioctl_addr(11 DOWNTO 8)) &
+--    '0' & unsigned(ioctl_addr(7 DOWNTO 4)) &
+--    '0' & unsigned(ioctl_addr(3 DOWNTO 0)) &
+--    '0' & tratio(7 DOWNTO 4) &
+--    '0' & tratio(3 DOWNTO 0) &
+--    "10000" &
+--    --"0000" & rk7 &
+--    --"00" & tape_motor_n & '0' & ioctl_wr
+--    "0000" & pia1_pa_o(4) &
+--    "0000" & pia1_pa_o(3);
+--  
+--  ovo_in1 <=
+--    '0' & tpos(31 DOWNTO 28) &
+--    "10000" &
+--    '0' & "000" & ta(12) &
+--    '0' & ta(11 DOWNTO 8) &
+--    '0' & ta(7 DOWNTO 4) &
+--    '0' & ta(3 DOWNTO 0) &
+--    "10000" &
+--    '0' & "000" & l_ta(12) &
+--    '0' & l_ta(11 DOWNTO 8) &
+--    '0' & l_ta(7 DOWNTO 4) &
+--    '0' & l_ta(3 DOWNTO 0) &
+--    "10000" &
+--    "10000" &
+--    '0' & unsigned(xposu(11 DOWNTO 8)) &
+--    '0' & unsigned(xposu(7 DOWNTO 4)) &
+--    '0' & unsigned(xposu(3 DOWNTO 0)) &
+--    "10000" &
+--    '0' & unsigned(yposu(11 DOWNTO 8)) &
+--    '0' & unsigned(yposu(7 DOWNTO 4)) &
+--    '0' & unsigned(yposu(3 DOWNTO 0)) &
+--  
+--    "10000" &
+--    "0000" & lpen_irq &
+--    "0000" & lpen_button &
+--    "10000" & 
+--    "10000" & "10000" & "10000" & "10000" &
+--    "10000" & "10000" & "10000" & "10000";
 
 
   xposu<=to_signed(xpos,12);
   yposu<=to_signed(ypos,12);
   
-  vga_r<=std_logic_vector(vga_r_u);
-  vga_g<=std_logic_vector(vga_g_u);
-  vga_b<=std_logic_vector(vga_b_u);
+--  vga_r<=std_logic_vector(vga_r_u);
+--  vga_g<=std_logic_vector(vga_g_u);
+--  vga_b<=std_logic_vector(vga_b_u);
 
   ce_pixel<=vid_ce;
   clk_video<=sysclk;
   
+  vga_r <= std_logic_vector(vid_r);
+  vga_g <= std_logic_vector(vid_g);
+  vga_b <= std_logic_vector(vid_b);
+  vga_hs <= vid_hs;
+  vga_vs <= vid_vs;
+  vga_vblank <= not vid_vde;
+  vga_hblank <= not vid_de;
+
+    
   ----------------------------------------------------------
   -- PIA SYSTEM
   i_pia1 : ENTITY work.mc6821

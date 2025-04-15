@@ -253,6 +253,8 @@ mo_core mo_core(
 	.vga_b(B),
 	.vga_hs(hsync),
 	.vga_vs(vsync),
+    .vga_vblank(vblank),
+    .vga_hblank(hblank),
 	
 	.audio_l(audio_left),
 	.audio_r(audio_right),
