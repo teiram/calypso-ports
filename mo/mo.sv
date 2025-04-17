@@ -142,16 +142,19 @@ assign dcmoto = !status[5] & !status[6];
 localparam CONF_STR = {
 	"MO;;",
 	"-;",
-	"F,WAV,Load tape;",
+//	"F,WAV,Load tape;",
 	"O56,Keyboard,DCMOTO,QWERTY,AZERTY;",
 	"O7,OVO,Off,On;",
 	"O8,Model,MO6,MO5;",
 	"O9,Fast,Off,On;",
 	"TA,Rewind Tape;",
+    "OBC,Scanlines,None,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
 	"T0,Reset;",
+    "T1,Eject cartridge;",
     "F0,ROM,Reload ROM;",
-	"V,calypso",`BUILD_DATE 
+    "F1,ROMM5,Load Cartridge;",
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 user_io #(
@@ -234,6 +237,12 @@ wire hsync, vsync;
 wire cpu_rfsh_n;
 wire [31:0] joya = status[3] ? joy1 : joy0;
 wire [31:0] joyb = status[3] ? joy0 : joy1;
+logic cartridge_present;
+
+always @(posedge clk_sys) begin
+    if (ioctl_download == 1'b1 && ioctl_index[0] == 1'b1) cartridge_present <= 1'b1;
+    else if (status[1] == 1'b1) cartridge_present <= 1'b0;
+end
 
 mo_core mo_core(
 	.sysclk(clk_sys),
@@ -280,14 +289,19 @@ mo_core mo_core(
 	.ioctl_index(ioctl_index),
 	.ioctl_wr(ioctl_wr),
 	.ioctl_addr(ioctl_addr),
-	.ioctl_dout(ioctl_dout)
+	.ioctl_dout(ioctl_dout),
+    
+    .tape_in(tape_in),
+    
+    .cartridge_present(cartridge_present)
 );
 
-wire [1:0] scanlines = status[9:7];
+wire [1:0] scanlines = status[12:11];
 
-mist_video #(.COLOR_DEPTH(8),
+mist_video #(.COLOR_DEPTH(4),
              .SD_HCNT_WIDTH(11),
-             .OUT_COLOR_DEPTH(VGA_BITS),
+             .OUT_COLOR_DEPTH(VGA_BITS),             
+             .OSD_COLOR(3'b110),
              .BIG_OSD(BIG_OSD))
 mist_video(
     .clk_sys(clk_sys),
@@ -309,8 +323,7 @@ mist_video(
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
     .scanlines(scanlines),
-    .ce_divider(1'b0),
-
+    .ce_divider(2'b00),
     .scandoubler_disable(1'b0),
     .ypbpr(ypbpr),
     .rotate(2'b00),

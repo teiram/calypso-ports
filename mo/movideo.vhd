@@ -161,6 +161,13 @@ ARCHITECTURE rtl OF movideo IS
     x"00",x"05",x"00",x"00",x"0F",x"0F",x"0F",x"0F",
     x"0A",x"0A",x"0A",x"0A",x"0F",x"0F",x"0F",x"05");
   
+  CONSTANT h_offset : uint11 := 100;
+  CONSTANT v_offset : uint11 := 40;
+  CONSTANT h_length : uint11 := 1024;
+  CONSTANT v_lines50 : uint11 := 262;
+  CONSTANT v_lines60 : uint11 := 312;
+  CONSTANT h_visible : uint11 := 640;
+  
   ---------------------
   SIGNAL dr_col,dr_precol,dr_pix, dr_prepix : uv8;
   SIGNAL vid_vs1,vid_vs2,vid_vs3 : std_logic;
@@ -173,13 +180,18 @@ ARCHITECTURE rtl OF movideo IS
   attribute keep of dr_pix: signal is true;
   attribute keep of counter: signal is true;
   attribute keep of vmode: signal is true;
+  attribute keep of pal_a: signal is true;
+  attribute keep of pal_dw: signal is true;
+  attribute keep of pal_dr: signal is true;
+  attribute keep of pal_wr: signal is true;
+  attribute keep of pos: signal is true;
 
 BEGIN
   
-  PROCESS(clk,reset_na) IS
+  PROCESS(clk, reset_na) IS
   BEGIN
-    IF reset_na='0' THEN
-      pulse50hz<='0';
+    IF reset_na = '0' THEN
+      pulse50hz <= '0';
       pos <= (OTHERS =>'0');
       hcpt <= 0;
       vcpt <= 0;
@@ -196,7 +208,7 @@ BEGIN
       IF pal_a(0)='0' THEN
         pal_dr<=pal_lo(to_integer(pal_a(4 DOWNTO 1)));
       ELSE
-        pal_dr<=pal_hi(to_integer(pal_a(4 DOWNTO 1)));
+       pal_dr<=pal_hi(to_integer(pal_a(4 DOWNTO 1)));
       END IF;
       
       -- 24 : R
@@ -212,11 +224,11 @@ BEGIN
         
       IF counter = 0 THEN
         vram_a <= pos;
-      ELSIF counter = 4 THEN
+      ELSIF counter = 6 THEN
         dr_precol <= vram_dr;
       ELSIF counter = 11 THEN
         vram_a <= pos + 16#2000#;
-      ELSIF counter = 15 THEN
+      ELSIF counter = 17 THEN
         dr_prepix <= vram_dr;
       ELSIF counter = 31 THEN
         dr_pix <= dr_prepix;
@@ -272,46 +284,58 @@ BEGIN
       
       IF mo5='1' THEN
         col<=sel_mo5(dr_col,dr_pix,counter);
-        vid_ce<=to_std_logic(counter MOD 4=0);
+        vid_ce<=to_std_logic(counter MOD 4=2);
         
         vid_r<=PAL_MO5_R(to_integer(col));
         vid_g<=PAL_MO5_V(to_integer(col));
         vid_b<=PAL_MO5_B(to_integer(col));
       END IF;
 
-      pulse50hz<='0';
-      IF counter MOD 32 = 31 AND hcpt<640 THEN
-        pos <= pos+1;
+      pulse50hz <= '0';
+      IF counter = 31 AND vcpt > v_offset AND hcpt > h_offset AND hcpt < h_visible + h_offset - 1 THEN
+        pos <= pos + 1;
+      ELSIF vcpt = 0 AND counter = 0 THEN
+        pos <= (OTHERS => '0');
       END IF;
       
-      -- Video Sweep
-      IF counter MOD 2= 1 THEN
-        IF hcpt=1023 THEN
-          hcpt<=0;
-          IF (vcpt<311 AND vtrame='0') OR (vcpt<261 AND vtrame='1') THEN
-            vcpt<=vcpt+1;
+--        CONSTANT h_offset : uint11 := 16;
+--        CONSTANT v_offset : uint11 := 10;
+--        CONSTANT h_length : uint11 := 1024;
+--        CONSTANT v_lines50 : uint11 := 262;
+--        CONSTANT v_lines60 : uint11 := 312;
+--        CONSTANT h_visible : uint11 := 640;
+
+        
+--      -- Video Sweep
+      IF counter MOD 2 = 0 THEN
+        IF hcpt = h_length - 1 THEN
+          hcpt <= 0;
+          IF (vcpt < (v_lines60 - 1) AND vtrame = '0') OR (vcpt < (v_lines50 - 1) AND vtrame = '1') THEN
+            vcpt <= vcpt + 1;
           ELSE
-            vcpt<=0;
-            pos<=(OTHERS =>'0');
+            vcpt <= 0;
           END IF;
         ELSE
-          hcpt<=hcpt+1;
+          hcpt <= hcpt + 1;
         END IF;
         
-        pulse50hz<=to_std_logic(vcpt=240 AND hcpt=0);
-        vid_de3<=to_std_logic(vcpt<200 AND hcpt<640);
-        vid_vde3<=to_std_logic(vcpt<200);
-        vid_hs3<=to_std_logic(hcpt>=1024-160);
+
+        
+        pulse50hz <= to_std_logic(vcpt = 240 AND hcpt = 0);
+        vid_de3 <= to_std_logic(vcpt < (200 + v_offset) AND vcpt > v_offset AND hcpt > h_offset AND hcpt < (640 + h_offset));
+        vid_vde3 <= to_std_logic(vcpt < (200 + v_offset)  and vcpt > v_offset);
+        vid_hs3 <= to_std_logic(hcpt >= h_length - 160);
         IF vtrame='0' THEN
-          vid_vs3<=to_std_logic(vcpt>312-5);
+          vid_vs3<=to_std_logic(vcpt > v_lines60 - 5);
         ELSE
-          vid_vs3<=to_std_logic(vcpt>262-5);
+          vid_vs3<=to_std_logic(vcpt > v_lines50 - 5);
         END IF;
 
         vid_vs2<=vid_vs3;
         vid_hs2<=vid_hs3;
         vid_de2<=vid_de3;
         vid_vde2<=vid_vde3;
+        
         vid_vs1<=vid_vs2;
         vid_hs1<=vid_hs2;
         vid_de1<=vid_de2;
@@ -319,10 +343,10 @@ BEGIN
         
       END IF;
 
-      vid_vs<=vid_vs1;
-      vid_hs<=vid_hs1;
-      vid_de<=vid_de1;
-      vid_vde<=vid_vde1;
+      vid_vs<=vid_vs3;
+      vid_hs<=vid_hs3;
+      vid_de<=vid_de3;
+      vid_vde<=vid_vde3;
       
       -----------------------------------
     END IF;

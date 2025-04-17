@@ -85,7 +85,10 @@ ENTITY mo_core IS
     ioctl_wr          : IN  std_logic;
     ioctl_addr        : IN  std_logic_vector(24 DOWNTO 0);
     ioctl_dout        : IN  std_logic_vector(7 DOWNTO 0);
-    ioctl_wait        : OUT std_logic
+    ioctl_wait        : OUT std_logic;
+    
+    tape_in           : IN std_logic;
+    cartridge_present : IN std_logic
     );
 END mo_core;
 
@@ -184,6 +187,7 @@ ARCHITECTURE struct OF mo_core IS
   signal rom_we         : std_logic;
   signal rom_e          : std_logic;
   signal ram_e          : std_logic;
+  signal cartridge_rom  : std_logic;
    attribute keep: boolean;
    attribute keep of sdram_addr: signal is true;
    attribute keep of sdram_din: signal is true;
@@ -209,6 +213,9 @@ ARCHITECTURE struct OF mo_core IS
    attribute keep of vid_ce: signal is true;
    attribute keep of tick_video: signal is true;
    attribute keep of tick_video_ready: signal is true;
+   attribute keep of cartridge_rom: signal is true;
+   attribute keep of cart: signal is true;
+   attribute keep of cartridge_present: signal is true;
 
 
   COMPONENT mc6809i
@@ -295,9 +302,10 @@ BEGIN
     CONSTANT V_R    : uv32 :="00000000000000001000000000010000";
 
   BEGIN
-    IF reset_na='0' THEN
-      reset_cpt<=0;
-      cpu_reset<='0';
+    IF reset_na = '0' THEN
+      reset_cpt <= 0;
+      cpu_reset <= '0';
+      divclk <= 21;
     ELSIF rising_edge(sysclk) THEN
       
       tick_cpu <= C_TICK(divclk);
@@ -634,7 +642,8 @@ BEGIN
   pia1_pa_i(1)<=lpen_button;
   pia1_pa_i(6 DOWNTO 2)<="00000";
 
-  pia1_pa_i(7)<=rk7;
+--  pia1_pa_i(7)<=rk7;
+  pia1_pa_i(7) <= tape_in;
   wk7<=pia1_pa_o(6);
   
   pia1_pa_i(0)<='0';
@@ -726,14 +735,22 @@ BEGIN
   
   cpu_arom(11 DOWNTO 0)<=cpu_a(11 DOWNTO 0);
   cpu_arom(15 DOWNTO 12)<=
+    '0' & pia1_pa_o(5)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"B" AND cart = '0' and cartridge_present = '1' ELSE
+    '0' & pia1_pa_o(5)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"C" AND cart = '0' and cartridge_present = '1' ELSE
+    '0' & pia1_pa_o(5)  & "10" WHEN cpu_a(15 DOWNTO 12)=x"D" AND cart = '0' and cartridge_present = '1' ELSE
+    '0' & pia1_pa_o(5)  & "11" WHEN cpu_a(15 DOWNTO 12)=x"E" AND cart = '0' and cartridge_present = '1' ELSE
+    
     '0' & pia1_pa_o(5)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"C" AND basic='0' ELSE -- 
     '0' & pia1_pa_o(5)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"D" AND basic='0' ELSE -- 
     '0' & pia1_pa_o(5)  & "10" WHEN cpu_a(15 DOWNTO 12)=x"E" AND basic='0' ELSE -- 
+    
     '0' & pia1_pa_o(5)  & "11" WHEN cpu_a(15 DOWNTO 12)=x"F" ELSE               -- 
+    
     '1' & pia1_pa_o(5)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"B" AND basic='1' ELSE -- 
     '1' & pia1_pa_o(5)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"C" AND basic='1' ELSE -- 
     '1' & pia1_pa_o(5)  & "10" WHEN cpu_a(15 DOWNTO 12)=x"D" AND basic='1' ELSE -- 
     '1' & pia1_pa_o(5)  & "11" WHEN cpu_a(15 DOWNTO 12)=x"E" AND basic='1' ELSE -- 
+    
     '0' & pia1_pa_o(5)  & "11";
   
    -------------------------------------------------------  
@@ -741,17 +758,18 @@ BEGIN
    rom_we <= '1' when ioctl_download = '1' and ioctl_wr = '1' else '0';
    ram_e <= '1' when cpu_a < x"A000" else '0';
    rom_e <= '1' when (cpu_a >=x"A000" AND cpu_a <= x"A7BF") OR (cpu_a >= x"B000") else '0';
-
+   cartridge_rom <= '1' when cpu_a(15 DOWNTO 12) /= x"F" and cart = '0' and cartridge_present = '1' else '0';
+   
    sdramprocess: process (sysclk) begin
        if rising_edge(sysclk) then
           cpu2_Q_delay <= cpu2_Q;
           cpu2_E_delay <= cpu2_E;
            if rom_we = '1' then
-             sdram_addr <= "0000010" & ioctl_addr(15 downto 0);
+             sdram_addr <= "0000" & ioctl_index(0) & "10" & ioctl_addr(15 downto 0);
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and ram_e = '1' then
              sdram_addr <= "000000" & std_logic_vector(cpu_aram(16 downto 0));
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and rom_e = '1' then
-             sdram_addr <= "0000010"  & std_logic_vector(cpu_arom(15 downto 0));
+             sdram_addr <= "0000" & cartridge_rom & "10"  & std_logic_vector(cpu_arom(15 downto 0));
            elsif tick_video = '1' then
              sdram_addr <= "0000000" & std_logic_vector(vpage) & std_logic_vector(vram_a);
            else
@@ -764,7 +782,7 @@ BEGIN
            else
              sdram_rd <= '0';
            end if;
-           if rom_we = '1' or (cpu2_E_delay = '0' and cpu2_E = '1' and (ram_e = '1' or rom_e = '1') and cpu_wr = '1') then
+           if rom_we = '1' or (cpu2_E_delay = '0' and cpu2_E = '1' and ram_e = '1' and cpu_wr = '1') then
              sdram_we <= '1';
            else 
              sdram_we <= '0';
