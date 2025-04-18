@@ -52,7 +52,6 @@ ENTITY mo_core IS
     vga_b             : OUT   std_logic_vector(7 DOWNTO 0);
     vga_hs            : OUT   std_logic; -- positive pulse!
     vga_vs            : OUT   std_logic; -- positive pulse!
-    vga_de            : OUT   std_logic; -- = not (VBlank or HBlank)
     vga_vblank        : OUT   std_logic;
     vga_hblank        : OUT   std_logic;
     
@@ -84,7 +83,6 @@ ENTITY mo_core IS
     ioctl_wr          : IN  std_logic;
     ioctl_addr        : IN  std_logic_vector(24 DOWNTO 0);
     ioctl_dout        : IN  std_logic_vector(7 DOWNTO 0);
-    ioctl_wait        : OUT std_logic;
     
     tape_in           : IN std_logic;
     cartridge_present : IN std_logic
@@ -106,7 +104,6 @@ ARCHITECTURE struct OF mo_core IS
   SIGNAL mypos : integer RANGE -1024*8 TO 1024*8-1 :=    300    ;
   SIGNAL xpos : integer RANGE -1024 TO 1024-1;
   SIGNAL ypos : integer RANGE -1024 TO 1024-1;
-  SIGNAL xposu,yposu : signed(11 DOWNTO 0);
   
   ----------------------------------------
   SIGNAL reset_na : std_logic;
@@ -119,15 +116,10 @@ ARCHITECTURE struct OF mo_core IS
   SIGNAL reset_cpt : uint3;
   
   ----------------------------------------
-  SIGNAL cpu_a,cpu_a2 : uv16;
-  SIGNAL cpu_dw,cpu_dr : uv8;
-  SIGNAL cpu_req,cpu_ack,cpu_wr : std_logic;
-  SIGNAL cpu_irq,cpu_firq,cpu_nmi : std_logic;
-  SIGNAL cpu_fast : std_logic;
+
 
   SIGNAL lpen_irq,lpen_irq2,lpen_clr : std_logic;
   SIGNAL ram_dr,rom_dr,pia1_dr,pia2_dr,reg_dr,reg_drp : uv8;
-  SIGNAL romdisk_dr : uv8;
   SIGNAL cpu_aram : uv17;
   SIGNAL cpu_arom : uv16;
 
@@ -168,15 +160,19 @@ ARCHITECTURE struct OF mo_core IS
   CONSTANT Z15 : unsigned(14 DOWNTO 0):=(OTHERS =>'0');
   
   ----------------------------------------
-  SIGNAL cpu2_E,cpu2_Q,cpu2_irq_n,cpu2_firq_n,cpu2_nmi_n : std_logic;
-  SIGNAL cpu2_BS, cpu2_BA, cpu2_Q_delay, cpu2_E_delay: std_logic;
-  SIGNAL cpu2_dw,cpu2_dr : uv8;
-  SIGNAL cpu2_a : uv16;
-  SIGNAL cpu2_lic,cpu2_halt_n,cpu2_rnw : std_logic;
-  SIGNAL cpu2_avma,cpu2_busy : std_logic;
-  SIGNAL cpu2_ndmabreq : std_logic;
-  SIGNAL cpu2_tick2,cpu2_reset_n : std_logic;
+  SIGNAL cpu_a : uv16;
+  SIGNAL cpu_dw,cpu_dr : uv8;
+  SIGNAL cpu_req,cpu_ack,cpu_wr : std_logic;
+  SIGNAL cpu_irq,cpu_firq,cpu_nmi : std_logic;  
+  SIGNAL cpu_E,cpu_Q,cpu_irq_n,cpu_firq_n,cpu_nmi_n : std_logic;
+  SIGNAL cpu_BS, cpu_BA, cpu_Q_delay, cpu_E_delay: std_logic;
+  SIGNAL cpu_lic,cpu_halt_n,cpu_rnw : std_logic;
+  SIGNAL cpu_avma,cpu2_busy : std_logic;
+  SIGNAL cpu_ndmabreq : std_logic;
+  SIGNAL cpu_reset_n : std_logic;
   
+  SIGNAL xx_lock : std_logic :='0';
+
   signal sdram_addr      : std_logic_vector(22 downto 0);
   signal sdram_din       : std_logic_vector(15 downto 0);
   signal sdram_dout      : std_logic_vector(15 downto 0);
@@ -205,8 +201,8 @@ ARCHITECTURE struct OF mo_core IS
    attribute keep of cpu_dr: signal is true;
    attribute keep of cpu_dw: signal is true;
    attribute keep of cpu_reset: signal is true;
-   attribute keep of cpu2_Q: signal is true;
-   attribute keep of cpu2_E: signal is true;
+   attribute keep of cpu_Q: signal is true;
+   attribute keep of cpu_E: signal is true;
    attribute keep of vram_a: signal is true;
    attribute keep of vram_dr: signal is true;
    attribute keep of tick_cpu: signal is true;
@@ -267,26 +263,8 @@ ARCHITECTURE struct OF mo_core IS
         ready : out std_logic
       );
   END COMPONENT;
-    
-  ----------------------------------------
---  SHARED VARIABLE ROM : arr8(0 TO 65536-1) :=
---    ROM_BASIC6_0 & ROM_MO6_0 & ROM_BASIC6_1 & ROM_MO6_1 &
---    ROM_BASIC6_2 & ROM_BASIC6_3; -- 64k ROM
---  CONSTANT PAD : arr8(0 TO 63):=(OTHERS =>x"FF");
---  SHARED VARIABLE ROM_DISK : arr8(0 TO 2047); -- :=ROM_DISK & PAD; -- 2k ROM
---  
---  SHARED VARIABLE RAM : arr8(0 TO 65536*2-1); -- 128k RAM
---  ATTRIBUTE ramstyle : string;
---  ATTRIBUTE ramstyle OF ROM : VARIABLE IS "no_rw_check";
---  ATTRIBUTE ramstyle OF RAM : VARIABLE IS "no_rw_check";
-  
-  SIGNAL ovo_in0  : unsigned(0 TO 32*5-1) :=(OTHERS =>'0');
-  SIGNAL ovo_in1  : unsigned(0 TO 32*5-1) :=(OTHERS =>'0');
-  
-  SIGNAL xxx_kr : uv8;
+
   SIGNAL vid_hpos,vid_vpos : uint11;
-  SIGNAL xx_lock : std_logic :='0';
-  FILE fil : text OPEN write_mode IS "mem.log";
 BEGIN
   
   ----------------------------------------------------------
@@ -295,9 +273,6 @@ BEGIN
             '1' WHEN rising_edge(sysclk);
 
   PROCESS(sysclk,reset_na) IS
---    CONSTANT C_TICK : uv32 :="00000000000000000000000000000100";
---    CONSTANT C_E    : uv32 :="00000000000000001111111111111111";
---    CONSTANT C_Q    : uv32 :="00000000111111111111111100000000";
     CONSTANT C_TICK : uv32 :="00100000000000000000000000000000";
     CONSTANT C_E    : uv32 :="11111111111111110000000000000000";
     CONSTANT C_Q    : uv32 :="00000000111111111111111100000000";
@@ -309,29 +284,18 @@ BEGIN
       reset_cpt <= 0;
       cpu_reset <= '0';
       divclk <= 21;
-    ELSIF rising_edge(sysclk) THEN
-      
+    ELSIF rising_edge(sysclk) THEN    
       tick_cpu <= C_TICK(divclk);
-      cpu2_E   <= C_E(divclk);
-      cpu2_Q   <= C_Q(divclk);
+      cpu_E   <= C_E(divclk);
+      cpu_Q   <= C_Q(divclk);
       tick_video <= V_E(divclk);
       tick_video_ready <= V_R(divclk);
 
       divclk <= divclk + 1;
 
-      cpu2_tick2<=tick_cpu;
-      IF cpu2_tick2='1' THEN
-        cpu2_dr<=cpu_dr;
-      END IF;
---      divclk<=(divclk+1) MOD 32;
---      tick_cpu<=to_std_logic(divclk=0);
---      IF fast='1' THEN
---        tick_cpu<=to_std_logic(divclk MOD 2 = 0);
---      END IF;
-      
-      IF tick_cpu='1' THEN
-        IF reset_cpt<5 THEN
-          reset_cpt<=reset_cpt+1;
+      IF tick_cpu = '1' THEN
+        IF reset_cpt < 5 THEN
+          reset_cpt <= reset_cpt + 1;
           cpu_reset<='1';
         ELSE
           cpu_reset<='0';
@@ -341,101 +305,36 @@ BEGIN
     END IF;
   END PROCESS;
   
-  ----------------------------------------------------------
-  -- Compare
-  No:IF CPU_ALTERNATE GENERATE
-  i_ccpu: mc6809i
+
+  i_cpu: mc6809i
     PORT MAP (
       D      => cpu_dr,
-      DOut   => cpu2_dw,
-      ADDR   => cpu2_a,
-      RnW    => cpu2_rnw,
-      E      => cpu2_E,
-      Q      => cpu2_Q,
-      BS     => cpu2_BS,
-      BA     => cpu2_BA,
-      nIRQ   => cpu2_irq_n,
-      nFIRQ  => cpu2_firq_n,
-      nNMI   => cpu2_nmi_n,
-      AVMA   => cpu2_avma, -- OUT
-      BUSY   => cpu2_busy, -- OUT
-      LIC    => cpu2_lic, -- OUT
-      nHALT  => cpu2_halt_n,
-      nRESET => cpu2_reset_n,
-      nDMABREQ => cpu2_ndmabreq
+      DOut   => cpu_dw,
+      ADDR   => cpu_a,
+      RnW    => cpu_rnw,
+      E      => cpu_E,
+      Q      => cpu_Q,
+      BS     => cpu_BS,
+      BA     => cpu_BA,
+      nIRQ   => cpu_irq_n,
+      nFIRQ  => cpu_firq_n,
+      nNMI   => cpu_nmi_n,
+      AVMA   => cpu_avma, -- OUT
+      LIC    => cpu_lic, -- OUT
+      nHALT  => cpu_halt_n,
+      nRESET => cpu_reset_n,
+      nDMABREQ => cpu_ndmabreq
       );
 
-  cpu2_halt_n<='1';
-  cpu2_ndmabreq<='1';
-  cpu2_irq_n <=NOT cpu_irq;
-  cpu2_firq_n<=NOT cpu_firq;
-  cpu2_nmi_n <=NOT cpu_nmi;
-  cpu2_reset_n<=NOT cpu_reset AND reset_na;
-  cpu_a<=cpu2_a;
-  cpu_wr<=NOT cpu2_rnw;
-  cpu_dw<=cpu2_dw;
-  cpu_req<='1';
-
-  END GENERATE;
-
---pragma synthesis_off
-  PROCESS IS
-    VARIABLE lout : line;
-  BEGIN
-    wure(sysclk);
-    
-    IF cpu_ack='1' THEN
-      IF cpu_wr='1' THEN
-        write(lout,string'("WR: "));
-        write(lout,to_hstring(cpu_a) & " ");
-        write(lout,to_hstring(cpu_dw));
-        writeline(fil,lout);
-      ELSE
-        write(lout,string'("RD: "));
-        write(lout,to_hstring(cpu_a) & " ");
-        wure(sysclk);
-        write(lout,to_hstring(cpu_dr));
-        writeline(fil,lout);
-      END IF;
-
-    END IF;
-    
-  END PROCESS;
---pragma synthesis_on
-  
-  ----------------------------------------------------------
-  -- CPU
-
-  Oui:IF NOT CPU_ALTERNATE GENERATE
-    
-    i_cpu: ENTITY work.mc6809
-      PORT MAP (
-        ad       => cpu_a,
-        dw       => cpu_dw,
-        dr       => cpu_dr,
-        req      => cpu_req,
-        ack      => cpu_ack,
-        wr       => cpu_wr,
-        ph       => OPEN,
-        irq      => cpu_irq,
-        firq     => cpu_firq,
-        nmi      => cpu_nmi,
-        reset    => cpu_reset,
-        wake     => cpu_wake,
-        fast     => cpu_fast,
-        xpc      => OPEN,
-        clk      => sysclk,
-        reset_na => reset_na);
-  END GENERATE;
-  
-  cpu_wake<='1';
-  
-  cpu_fast<='0';
-  cpu_irq <=pia1_irqb OR pia2_irqa OR pia2_irqb;
-  cpu_firq<=pia1_irqa OR lpen_irq;
-  cpu_nmi <='0';
-
-  cpu_ack<=cpu_req AND tick_cpu;
+  cpu_halt_n <= '1';
+  cpu_ndmabreq <= '1';
+  cpu_irq_n <= NOT (pia1_irqb OR pia2_irqa OR pia2_irqb);
+  cpu_firq_n <= NOT (pia1_irqa OR lpen_irq);
+  cpu_nmi_n <= '1';
+  cpu_reset_n <= NOT cpu_reset AND reset_na;
+  cpu_wr <= NOT cpu_rnw;
+  cpu_req <= '1';
+  cpu_ack <= cpu_req AND tick_cpu;
   
   ----------------------------------------------------------
   -- 0000 : 1FFF : VIDEO RAM
@@ -457,18 +356,7 @@ BEGIN
   -- A7F8 : AFFF : <unused>
   -- B000 : EFFF : BASIC ROM
   -- F000 : FFFF : MONITOR ROM
-  
---  cpu_dr <= 
---          unsigned(sdram_cpu_data(7 downto 0)) WHEN cpu_a < x"A000" ELSE
---          pia1_dr    WHEN cpu_a2>=x"A7C0" AND cpu_a <= x"A7C3" ELSE
---          pia2_dr    WHEN cpu_a2>=x"A7CC" AND cpu_a <= x"A7CF" ELSE
---          reg_dr     WHEN cpu_a2>=x"A7DA" AND cpu_a <= x"A7E7" ELSE
---          unsigned(sdram_cpu_data(7 downto 0)) WHEN cpu_a >=x"A000" AND cpu_a <=x"A7BF" ELSE
---          unsigned(sdram_cpu_data(7 downto 0)) WHEN cpu_a >=x"B000" ELSE
---          x"00";
-  
-  cpu_a2<=cpu_a WHEN rising_edge(sysclk);
-  
+    
   ----------------------------------------------------------
   -- VIDEO
   i_video: ENTITY work.movideo
@@ -499,107 +387,6 @@ BEGIN
       counter   => divclk
       );
   
-
-  
-  ----------------------------------------------------------
---  i_ovo: ENTITY work.ovo
---    GENERIC MAP (
---      RGB => x"7F7F7F")
---    PORT MAP (
---      i_r     => vid_r,
---      i_g     => vid_g,
---      i_b     => vid_b,
---      i_hs    => vid_hs,
---      i_vs    => vid_vs,
---      i_de    => vid_de,
---      i_en    => vid_ce,
---      i_clk   => sysclk,
---      o_r     => vga_r_u,
---      o_g     => vga_g_u,
---      o_b     => vga_b_u,
---      o_hs    => vga_hs,
---      o_vs    => vga_vs,
---      o_de    => vga_de,
---      ena     => ovo_ena,
---      in0     => ovo_in0,
---      in1     => ovo_in1
---      );
---
---  ovo_in0 <=
---    "0000" & ps2_key(8) &
---    '0' & unsigned(ps2_key(7 DOWNTO 4)) &
---    '0' & unsigned(ps2_key(3 DOWNTO 0)) &
---    "10000" &
---    '0' & pia1_pb_o(7 DOWNTO 4) &
---    '0' & pia1_pb_o(3 DOWNTO 0) &
---    "10000" &
---    "0000" & pia1_pa_o(3) &
---    "10000" &
---    '0' & cpu_a(15 DOWNTO 12) &
---    '0' & cpu_a(11 DOWNTO 8) &
---    '0' & cpu_a(7 DOWNTO 4) &
---    '0' & cpu_a(3 DOWNTO 0) &
---    "10000" &
---    "000" & vpage &
---    "000" & vconf &
---    "000" & vfreq &
---    "00" & vmode &
---    "10000" &
---    "000" & cpu_irq & cpu_firq &
---    "10000" &
---    
---    "10000" &
---    "0000" & acc_a7dc &
---
---    "10000" &
---    '0' & unsigned(ioctl_addr(11 DOWNTO 8)) &
---    '0' & unsigned(ioctl_addr(7 DOWNTO 4)) &
---    '0' & unsigned(ioctl_addr(3 DOWNTO 0)) &
---    '0' & tratio(7 DOWNTO 4) &
---    '0' & tratio(3 DOWNTO 0) &
---    "10000" &
---    --"0000" & rk7 &
---    --"00" & tape_motor_n & '0' & ioctl_wr
---    "0000" & pia1_pa_o(4) &
---    "0000" & pia1_pa_o(3);
---  
---  ovo_in1 <=
---    '0' & tpos(31 DOWNTO 28) &
---    "10000" &
---    '0' & "000" & ta(12) &
---    '0' & ta(11 DOWNTO 8) &
---    '0' & ta(7 DOWNTO 4) &
---    '0' & ta(3 DOWNTO 0) &
---    "10000" &
---    '0' & "000" & l_ta(12) &
---    '0' & l_ta(11 DOWNTO 8) &
---    '0' & l_ta(7 DOWNTO 4) &
---    '0' & l_ta(3 DOWNTO 0) &
---    "10000" &
---    "10000" &
---    '0' & unsigned(xposu(11 DOWNTO 8)) &
---    '0' & unsigned(xposu(7 DOWNTO 4)) &
---    '0' & unsigned(xposu(3 DOWNTO 0)) &
---    "10000" &
---    '0' & unsigned(yposu(11 DOWNTO 8)) &
---    '0' & unsigned(yposu(7 DOWNTO 4)) &
---    '0' & unsigned(yposu(3 DOWNTO 0)) &
---  
---    "10000" &
---    "0000" & lpen_irq &
---    "0000" & lpen_button &
---    "10000" & 
---    "10000" & "10000" & "10000" & "10000" &
---    "10000" & "10000" & "10000" & "10000";
-
-
-  xposu<=to_signed(xpos,12);
-  yposu<=to_signed(ypos,12);
-  
---  vga_r<=std_logic_vector(vga_r_u);
---  vga_g<=std_logic_vector(vga_g_u);
---  vga_b<=std_logic_vector(vga_b_u);
-
   ce_pixel<=vid_ce;
   clk_video<=sysclk;
   
@@ -768,28 +555,28 @@ BEGIN
    
    sdramprocess: process (sysclk) begin
       if rising_edge(sysclk) then
-          cpu2_Q_delay <= cpu2_Q;
-          cpu2_E_delay <= cpu2_E;
+          cpu_Q_delay <= cpu_Q;
+          cpu_E_delay <= cpu_E;
            if rom_we = '1' then
              sdram_addr <= "0000" & ioctl_index(0) & '1' & ioctl_addr(16 downto 0);
              cartridge32k <= ioctl_addr(14);
-           elsif cpu2_E_delay = '0' and cpu2_E = '1' and ram_e = '1' then
+           elsif cpu_E_delay = '0' and cpu_E = '1' and ram_e = '1' then
              sdram_addr <= "000000" & std_logic_vector(cpu_aram(16 downto 0));
-           elsif cpu2_E_delay = '0' and cpu2_E = '1' and rom_e = '1' then
+           elsif cpu_E_delay = '0' and cpu_E = '1' and rom_e = '1' then
              sdram_addr <= "0000" & cartridge_rom & '1' & (mo5 and not cartridge_rom)  & std_logic_vector(cpu_arom(15 downto 0));
            elsif tick_video = '1' then
              sdram_addr <= "0000000" & std_logic_vector(vpage) & std_logic_vector(vram_a);
            else
              sdram_addr <= sdram_addr;
            end if;
-           if cpu2_E_delay = '0' and cpu2_E = '1' and (ram_e = '1' or rom_e = '1') and cpu_wr = '0' then
+           if cpu_E_delay = '0' and cpu_E = '1' and (ram_e = '1' or rom_e = '1') and cpu_wr = '0' then
              sdram_rd <= '1';
            elsif tick_video = '1' then
              sdram_rd <= '1';
            else
              sdram_rd <= '0';
            end if;
-           if rom_we = '1' or (cpu2_E_delay = '0' and cpu2_E = '1' and ram_e = '1' and cpu_wr = '1') then
+           if rom_we = '1' or (cpu_E_delay = '0' and cpu_E = '1' and ram_e = '1' and cpu_wr = '1') then
              sdram_we <= '1';
            else 
              sdram_we <= '0';
@@ -845,25 +632,6 @@ BEGIN
       we => sdram_we,
       rd => sdram_rd
    );
-  
---  mem:PROCESS(sysclk) IS
---  BEGIN
---    IF rising_edge(sysclk) THEN
---      ram_dr<=ram(to_integer(cpu_aram));
---      IF cpu_wr='1' AND cpu_ack='1' AND cpu_a<=x"9FFF" THEN
---        ram(to_integer(cpu_aram)):= cpu_dw;
---      END IF;
---
---      vram_dr<=ram(to_integer(vpage & vram_a));
---    END IF;
---  END PROCESS;
-
-  
-
-  
-  -- rom_dr<=ROM(to_integer(cpu_arom)) WHEN rising_edge(sysclk);
-  
-  romdisk_dr<=x"FF";
   
   ----------------------------------------------------------
   -- REGS
@@ -1182,7 +950,6 @@ BEGIN
       kr_v:=mo6_keys (8*to_integer(pia1_pb_o(3 DOWNTO 1)) + 7 DOWNTO
                       8*to_integer(pia1_pb_o(3 DOWNTO 1)));
     END IF;
-    xxx_kr<=kr_v;
     pia1_pb_i(7)<=NOT kr_v(to_integer(pia1_pb_o(6 DOWNTO 4)));
   END PROCESS;
   
@@ -1664,39 +1431,5 @@ BEGIN
   pia2_pb_i(7)<=NOT joystick_1(4); -- Button 
   pia2_pb_i(3)<=NOT joystick_1(5); -- Button
   
-  --  pia1_pa_o(2) : MUTE SOURIS
-  
-  ----------------------------------------------------------
-  -- Tape interface
---  i_motape: ENTITY work.motape
---    GENERIC MAP (SYSFREQ => 32000000)
---    PORT MAP (
---      motor_n        => tape_motor_n,
---      rk7            => rk7,
---      wk7            => wk7,
---      rewind         => rewind,
---      tratio         => tratio,
---      tpos           => tpos,
---      ioctl_download => ioctl_download,
---      ioctl_index    => ioctl_index,
---      ioctl_wr       => ioctl_wr,
---      ioctl_addr     => ioctl_addr,
---      ioctl_data     => ioctl_dout,
---      ioctl_wait     => ioctl_wait,
---      
---      ddram_clk        => ddram_clk,
---      ddram_busy       => ddram_busy,
---      ddram_burstcnt   => ddram_burstcnt,
---      ddram_addr       => ddram_addr,
---      ddram_dout       => ddram_dout,
---      ddram_dout_ready => ddram_dout_ready,
---      ddram_rd         => ddram_rd,
---      ddram_din        => ddram_din,
---      ddram_be         => ddram_be,
---      ddram_we         => ddram_we,
---      
---      fast           => fast,
---      sysclk         => sysclk,
---      reset_na       => reset_na);
   
 END ARCHITECTURE struct;
