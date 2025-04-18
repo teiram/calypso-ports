@@ -145,19 +145,20 @@ assign dcmoto = !status[5] & !status[6];
 `include "build_id.v" 
 localparam CONF_STR = {
 	"MO;;",
+    "F1,ROMM5,Load Cartridge;",
+    "T1,Eject Cartridge;", 
 	"-;",
 //	"F,WAV,Load tape;",
 	"O56,Keyboard,DCMOTO,QWERTY,AZERTY;",
-	"O7,OVO,Off,On;",
+//	"O7,OVO,Off,On;",
 	"O8,Model,MO6,MO5;",
-	"O9,Fast,Off,On;",
-	"TA,Rewind Tape;",
+//	"O9,Fast,Off,On;",
+//	"TA,Rewind Tape;",
+	"-;",
     "OBC,Scanlines,None,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
 	"T0,Reset;",
-    "T1,Eject cartridge;",
-    "F0,ROM,Reload ROM;",
-    "F1,ROMM5,Load Cartridge;",
+//    "F0,ROM,Reload ROM;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
