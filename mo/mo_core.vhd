@@ -57,8 +57,7 @@ ENTITY mo_core IS
     vga_hblank        : OUT   std_logic;
     
     -- AUDIO
-    audio_l           : OUT std_logic_vector(15 DOWNTO 0);
-    audio_r           : OUT std_logic_vector(15 DOWNTO 0);
+    audio             : OUT std_logic_vector(15 DOWNTO 0);
     
     ps2_key           : IN  std_logic_vector(10 DOWNTO 0);
     ps2_mouse         : IN  std_logic_vector(24 DOWNTO 0);
@@ -188,6 +187,7 @@ ARCHITECTURE struct OF mo_core IS
   signal rom_e          : std_logic;
   signal ram_e          : std_logic;
   signal cartridge_rom  : std_logic;
+  signal cartridge32k   : std_logic;
    attribute keep: boolean;
    attribute keep of sdram_addr: signal is true;
    attribute keep of sdram_din: signal is true;
@@ -216,7 +216,10 @@ ARCHITECTURE struct OF mo_core IS
    attribute keep of cartridge_rom: signal is true;
    attribute keep of cart: signal is true;
    attribute keep of cartridge_present: signal is true;
-
+   attribute keep of pia2_req: signal is true;
+   attribute keep of adpia: signal is true;
+   attribute keep of cartridge32k: signal is true;
+   attribute keep of cpu_arom: signal is true;
 
   COMPONENT mc6809i
     PORT (
@@ -735,10 +738,10 @@ BEGIN
   
   cpu_arom(11 DOWNTO 0)<=cpu_a(11 DOWNTO 0);
   cpu_arom(15 DOWNTO 12)<=
-    '0' & pia1_pa_o(5)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"B" AND cart = '0' and cartridge_present = '1' ELSE
-    '0' & pia1_pa_o(5)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"C" AND cart = '0' and cartridge_present = '1' ELSE
-    '0' & pia1_pa_o(5)  & "10" WHEN cpu_a(15 DOWNTO 12)=x"D" AND cart = '0' and cartridge_present = '1' ELSE
-    '0' & pia1_pa_o(5)  & "11" WHEN cpu_a(15 DOWNTO 12)=x"E" AND cart = '0' and cartridge_present = '1' ELSE
+    '0' & (pia1_pa_o(5) and cartridge32k)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"B" AND cart = '0' and cartridge_present = '1' ELSE
+    '0' & (pia1_pa_o(5) and cartridge32k)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"C" AND cart = '0' and cartridge_present = '1' ELSE
+    '0' & (pia1_pa_o(5) and cartridge32k)  & "10" WHEN cpu_a(15 DOWNTO 12)=x"D" AND cart = '0' and cartridge_present = '1' ELSE
+    '0' & (pia1_pa_o(5) and cartridge32k)  & "11" WHEN cpu_a(15 DOWNTO 12)=x"E" AND cart = '0' and cartridge_present = '1' ELSE
     
     '0' & pia1_pa_o(5)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"C" AND basic='0' ELSE -- 
     '0' & pia1_pa_o(5)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"D" AND basic='0' ELSE -- 
@@ -761,11 +764,12 @@ BEGIN
    cartridge_rom <= '1' when cpu_a(15 DOWNTO 12) /= x"F" and cart = '0' and cartridge_present = '1' else '0';
    
    sdramprocess: process (sysclk) begin
-       if rising_edge(sysclk) then
+      if rising_edge(sysclk) then
           cpu2_Q_delay <= cpu2_Q;
           cpu2_E_delay <= cpu2_E;
            if rom_we = '1' then
              sdram_addr <= "0000" & ioctl_index(0) & "10" & ioctl_addr(15 downto 0);
+             cartridge32k <= ioctl_addr(14);
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and ram_e = '1' then
              sdram_addr <= "000000" & std_logic_vector(cpu_aram(16 downto 0));
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and rom_e = '1' then
@@ -1004,10 +1008,9 @@ BEGIN
   END PROCESS;
   
   ----------------------------------------------------------
-  audio_l<=std_logic_vector((pia2_pb_o(5 DOWNTO 0) & "0000000000") XOR
-                            (pia1_pb_o(0) & Z15) XOR (rk7 & Z15));
-  audio_r<=std_logic_vector((pia2_pb_o(5 DOWNTO 0) & "0000000000") XOR
-                            (pia1_pb_o(0) & Z15) XOR (rk7 & Z15));
+ audio <= std_logic_vector((pia2_pb_o(5 DOWNTO 0) & "0000000000") XOR
+                           (pia1_pb_o(0) & Z15) XOR 
+                           (tape_in & Z15));
   
   -- KBD MO5
   --        7       6       5       4       3       2       1       0

@@ -214,8 +214,7 @@ wire reset = status[0] | !pll_locked | ioctl_download;
 
 `ifdef I2S_AUDIO
 wire [31:0] clk_rate =  32'd32_000_000;
-wire [15:0] audio_left;
-wire [15:0] audio_right;
+wire [15:0] audio;
 
 i2s i2s(
     .reset(reset),
@@ -226,8 +225,8 @@ i2s i2s(
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
 
-    .left_chan({audio_left}),
-    .right_chan({audio_right})
+    .left_chan({audio}),
+    .right_chan({audio})
 );
 `endif
 
@@ -265,8 +264,7 @@ mo_core mo_core(
     .vga_vblank(vblank),
     .vga_hblank(hblank),
 	
-	.audio_l(audio_left),
-	.audio_r(audio_right),
+	.audio(audio),
 	
     .SDRAM_A(SDRAM_A),
     .SDRAM_DQ(SDRAM_DQ),
