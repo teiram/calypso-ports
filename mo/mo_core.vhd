@@ -738,10 +738,13 @@ BEGIN
   
   cpu_arom(11 DOWNTO 0)<=cpu_a(11 DOWNTO 0);
   cpu_arom(15 DOWNTO 12)<=
-    '0' & (pia1_pa_o(5) and cartridge32k)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"B" AND cart = '0' and cartridge_present = '1' ELSE
-    '0' & (pia1_pa_o(5) and cartridge32k)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"C" AND cart = '0' and cartridge_present = '1' ELSE
-    '0' & (pia1_pa_o(5) and cartridge32k)  & "10" WHEN cpu_a(15 DOWNTO 12)=x"D" AND cart = '0' and cartridge_present = '1' ELSE
-    '0' & (pia1_pa_o(5) and cartridge32k)  & "11" WHEN cpu_a(15 DOWNTO 12)=x"E" AND cart = '0' and cartridge_present = '1' ELSE
+    '0' & (pia1_pa_o(5) and cartridge32k)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"B" AND (mo5 = '1' OR cart = '0') and cartridge_present = '1' ELSE
+    '0' & (pia1_pa_o(5) and cartridge32k)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"C" AND (mo5 = '1' OR cart = '0') and cartridge_present = '1' ELSE
+    '0' & (pia1_pa_o(5) and cartridge32k)  & "10" WHEN cpu_a(15 DOWNTO 12)=x"D" AND (mo5 = '1' OR cart = '0') and cartridge_present = '1' ELSE
+    '0' & (pia1_pa_o(5) and cartridge32k)  & "11" WHEN cpu_a(15 DOWNTO 12)=x"E" AND (mo5 = '1' OR cart = '0') and cartridge_present = '1' ELSE
+    
+    
+    "00" & cpu_a(13 DOWNTO 12) when mo5 = '1' ELSE
     
     '0' & pia1_pa_o(5)  & "00" WHEN cpu_a(15 DOWNTO 12)=x"C" AND basic='0' ELSE -- 
     '0' & pia1_pa_o(5)  & "01" WHEN cpu_a(15 DOWNTO 12)=x"D" AND basic='0' ELSE -- 
@@ -761,19 +764,19 @@ BEGIN
    rom_we <= '1' when ioctl_download = '1' and ioctl_wr = '1' else '0';
    ram_e <= '1' when cpu_a < x"A000" else '0';
    rom_e <= '1' when (cpu_a >=x"A000" AND cpu_a <= x"A7BF") OR (cpu_a >= x"B000") else '0';
-   cartridge_rom <= '1' when cpu_a(15 DOWNTO 12) /= x"F" and cart = '0' and cartridge_present = '1' else '0';
+   cartridge_rom <= '1' when cpu_a(15 DOWNTO 12) /= x"F" and (mo5 = '1' or cart = '0') and cartridge_present = '1' else '0';
    
    sdramprocess: process (sysclk) begin
       if rising_edge(sysclk) then
           cpu2_Q_delay <= cpu2_Q;
           cpu2_E_delay <= cpu2_E;
            if rom_we = '1' then
-             sdram_addr <= "0000" & ioctl_index(0) & "10" & ioctl_addr(15 downto 0);
+             sdram_addr <= "0000" & ioctl_index(0) & '1' & ioctl_addr(16 downto 0);
              cartridge32k <= ioctl_addr(14);
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and ram_e = '1' then
              sdram_addr <= "000000" & std_logic_vector(cpu_aram(16 downto 0));
            elsif cpu2_E_delay = '0' and cpu2_E = '1' and rom_e = '1' then
-             sdram_addr <= "0000" & cartridge_rom & "10"  & std_logic_vector(cpu_arom(15 downto 0));
+             sdram_addr <= "0000" & cartridge_rom & '1' & (mo5 and not cartridge_rom)  & std_logic_vector(cpu_arom(15 downto 0));
            elsif tick_video = '1' then
              sdram_addr <= "0000000" & std_logic_vector(vpage) & std_logic_vector(vram_a);
            else

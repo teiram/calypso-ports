@@ -141,6 +141,7 @@ wire azerty,dcmoto;
 
 assign azerty = status[6] & !status[5];
 assign dcmoto = !status[5] & !status[6];
+wire mo5 = status[8];
 
 `include "build_id.v" 
 localparam CONF_STR = {
@@ -220,7 +221,13 @@ pll pll(
     .locked(pll_locked)
 );
 
-wire reset = status[0] | !pll_locked | ioctl_download;
+logic reset;
+logic mo5_last;
+always @(posedge clk_sys) begin
+    mo5_last <= mo5;
+    if (status[0] | ~pll_locked | ioctl_download | (mo5_last ^ mo5)) reset <= 1'b1;
+    else reset <= 0;
+end
 
 `ifdef I2S_AUDIO
 wire [31:0] clk_rate =  32'd32_000_000;
@@ -279,7 +286,7 @@ mo_core mo_core(
     .sdramclk(clk_sdram),
 	.reset(reset),
 
-	.mo5(status[8]),
+	.mo5(mo5),
 	.azerty(azerty),
     .dcmoto(dcmoto),
 	.rewind(status[10]),
