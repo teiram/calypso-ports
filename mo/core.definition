@@ -1,0 +1,6 @@
+CORE_ID=mo
+PROJECT_NAME=mo
+VERSION=0.1
+BITSTREAM_FILE=output_files/mo.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
