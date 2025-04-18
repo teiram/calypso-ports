@@ -128,11 +128,15 @@ wire forced_scandoubler;
 wire [31:0] joy0, joy1;
 wire  [1:0] buttons;
 wire [31:0] status;
-wire [24:0] ps2_mouse;
 wire [7:0]  key_code;
 wire        key_strobe;
 wire        key_pressed;
 wire        key_extended;
+wire [8:0] mouse_x;
+wire [8:0] mouse_y;
+wire [7:0] mouse_flags;
+wire mouse_strobe;
+
 wire azerty,dcmoto;
 
 assign azerty = status[6] & !status[5];
@@ -179,6 +183,11 @@ user_io(
     .key_extended(key_extended),
     .key_code(key_code),
     
+    .mouse_x(mouse_x),
+    .mouse_y(mouse_y),
+    .mouse_flags(mouse_flags),
+    .mouse_strobe(mouse_strobe),
+
     .joystick_0(joy0),
     .joystick_1(joy1),
     .status(status)
@@ -237,6 +246,27 @@ wire cpu_rfsh_n;
 wire [31:0] joya = status[3] ? joy1 : joy0;
 wire [31:0] joyb = status[3] ? joy0 : joy1;
 logic cartridge_present;
+
+// Light Pen
+// PS2_MOUSE(0)     : LEFT
+// PS2_MOUSE(1)     : RIGHT
+// PS2_MOUSE(2)     : MIDDLE
+// PS2_MOUSE(4)     : X sign
+// PS2_MOUSE(5)     : Y sign
+// PS2_MOUSE(15:8)  : X diff
+// PS2_MOUSE(23:16) : Y diff
+// PS2_MOUSE(24)    : Toggle
+logic [24:0] ps2_mouse;
+always @(posedge clk_sys) begin
+    if (mouse_strobe == 1'b1) begin
+        ps2_mouse[24] <= ~ps2_mouse[24];
+        ps2_mouse[2:0] <= mouse_flags[2:0];
+        ps2_mouse[4] <= mouse_x[8];
+        ps2_mouse[5] <= mouse_y[8];
+        ps2_mouse[15:8] <= mouse_x[7:0];
+        ps2_mouse[23:16] <= mouse_y[7:0];
+    end
+end
 
 always @(posedge clk_sys) begin
     if (ioctl_download == 1'b1 && ioctl_index[0] == 1'b1) cartridge_present <= 1'b1;
