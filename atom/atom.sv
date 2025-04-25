@@ -108,6 +108,7 @@ assign LED[0] = ~ioctl_download;
 `include "build_id.v"
 parameter CONF_STR = {
     "atom;;",
+    "F0,ROM,Reload ROM;",
     "F1,COLBINROM,Load CART;",
     `SEP
     "S0U,VHD,Load VHD;",
@@ -130,16 +131,17 @@ parameter CONF_STR = {
 wire clk_main = clk_sys;
 wire clk_sys = clk_32;
 wire clk_16;
-wire clk_32;
-wire clk_42;
+wire clk_32 /* synthesis keep */;
+wire clk_42 /* synthesis keep */;
+wire clk_sdram;
 wire pll_locked;
 
 
 pll pll(
     .inclk0(CLK12M),
-    .c0(clk_42),
+    .c0(clk_sdram),
     .c1(clk_32),
-    .c2(clk_16),
+    .c2(clk_42),
     .locked(pll_locked)
 );
 
@@ -175,9 +177,9 @@ wire [31:0] joy0, joy1;
 
 wire        ioctl_download /* synthesis keep */;
 wire  [7:0] ioctl_index /* synthesis keep */;
-wire        ioctl_wr;
-wire [24:0] ioctl_addr;
-wire  [7:0] ioctl_dout;
+wire        ioctl_wr /* synthesis keep */;
+wire [24:0] ioctl_addr /* synthesis keep */;
+wire  [7:0] ioctl_dout /* synthesis keep */;
 wire        scandoubler_disable;
 
 wire [31:0] sd_lba;
@@ -185,9 +187,9 @@ reg sd_rd /* synthesis keep */;
 reg sd_wr;
 wire sd_ack /* synthesis keep */;
 wire sd_ack_conf;
-wire sd_buff_addr /* synthesis keep */;
-wire sd_buff_dout;
-wire sd_buff_din;
+wire [8:0] sd_buff_addr /* synthesis keep */;
+wire [7:0] sd_buff_dout;
+wire [7:0] sd_buff_din;
 wire sd_buff_wr;
 wire sd_sdhc;
 
@@ -201,17 +203,19 @@ wire [31:0] img_ext;
 
 wire        key_pressed;
 wire [7:0]  key_code;
-wire        key_strobe;
+wire        key_strobe /* synthesis keep */;
 wire        key_extended;
 
 
 wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
 
+assign LED[3] = key_strobe;
+assign LED[4] = key_pressed;
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
     .SD_IMAGES(1),
-    .FEATURES(32'h8 | (BIG_OSD << 13) | (HDMI << 14)))
+    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
 user_io(
     .clk_sys(clk_sys),
     .clk_sd(clk_sys),
@@ -250,18 +254,15 @@ user_io(
     .joystick_1(joy1)
 );
 
-
 data_io data_io(
     .clk_sys(clk_sys),
     .SPI_SCK(SPI_SCK),
     .SPI_SS2(SPI_SS2),
-
 `ifdef NO_DIRECT_UPLOAD
     .SPI_SS4(1'b1),
 `else
     .SPI_SS4(SPI_SS4),
 `endif
-
     .SPI_DI(SPI_DI),
     .SPI_DO(SPI_DO),
     .ioctl_fileext(img_ext),
@@ -273,18 +274,64 @@ data_io data_io(
 );
 
 /////////////////  RESET  /////////////////////////
-wire reset =  status[0] | buttons[1] | ioctl_download | ~pll_locked;
+wire reset /*synthesis keep */ =  status[0] | buttons[1] | ioctl_download | ~pll_locked;
 
 /////////////////  Memory  ////////////////////////
+wire rom_cs /* synthesis keep */;
+wire ram_cs /* synthesis keep */;
+wire mem_we /* synthesis keep */;
+wire [7:0] mem_dout /* synthesis keep */;
+wire [7:0] mem_din /* synthesis keep */;
+wire [17:0] mem_addr /* synthesis keep */;
+wire cpuphi2 /* synthesis keep */;
+logic cpuphi2_last /* synthesis keep */;
+
 wire [22:0] sdram_addr /* synthesis keep */;
 wire [7:0] sdram_din /* synthesis keep */;
 wire [7:0] sdram_dout /* synthesis keep */;
 wire sdram_rd /* synthesis keep */;
 wire sdram_we /* synthesis keep */;
 wire sdram_ready /* synthesis keep */;
+logic [4:0] sdram_state /* synthesis keep */ = 5'b0;
 
+always @(posedge clk_sys) begin
+    cpuphi2_last <= cpuphi2;
+    if (~cpuphi2_last & cpuphi2) begin
+        sdram_state <= 5'b0;
+    end else begin
+        sdram_state <= sdram_state + 5'd1;
+    end
+    
+    casex({ioctl_download, ioctl_index[0]})
+        'b10: sdram_addr <= {5'd0, ioctl_addr[17:0]};
+        'b0x: sdram_addr <= {5'd0, mem_addr};
+         default: sdram_addr <= sdram_addr;
+    endcase
+    
+    if (sdram_state == 5'd16) begin
+        sdram_rd <= ~ioctl_download & ~mem_we;
+    end else begin
+        sdram_rd <= 1'b0;
+    end
+    
+    if (sdram_state == 5'd31) begin
+        sdram_we <= ioctl_wr | mem_we;
+    end else begin
+        sdram_we <= ioctl_wr;
+    end
+    
+    casex({ioctl_download, ioctl_wr, mem_we})
+        'b11x: sdram_din <= ioctl_dout;
+        'b0x1: sdram_din <= mem_din;
+        default: sdram_din <= sdram_din;
+    endcase
+    
+    if (sdram_state == 5'd20) begin
+        mem_dout <= sdram_dout;
+    end
+end
 
-assign SDRAM_CLK = clk_42;
+assign SDRAM_CLK = clk_sdram;
 sdram sdram(
     .SDRAM_DQ(SDRAM_DQ),
     .SDRAM_A(SDRAM_A),
@@ -298,7 +345,7 @@ sdram sdram(
     .SDRAM_CKE(SDRAM_CKE),
     
     .init(~pll_locked),
-    .clk(clk_42),
+    .clk(clk_sdram),
 
     .wtbt(0),
     .addr(sdram_addr),
@@ -332,12 +379,6 @@ wire sdclk;
 wire sdss;
 wire sdmosi;
 wire sdmiso;
-
-wire rom_cs;
-wire mem_we;
-wire [7:0] mem_dout;
-wire [7:0] mem_din;
-wire [17:0] mem_addr;
 
 AtomFpga_Core AcornAtom(
     // clocks
@@ -386,13 +427,13 @@ AtomFpga_Core AcornAtom(
     //.nmi_n(1'b1),
     
     // External Bus/Ram/Rom interface
-    //	.ExternBus(),
-    //	.ExternCE(),
+    .ExternRAM(ram_cs),
     .ExternROM(rom_cs),
     .ExternWE(mem_we),
     .ExternDout(mem_dout),
     .ExternDin(mem_din),
     .ExternA(mem_addr),
+    .cpuphi2(cpuphi2),
 
 
     // Audio
@@ -446,7 +487,7 @@ sd_card sd_card(
     .sd_buff_addr(sd_buff_addr),
     .sd_buff_wr(sd_buff_wr),
 
-    .allow_sdhc(1'b0),
+    .allow_sdhc(1'b1),
 
     .sd_sck(sdclk),
     .sd_cs(sdss),
@@ -459,14 +500,18 @@ sd_card sd_card(
 wire [17:0] sid_audio;
 wire a_audio;
 
-assign audio = status[5:4] == 2'b00 ? {{16{a_audio}}} : status[5:4] == 2'b01 ? sid_audio[17:2] : status[5:4] == 2'b10 ? {{16{tape_out}}} : 16'b0 ;
+assign audio = 
+    status[5:4] == 2'b00 ? {16 {a_audio}} : 
+    status[5:4] == 2'b01 ? sid_audio[17:2] : 
+    status[5:4] == 2'b10 ? {16{tape_out}} : 
+    16'b0;
 
 
 `ifdef I2S_AUDIO
 i2s i2s (
-    .reset(1'b0),
+    .reset(reset),
     .clk(clk_sys),
-    .clk_rate(32'd42_660_000),
+    .clk_rate(32'd32_000_000),
 
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),

@@ -66,9 +66,8 @@ set_global_assignment -name VERILOG_FILE AcornAtom_MiSTer/rtl/SID/sid_components
 set_global_assignment -name VERILOG_FILE AcornAtom_MiSTer/rtl/SID/sid_filters.v
 set_global_assignment -name VERILOG_FILE AcornAtom_MiSTer/rtl/SID/sid_voice.v
 
-set_global_assignment -name SYSTEMVERILOG_FILE AcornAtom_MiSTer/rtl/keyboard.sv
-
-set_global_assignment -name VHDL_FILE AcornAtom_MiSTer/rtl/AtomFpga_Core.vhd
+set_global_assignment -name VHDL_FILE AtomFpga_Core.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE keyboard.sv
 set_global_assignment -name SYSTEMVERILOG_FILE atom.sv
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
 set_global_assignment -name QIP_FILE pll.qip
