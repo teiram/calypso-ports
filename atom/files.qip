@@ -71,5 +71,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE keyboard.sv
 set_global_assignment -name SYSTEMVERILOG_FILE atom.sv
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
 set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name QIP_FILE pll_video.qip
 set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
 

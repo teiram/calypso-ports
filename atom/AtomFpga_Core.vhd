@@ -53,8 +53,7 @@ entity AtomFpga_Core is
         ExternA          : out   std_logic_vector (17 downto 0);
         ExternDin        : out   std_logic_vector (7 downto 0);
         ExternDout       : in    std_logic_vector (7 downto 0);
-		  ExternROM			 : out   std_logic;
-        ExternRAM        : out   std_logic;
+		ExternROM			 : out   std_logic;
         cpuphi2          : out std_logic;
         -- Audio
         sid_audio_d      : out   std_logic_vector (17 downto 0);
@@ -743,7 +742,6 @@ end process;
 			ram_dout 	<= ExternDout;
 			ExternWE    <= (not_cpu_R_W_n and not ext_rom_cs and phi2);
 			ExternROM	<= ext_rom_cs;
-            ExternRAM   <= ext_ram_cs;
             cpuphi2     <= phi2;
 			RomLatch    <= RegBFFF(2 downto 0);
 			
@@ -897,7 +895,7 @@ end process;
             
 
             if clk_counter = limit then
-                turbo_synced <= key_turbo; -- only change the timing at the end of the cycle
+                turbo_synced <= "00";
                 clk_counter <= (others => '0');
             else
                 clk_counter <= clk_counter + 1;

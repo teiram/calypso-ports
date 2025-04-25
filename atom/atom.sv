@@ -108,47 +108,45 @@ assign LED[0] = ~ioctl_download;
 `include "build_id.v"
 parameter CONF_STR = {
     "atom;;",
-    "F0,ROM,Reload ROM;",
-    "F1,COLBINROM,Load CART;",
-    `SEP
     "S0U,VHD,Load VHD;",
-    `SEP
-    "O3,Swap Joysticks,No,Yes;",
     `SEP
     "O45,Audio,Atom,SID,TAPE,off;",
     "O67,Keyboard,UK,US,orig,game;",
+    "O3,Swap Joysticks,No,Yes;",
     "O8,character set,original,xtra;",
     "O9,Background,Black,Dark;",
+    "OBC,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
     "OA,Mode,Atom,BBC;",
-    "OBC,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;", 
     `SEP
+    "F0,ROM,Reload ROM;",
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 /////////////////  CLOCKS  ////////////////////////
 
-wire clk_main = clk_sys;
-wire clk_sys = clk_32;
-wire clk_16;
-wire clk_32 /* synthesis keep */;
-wire clk_42 /* synthesis keep */;
+
+wire clk_sys;
 wire clk_sdram;
 wire pll_locked;
-
+wire clk_video;
 
 pll pll(
     .inclk0(CLK12M),
     .c0(clk_sdram),
-    .c1(clk_32),
-    .c2(clk_42),
+    .c1(clk_sys),
     .locked(pll_locked)
+);
+
+pll_video pll_video(
+    .inclk0(CLK12M),
+    .c0(clk_video)
 );
 
 reg clk_14M318_ena ;
 reg [1:0] count;
 
-always @(posedge clk_42)
+always @(posedge clk_video)
 begin
     if (reset)
         count <= 0;
@@ -277,8 +275,6 @@ data_io data_io(
 wire reset /*synthesis keep */ =  status[0] | buttons[1] | ioctl_download | ~pll_locked;
 
 /////////////////  Memory  ////////////////////////
-wire rom_cs /* synthesis keep */;
-wire ram_cs /* synthesis keep */;
 wire mem_we /* synthesis keep */;
 wire [7:0] mem_dout /* synthesis keep */;
 wire [7:0] mem_din /* synthesis keep */;
@@ -302,7 +298,7 @@ always @(posedge clk_sys) begin
         sdram_state <= sdram_state + 5'd1;
     end
     
-    casex({ioctl_download, ioctl_index[0]})
+    casex ({ioctl_download, ioctl_index[0]})
         'b10: sdram_addr <= {5'd0, ioctl_addr[17:0]};
         'b0x: sdram_addr <= {5'd0, mem_addr};
          default: sdram_addr <= sdram_addr;
@@ -320,7 +316,7 @@ always @(posedge clk_sys) begin
         sdram_we <= ioctl_wr;
     end
     
-    casex({ioctl_download, ioctl_wr, mem_we})
+    casex ({ioctl_download, ioctl_wr, mem_we})
         'b11x: sdram_din <= ioctl_dout;
         'b0x1: sdram_din <= mem_din;
         default: sdram_din <= sdram_din;
@@ -382,12 +378,11 @@ wire sdmiso;
 
 AtomFpga_Core AcornAtom(
     // clocks
-    .clk_vid(clk_42),
+    .clk_vid(clk_video),
     .clk_vid_en(clk_14M318_ena),
-    .clk_main(clk_main),
-    .clk_dac(clk_sys),  // -2.202 setup slack
-    //.clk_avr(clk_16), // -4.98 setup slack -- this is to fix SD Card problem
-    .clk_avr(clk_main), // this helps timing
+    .clk_main(clk_sys),
+    .clk_dac(clk_sys), 
+    .clk_avr(clk_sys),
     
     .pixel_clock(pixel_clock),
     
@@ -427,8 +422,6 @@ AtomFpga_Core AcornAtom(
     //.nmi_n(1'b1),
     
     // External Bus/Ram/Rom interface
-    .ExternRAM(ram_cs),
-    .ExternROM(rom_cs),
     .ExternWE(mem_we),
     .ExternDout(mem_dout),
     .ExternDin(mem_din),
@@ -501,17 +494,18 @@ wire [17:0] sid_audio;
 wire a_audio;
 
 assign audio = 
-    status[5:4] == 2'b00 ? {16 {a_audio}} : 
-    status[5:4] == 2'b01 ? sid_audio[17:2] : 
-    status[5:4] == 2'b10 ? {16{tape_out}} : 
+    status[5:4] == 2'b00 ? {1'b0, a_audio, 14'd0} :
+    status[5:4] == 2'b01 ? {~sid_audio[17], sid_audio[16:2]} :
+    status[5:4] == 2'b10 ? {16{tape_out}} :
     16'b0;
 
+assign LED[7] = a_audio;
 
 `ifdef I2S_AUDIO
 i2s i2s (
     .reset(reset),
     .clk(clk_sys),
-    .clk_rate(32'd32_000_000),
+    .clk_rate(32'd42_000_000),
 
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
@@ -529,7 +523,7 @@ mist_video #(
     .OUT_COLOR_DEPTH(VGA_BITS),
     .BIG_OSD(BIG_OSD))
 mist_video(
-    .clk_sys(clk_42),
+    .clk_sys(clk_video),
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
@@ -545,7 +539,7 @@ mist_video(
     .VGA_B(VGA_B),
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
-//  .ce_divider(3'd7),
+    .ce_divider(3'd2),
     .scandoubler_disable(scandoubler_disable),
     .no_csync(1'b1),
     .scanlines(status[12:11]),

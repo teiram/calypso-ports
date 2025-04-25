@@ -2,94 +2,67 @@
 
 
 
-module keyboard
-(
-	input			 	clk,
-	input				clk_en,
-	input			 	reset,
-	input		[1:0]	layout,
-	input  		[10:0]	ps2_key,
-	input	 	[3:0]	row,
-	input		[15:0]	joy1,
-	input		[15:0]	joy2,
-	output reg 	[5:0]	keyout,
-	output reg			shift_out,
-	output reg			ctrl_out,
-	output reg			repeat_out,
-	output reg			break_out,
-	output reg	[1:0]	turbo = 2'b00
-
-
-
+module keyboard(
+    input clk,
+    input clk_en,
+    input reset,
+    input [1:0] layout,
+    input [10:0] ps2_key,
+    input [3:0] row,
+    input [15:0] joy1,
+    input [15:0] joy2,
+    output reg [5:0] keyout,
+    output reg shift_out,
+    output reg ctrl_out,
+    output reg repeat_out,
+    output reg break_out,
+    output reg [1:0] turbo = 2'b00
 );
 
-wire [8:0]     code = ps2_key[8:0];
-reg  [5:0]     	keys [0:9];
-reg  [5:0]		keydata;
-reg			   	shift_press = 1'b1;
-wire  			key_strobe = ps2_key[10];
-wire			key_press = ps2_key[9];
-reg				left_alt;
+wire [8:0] code = ps2_key[8:0];
+reg [5:0] keys [0:9];
+reg [5:0] keydata;
+reg shift_press = 1'b1;
+wire key_strobe = ps2_key[10];
+wire key_press = ps2_key[9];
+reg left_alt;
 
 //https://github.com/hoglet67/AtomFpga/blob/e72d68a968c0833ed34a4582b6c9f1b58265f5fc/src/ps2kybrd/keyboard.vhd
-   always @(*)
-
-     begin
-        keydata <= keys[row];
-	        //-- 0 U R D L F
-
-		if (row == 4'b0000)
-			keyout <= keydata & {1'b1,joy1[3],joy1[0],joy1[2],joy1[1],joy1[4]};
-		else
-		if (row == 4'b0001)
-			keyout <= keydata & {1'b1,joy2[3],joy2[0],joy2[2],joy2[1],joy2[4]};
-		else
-			keyout <= keydata;			
-     end
-
-
-/*
 always @(posedge clk) begin
-if(clk_en == 1'b1) begin
-	reg old_state;
+    keydata <= keys[row];
+    //-- 0 U R D L F
 
-	key_strobe 	<= 1'b0;
-	old_state 	<= ps2_key[10];
-
-	if(ps2_key[10]) begin
-//		extended 	<= ps2_key[8];
-		key_press 	<= ps2_key[9];
-		code 		<= ps2_key[8:0];
-		key_strobe 	<= 1'b1;
-	end
+    if (row == 4'b0000)
+        keyout <= keydata & {1'b1, joy1[3], joy1[0], joy1[2], joy1[1], joy1[4]};
+    else
+    if (row == 4'b0001)
+        keyout <= keydata & {1'b1, joy2[3], joy2[0], joy2[2], joy2[1], joy2[4]};
+    else
+        keyout <= keydata;
 end
-end
-*/
 
 always @(posedge clk) begin
-	
-	if(reset) begin
-		
-	  break_out  	<= 1'b1;
-      shift_out  	<= 1'b1;
-	  shift_press 	<= 1'b1;
-      ctrl_out   	<= 1'b1;
-      repeat_out 	<= 1'b1;
-	  left_alt 		<= 1'b0;
-      keys[0]    	<= 6'b111111;
-      keys[1]    	<= 6'b111111;
-      keys[2]    	<= 6'b111111;
-      keys[3]    	<= 6'b111111;
-      keys[4]    	<= 6'b111111;
-      keys[5]    	<= 6'b111111;
-      keys[6]    	<= 6'b111111;
-      keys[7]    	<= 6'b111111;
-      keys[8]    	<= 6'b111111;
-      keys[9]    	<= 6'b111111;
-      turbo      	<= 2'b00;
-	end
-	
-	if (key_strobe)
+    if(reset) begin
+        break_out <= 1'b1;
+        shift_out <= 1'b1;
+        shift_press <= 1'b1;
+        ctrl_out <= 1'b1;
+        repeat_out <= 1'b1;
+        left_alt <= 1'b0;
+        keys[0] <= 6'b111111;
+        keys[1] <= 6'b111111;
+        keys[2] <= 6'b111111;
+        keys[3] <= 6'b111111;
+        keys[4] <= 6'b111111;
+        keys[5] <= 6'b111111;
+        keys[6] <= 6'b111111;
+        keys[7] <= 6'b111111;
+        keys[8] <= 6'b111111;
+        keys[9] <= 6'b111111;
+        turbo <= 2'b00;
+    end
+
+    if (key_strobe)
 //	  if(clk_en == 1'b1)
 		if (layout == 2'b00) // uk
 			if (shift_press)
