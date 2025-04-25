@@ -145,3 +145,6 @@
 [submodule "atom/AcornAtom_MiSTer"]
 	path = atom/AcornAtom_MiSTer
 	url = https://github.com/MiSTer-devel/AcornAtom_MiSTer.git
+[submodule "vectrex/Vectrex_poseidon-ep4cgx150"]
+	path = vectrex/Vectrex_poseidon-ep4cgx150
+	url = https://github.com/turri21/Vectrex_poseidon-ep4cgx150.git

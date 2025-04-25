@@ -1,0 +1,17 @@
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/vectrex.vhd
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/vectrex_exec_prom.vhd
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/m6522a.vhd
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/gen_ram.vhd
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/cpu09l_128a.vhd
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/dac.vhd
+set_global_assignment -name VERILOG_FILE Vectrex_poseidon-ep4cgx150/rtl/mc6809is.v
+set_global_assignment -name VERILOG_FILE Vectrex_poseidon-ep4cgx150/rtl/mc6809.v
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/sp0256.vhd
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/sp0256_al2_decoded.vhd
+set_global_assignment -name VHDL_FILE Vectrex_poseidon-ep4cgx150/rtl/vectrex_speakjet.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE Vectrex_poseidon-ep4cgx150/rtl/YM2149.sv
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name SYSTEMVERILOG_FILE vectrex.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
