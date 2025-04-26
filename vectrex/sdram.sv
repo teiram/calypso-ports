@@ -3,7 +3,7 @@
 //
 // Static RAM controller implementation using SDRAM MT48LC16M16A2
 //
-// Copyright (c) 2015-2019 Sorgelig
+// Copyright (c) 2015,2016 Sorgelig
 //
 // Some parts of SDRAM code used from project:
 // http://hamsterworks.co.nz/mediawiki/index.php/Simple_SDRAM_Controller
@@ -24,7 +24,6 @@
 // ------------------------------------------
 //
 // v2.1 - Add universal 8/16 bit mode.
-// v2.2 - Support for SDRAM v2
 //
 
 module sdram
@@ -60,10 +59,7 @@ assign SDRAM_nCS  = command[3];
 assign SDRAM_nRAS = command[2];
 assign SDRAM_nCAS = command[1];
 assign SDRAM_nWE  = command[0];
-assign SDRAM_CKE  = 1;
-assign {SDRAM_DQMH,SDRAM_DQML} = SDRAM_A[12:11];
-
-assign dout       = latched ? data_l : data_d;
+assign SDRAM_CKE  = cke;
 
 // no burst configured
 localparam BURST_LENGTH        = 3'b000;   // 000=1, 001=2, 010=4, 011=8
@@ -73,8 +69,8 @@ localparam OP_MODE             = 2'b00;    // only 00 (standard operation) allow
 localparam NO_WRITE_BURST      = 1'b1;     // 0= write burst enabled, 1=only single access write
 localparam MODE                = {3'b000, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, BURST_LENGTH};
 
-localparam sdram_startup_cycles= 14'd10200;// 200us, plus a little more, @ 100MHz
-localparam cycles_per_refresh  = 14'd780;  // (64000*100)/8192-1 Calc'd as (64ms @ 100MHz)/8192 rose
+localparam sdram_startup_cycles= 14'd12100;// 100us, plus a little more, @ 100MHz
+localparam cycles_per_refresh  = 14'd186;  // (64000*24)/8192-1 Calc'd as (64ms @ 24MHz)/8192 rose
 localparam startup_refresh_max = 14'b11111111111111;
 
 // SDRAM commands
@@ -90,22 +86,22 @@ localparam CMD_LOAD_MODE       = 4'b0000;
 
 reg [13:0] refresh_count = startup_refresh_max - sdram_startup_cycles;
 reg  [3:0] command = CMD_INHIBIT;
-reg [22:0] save_addr;
-
-reg        latched;
+reg        cke     = 0;
+reg [24:0] save_addr;
 reg [15:0] data;
-wire[15:0] data_l = save_addr[0] ? {data[7:0],     data[15:8]}     : {data[15:8],     data[7:0]};
-wire[15:0] data_d = save_addr[0] ? {SDRAM_DQ[7:0], SDRAM_DQ[15:8]} : {SDRAM_DQ[15:8], SDRAM_DQ[7:0]};
 
+assign dout = save_addr[0] ? {data[7:0], data[15:8]} : {data[15:8], data[7:0]};
 typedef enum
 {
 	STATE_STARTUP,
-	STATE_OPEN_1, STATE_OPEN_2,
+	STATE_OPEN_1,
 	STATE_WRITE,
 	STATE_READ,
 	STATE_IDLE,	  STATE_IDLE_1, STATE_IDLE_2, STATE_IDLE_3,
 	STATE_IDLE_4, STATE_IDLE_5, STATE_IDLE_6, STATE_IDLE_7
 } state_t;
+
+state_t state = STATE_STARTUP;
 
 always @(posedge clk) begin
 	reg old_we, old_rd;
@@ -117,46 +113,48 @@ always @(posedge clk) begin
 	reg        new_rd;
 	reg        save_we = 1;
 
-	state_t state = STATE_STARTUP;
 
 	command <= CMD_NOP;
 	refresh_count  <= refresh_count+1'b1;
 
 	data_ready_delay <= {1'b0, data_ready_delay[CAS_LATENCY:1]};
 
-	// make it ready 1T in advance
-	if(data_ready_delay[1]) {latched, ready} <= {1'b0, 1'b1};
-	if(data_ready_delay[0]) {latched, data}  <= {1'b1, SDRAM_DQ};
+	if(data_ready_delay[0]) data <= SDRAM_DQ;
 
 	case(state)
 		STATE_STARTUP: begin
 			//------------------------------------------------------------------------
-			//-- This is the initial startup state, where we wait for at least 200us
+			//-- This is the initial startup state, where we wait for at least 100us
 			//-- before starting the start sequence
 			//-- 
 			//-- The initialisation is sequence is 
 			//--  * de-assert SDRAM_CKE
-			//--  * 200us wait, 
+			//--  * 100us wait, 
 			//--  * assert SDRAM_CKE
 			//--  * wait at least one cycle, 
 			//--  * PRECHARGE
 			//--  * wait 2 cycles
 			//--  * REFRESH, 
-			//--  * tREF wait (8 times)
+			//--  * tREF wait
+			//--  * REFRESH, 
+			//--  * tREF wait 
 			//--  * LOAD_MODE_REG 
 			//--  * 2 cycles wait
 			//------------------------------------------------------------------------
+			cke        <= 1;
 			SDRAM_DQ   <= 16'bZZZZZZZZZZZZZZZZ;
+			SDRAM_DQML <= 1;
+			SDRAM_DQMH <= 1;
 			SDRAM_A    <= 0;
 			SDRAM_BA   <= 0;
 
 			// All the commands during the startup are NOPS, except these
-			if(refresh_count == startup_refresh_max- 79) begin
+			if(refresh_count == startup_refresh_max-31) begin
 				// ensure all rows are closed
 				command     <= CMD_PRECHARGE;
 				SDRAM_A[10] <= 1;  // all banks
 				SDRAM_BA    <= 2'b00;
-            end else if (refresh_count == startup_refresh_max - 71) begin
+           end else if (refresh_count == startup_refresh_max - 71) begin
 				// these refreshes need to be at least tREF (66ns) apart
 				command     <= CMD_AUTO_REFRESH;
             end else if (refresh_count == startup_refresh_max - 63) begin
@@ -204,9 +202,9 @@ always @(posedge clk) begin
 			if(refresh_count > cycles_per_refresh) begin
             //------------------------------------------------------------------------
             //-- Start the refresh cycle. 
-            //-- This tasks tRFC (66ns), so 6 idle cycles are needed @ 100MHz
+            //-- This tasks tRFC (66ns), so 2 idle cycles are needed @ 24MHz
             //------------------------------------------------------------------------
-				state    <= STATE_IDLE_7;
+				state    <= STATE_IDLE_2;
 				command  <= CMD_AUTO_REFRESH;
 				refresh_count <= refresh_count - cycles_per_refresh + 1'd1;
 			end
@@ -227,13 +225,11 @@ always @(posedge clk) begin
 			end
 		end
 
-		// ACTIVE-to-READ or WRITE delay >20ns (-75)
+		// ACTIVE-to-READ or WRITE delay >20ns (1 cycle @ 24 MHz)(-75)
 		STATE_OPEN_1: begin
-			SDRAM_A     <= '1;
-			state       <= STATE_OPEN_2;
-		end
-		STATE_OPEN_2: begin
-			SDRAM_A     <= {save_we & (new_wtbt ? ~new_wtbt[1] : ~save_addr[0]), save_we & (new_wtbt ? ~new_wtbt[0] :  save_addr[0]), 3'b100, save_addr[20:13]};
+			SDRAM_A     <= {5'b00100, save_addr[20:13]}; 
+			SDRAM_DQML  <= save_we & (new_wtbt ? ~new_wtbt[0] :  save_addr[0]);
+			SDRAM_DQMH  <= save_we & (new_wtbt ? ~new_wtbt[1] : ~save_addr[0]);
 			state       <= save_we ? STATE_WRITE : STATE_READ;
 		end
 
@@ -260,13 +256,11 @@ always @(posedge clk) begin
 	end
 
 	old_we <= we;
-	if(we & ~old_we) {ready, new_we, new_data, new_wtbt} <= {1'b0, 1'b1, din, wtbt};
-
 	old_rd <= rd;
-	if(rd & ~old_rd) begin
-		if(ready & ~save_we & (save_addr[22:1] == addr[22:1])) save_addr <= addr;
-			else {ready, new_rd} <= {1'b0, 1'b1};
-	end
+	if(we & ~old_we) {ready, new_we, new_data, new_wtbt} <= {1'b0, 1'b1, din, wtbt};
+	else
+	if((rd & ~old_rd) || (rd & old_rd & (save_addr != addr))) {ready, new_rd} <= {1'b0, 1'b1};
+
 end
 
 endmodule

@@ -195,9 +195,7 @@ wire [7:0]  key_code;
 wire        key_strobe;
 wire        key_extended;
 
-
 wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
-
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
@@ -269,7 +267,6 @@ wire [15:0] sdram_dout /* synthesis keep */;
 wire cart_rd /* synthesis keep */;
 assign cart_do = sdram_dout[7:0];
 
-
 assign SDRAM_CLK = clk_24;
 sdram sdram(
     .SDRAM_DQ(SDRAM_DQ),
@@ -322,8 +319,8 @@ always @(posedge clk_24) begin
     if(ioctl_download && !status[3]) timeout <= 5000000;
 end
 
-wire  [7:0] pot_x_1, pot_x_2;
-wire  [7:0] pot_y_1, pot_y_2;
+wire [7:0] pot_x_1, pot_x_2;
+wire [7:0] pot_y_1, pot_y_2;
 wire [9:0] audio;
 wire hblank, vblank;
 wire hsync, vsync;
@@ -346,7 +343,7 @@ wire [31:0] joya = status[4] ? joy1 : joy0;
 wire [31:0] joyb = status[4] ? joy0 : joy1;
 
 vectrex vectrex(
-    .clock_24(clk_24),  
+    .clock_24(clk_24),
     .clock_12(clk_12),
     .reset(reset),
     .cpu(status[1]),
@@ -381,7 +378,7 @@ vectrex vectrex(
 
 
 `ifdef I2S_AUDIO
-i2s i2s (
+i2s i2s(
     .reset(1'b0),
     .clk(clk_24),
     .clk_rate(32'd24_000_000),
@@ -424,6 +421,5 @@ mist_video(
     .scanlines(),
     .ypbpr(ypbpr)
 );
-
 
 endmodule
