@@ -178,8 +178,8 @@ pll pll(
 wire [31:0] status;
 wire  [1:0] buttons;
 
-wire [31:0] joy0, joy1;
-wire [15:0] joy_ana_0, joy_ana_1;
+wire [31:0] joy_dig_0, joy_dig_1;
+wire [31:0] joy_ana_0, joy_ana_1;
 
 wire        ioctl_download /* synthesis keep */;
 wire  [7:0] ioctl_index /* synthesis keep */;
@@ -194,8 +194,6 @@ wire        key_pressed;
 wire [7:0]  key_code;
 wire        key_strobe;
 wire        key_extended;
-
-wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
@@ -220,8 +218,10 @@ user_io(
     .key_pressed(key_pressed),
     .key_extended(key_extended),
 
-    .joystick_0(joy0),
-    .joystick_1(joy1)
+    .joystick_0(joy_dig_0),
+    .joystick_1(joy_dig_1),
+    .joystick_analog_0(joy_ana_0),
+    .joystick_analog_1(joy_ana_1)
 );
 
 `ifdef USE_HDMI
@@ -319,6 +319,21 @@ always @(posedge clk_24) begin
     if(ioctl_download && !status[3]) timeout <= 5000000;
 end
 
+// Z X C V as alternate pad buttons (1a, 22, 21, 2a)
+logic [3:0] kbd_buttons;
+always @(posedge clk_24) begin
+    if (key_strobe) begin
+        if (!key_extended) begin
+            case (key_code)
+                8'h1a: kbd_buttons[0] <= key_pressed; //Z
+                8'h22: kbd_buttons[1] <= key_pressed; //X
+                8'h21: kbd_buttons[2] <= key_pressed; //C
+                8'h2a: kbd_buttons[3] <= key_pressed; //V
+            endcase
+        end
+    end
+end
+
 wire [7:0] pot_x_1, pot_x_2;
 wire [7:0] pot_y_1, pot_y_2;
 wire [9:0] audio;
@@ -331,16 +346,23 @@ wire blankn = ~(hblank | vblank);
 
 assign pot_x_1 = status[4] ? joy_ana_1[15:8] : joy_ana_0[15:8];
 assign pot_x_2 = status[4] ? joy_ana_0[15:8] : joy_ana_1[15:8];
-assign pot_y_1 = status[4] ? ~joy_ana_1[ 7:0] : ~joy_ana_0[ 7:0];
-assign pot_y_2 = status[4] ? ~joy_ana_0[ 7:0] : ~joy_ana_1[ 7:0];
-
+assign pot_y_1 = status[4] ? joy_ana_1[7:0] : joy_ana_0[7:0];
+assign pot_y_2 = status[4] ? joy_ana_0[7:0] : joy_ana_1[7:0];
 
 assign R = status[2] & frame_line ? 4'h4 : blankn ? RR : 4'd0;
 assign G = status[2] & frame_line ? 4'h0 : blankn ? GG : 4'd0;
 assign B = status[2] & frame_line ? 4'h0 : blankn ? BB : 4'd0;
 
-wire [31:0] joya = status[4] ? joy1 : joy0;
-wire [31:0] joyb = status[4] ? joy0 : joy1;
+wire [7:0] joya = {kbd_buttons, 4'd0} | (status[4] ? joy_dig_1[7:0] : joy_dig_0[7:0]);
+wire [7:0] joyb = {kbd_buttons, 4'd0} | (status[4] ? joy_dig_0[7:0] : joy_dig_1[7:0]);
+
+assign LED[1] = joya[4];
+assign LED[2] = joya[5];
+assign LED[3] = joya[6];
+assign LED[4] = joya[7];
+assign LED[5] = kbd_buttons[0];
+assign LED[6] = kbd_buttons[1];
+assign LED[7] = kbd_buttons[2];
 
 vectrex vectrex(
     .clock_24(clk_24),
