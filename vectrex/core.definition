@@ -1,0 +1,6 @@
+CORE_ID=vectrex
+PROJECT_NAME=vectrex
+VERSION=0.1
+BITSTREAM_FILE=output_files/vectrex.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
