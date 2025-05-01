@@ -148,3 +148,6 @@
 [submodule "vectrex/Vectrex_poseidon-ep4cgx150"]
 	path = vectrex/Vectrex_poseidon-ep4cgx150
 	url = https://github.com/turri21/Vectrex_poseidon-ep4cgx150.git
+[submodule "alice/AliceMC10_MiSTer"]
+	path = alice/AliceMC10_MiSTer
+	url = https://github.com/MiSTer-devel/AliceMC10_MiSTer.git
