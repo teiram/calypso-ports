@@ -704,7 +704,7 @@ always @ (posedge sysclk) begin
         else if(writebuffer_req && (|hostslot_cnt || (hostState[2] || hostena)) && (slot2_type == IDLE || slot2_bank != writebufferAddr[22:21])) begin
           // We only yield to the OSD CPU if it's both cycle-starved and ready to go.
           slot1_type          <= #1 CPU_WRITECACHE;
-          sdaddr              <= #1 writebufferAddr[20:9];
+          sdaddr              <= #1 {1'b0, writebufferAddr[20:9]};
           ba                  <= #1 writebufferAddr[22:21];
           slot1_bank          <= #1 writebufferAddr[22:21];
           cas_dqm             <= #1 writebuffer_dqm;

@@ -233,7 +233,7 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nCAS
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nWE
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nCS
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_CKE
-set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_CLK
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_CLK
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to VGA_R[3]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to VGA_R[2]
