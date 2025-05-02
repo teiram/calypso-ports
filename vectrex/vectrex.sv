@@ -346,8 +346,8 @@ wire blankn = ~(hblank | vblank);
 
 assign pot_x_1 = status[4] ? joy_ana_1[15:8] : joy_ana_0[15:8];
 assign pot_x_2 = status[4] ? joy_ana_0[15:8] : joy_ana_1[15:8];
-assign pot_y_1 = status[4] ? joy_ana_1[7:0] : joy_ana_0[7:0];
-assign pot_y_2 = status[4] ? joy_ana_0[7:0] : joy_ana_1[7:0];
+assign pot_y_1 = status[4] ? ~joy_ana_1[7:0] : ~joy_ana_0[7:0];
+assign pot_y_2 = status[4] ? ~joy_ana_0[7:0] : ~joy_ana_1[7:0];
 
 assign R = status[2] & frame_line ? 4'h4 : blankn ? RR : 4'd0;
 assign G = status[2] & frame_line ? 4'h0 : blankn ? GG : 4'd0;

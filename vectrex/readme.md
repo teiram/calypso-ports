@@ -7,4 +7,5 @@ Keys ZXCV are also mapped as gamepad buttons
 
 
 # Changelog
+- 0.2. Fix y axis mapping
 - 0.1. Initial release
