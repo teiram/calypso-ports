@@ -5,6 +5,7 @@ Boots into the kickstart floppy screen. Can open .afd files and run some games s
 Was not tested extensively yet.
 Needs at least calypso-firmware 0.5 on the MCU.
 # Changelog
+- v0.4. Kickstart loads now with fast RAM
 - v0.3. Slight memory changes. Seems to load the kickstart more safely
 - v0.2. Sound support added.
 - v0.1. Initial version. No sound support
