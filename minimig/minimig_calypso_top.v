@@ -1,12 +1,4 @@
-/********************************************/
-/* minimig_mist_top.v                       */
-/* MiST Board Top File                      */
-/*                                          */
-/* 2012-2015, rok.krajnc@gmail.com          */
-/********************************************/
 
-
-// board type define
 `define MINIMIG_MIST 1
 `define MINIMIG_ALTERA 1
 `define MINIMIG_VIDEO_FILTER 1
@@ -422,8 +414,8 @@ minimig minimig (
   .cts          (1'b0             ),  // RS232 clear to send
   .rts          (                 ),  // RS232 request to send
   //I/O
-  ._joy1        (~joya            ),  // joystick 1 [fire7:fire,up,down,left,right] (default mouse port)
-  ._joy2        (~joyb            ),  // joystick 2 [fire7:fire,up,down,left,right] (default joystick port)
+  ._joy1        (~joyb            ),  // joystick 1 [fire7:fire,up,down,left,right] (default mouse port)
+  ._joy2        (~joya            ),  // joystick 2 [fire7:fire,up,down,left,right] (default joystick port)
   ._joy3        (~joyc            ),  // joystick 3 [fire7:fire,up,down,left,right]
   ._joy4        (~joyd            ),  // joystick 4 [fire7:fire,up,down,left,right]
   .mouse_btn1   (1'b1             ), // mouse button 1
