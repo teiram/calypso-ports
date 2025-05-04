@@ -121,7 +121,7 @@ parameter CONF_STR = {
     "OD,Show tape stream,Off,On;",
     "OE,Enable tape audio,Off,On;",
     "-;",
-    "O12,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
+    "O12,Scanlines,None,25%,50%,75%;",
     "-;",
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
