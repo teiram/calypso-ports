@@ -121,7 +121,7 @@ parameter CONF_STR = {
     "OD,Show tape stream,Off,On;",
     "OE,Enable tape audio,Off,On;",
     "-;",
-    "O12,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+    "O12,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
     "-;",
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -131,7 +131,7 @@ parameter CONF_STR = {
 wire pll_locked;
 wire clk_sys;   //50     Mhz
 wire clk_4;     // 4     MHz
-wire clk_video; //42.667 Mhz
+wire clk_video; //37.5   Mhz
 
 pll pll(
     .inclk0(CLK12M),
@@ -262,13 +262,11 @@ data_io data_io(
 );
 
 /////////////////  Memory  ////////////////////////
-wire [22:0] sdram_addr /* synthesis keep */;
-wire [7:0] sdram_din /* synthesis keep */;
-wire [7:0] sdram_dout /* synthesis keep */;
-wire sdram_rd /* synthesis keep */;
-wire sdram_we /* synthesis keep */;
-wire sdram_ready /* synthesis keep */;
 
+wire sdram_ready;
+wire [24:0] cas_addr;
+wire cas_rd;
+wire [7:0] cas_din;
 
 assign SDRAM_CLK = clk_sys;
 sdram sdram(
@@ -287,12 +285,11 @@ sdram sdram(
     .clk(clk_sys),
 
     .wtbt(0),
-    .addr(sdram_addr),
-    .rd(sdram_rd),
-    .dout(sdram_dout),
-    .din(sdram_din),
-    .we(sdram_we),
-    .ready(sdram_ready)
+    .addr(ioctl_wr ? ioctl_addr : cas_addr),
+    .rd(cas_rd),
+    .dout(cas_din),
+    .din(ioctl_dout),
+    .we(ioctl_wr)
 );
 
 
@@ -316,6 +313,7 @@ wire exp_rw;
 wire exp_sel = status[12] && (exp_addr[15:12]  > 4 && exp_addr[15:12] < 9);
 wire [7:0] joy_dout;
 wire exp_e /* synthesis keep */;
+wire audio_in = status[15] ? ~TAPE_SOUND : (tape_status != 0 ? ~k7_dout : 1'b1);
 
 mc10 mc10(
     .reset(reset),
@@ -350,7 +348,7 @@ mc10 mc10(
 
     .audio(alice_audio),
 
-    .cin(status[15] ? TAPE_SOUND : (tape_status != 0 ? k7_dout : 1'b0))
+    .cin(audio_in)
 );
 
 
@@ -359,9 +357,9 @@ cassette cassette(
     .play(status[10]),
     .rewind(status[11]),
 
-    .sdram_addr(sdram_addr),
-    .sdram_data(sdram_dout),
-    .sdram_rd(sdram_rd),
+    .sdram_addr(cas_addr),
+    .sdram_data(cas_din),
+    .sdram_rd(cas_rd),
 
     .data(k7_dout),
     .status(tape_status)
@@ -371,8 +369,8 @@ cassette cassette(
 reg [7:0] overlay_out;
 overlay ov(
     .clk_vid(clk_video),
-    .din(status[15] ? { TAPE_SOUND, 7'd0 } : sdram_dout),
-    .sample(status[15] ? TAPE_SOUND : sdram_rd),
+    .din(status[15] ? { TAPE_SOUND, 7'd0 } : cas_din),
+    .sample(status[15] ? TAPE_SOUND : cas_rd),
     .vsync(vsync),
     .hsync(hsync),
     .status(status[15] ? {TAPE_SOUND, 3'd3} : {k7_dout, tape_status}),
@@ -397,7 +395,7 @@ spram exp_ram(
 
 
 `ifdef I2S_AUDIO
-wire [15:0] audio = {alice_audio, 4'd0, TAPE_SOUND, 10'd0};
+wire [15:0] audio = {alice_audio, 4'd0, status[14] ? audio_in : 1'b0, 10'd0};
 i2s i2s (
     .reset(1'b0),
     .clk(clk_sys),
