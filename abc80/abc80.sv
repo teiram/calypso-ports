@@ -262,42 +262,6 @@ always @(posedge clk48) begin
 end
 
 
-/////////////////  Memory  ////////////////////////
-/*
-wire [22:0] sdram_addr;
-wire [7:0] sdram_din;
-wire [7:0] sdram_dout;
-wire sdram_rd;
-wire sdram_we;
-wire sdram_ready;
-
-
-assign SDRAM_CLK = clk48;
-sdram sdram(
-    .SDRAM_DQ(SDRAM_DQ),
-    .SDRAM_A(SDRAM_A),
-    .SDRAM_DQML(SDRAM_DQML),
-    .SDRAM_DQMH(SDRAM_DQMH),
-    .SDRAM_BA(SDRAM_BA),
-    .SDRAM_nCS(SDRAM_nCS),
-    .SDRAM_nWE(SDRAM_nWE),
-    .SDRAM_nRAS(SDRAM_nRAS),
-    .SDRAM_nCAS(SDRAM_nCAS),
-    .SDRAM_CKE(SDRAM_CKE),
-    
-    .init(~pll_locked),
-    .clk(clk48),
-
-    .wtbt(0),
-    .addr(sdram_addr),
-    .rd(sdram_rd),
-    .dout(sdram_dout),
-    .din(sdram_din),
-    .we(sdram_we),
-    .ready(sdram_ready)
-);
-*/
-
 ////////////////  Core  ////////////////////////
 wire        video;
 wire [13:0] audio;
