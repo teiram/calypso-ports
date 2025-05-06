@@ -151,3 +151,6 @@
 [submodule "alice/AliceMC10_MiSTer"]
 	path = alice/AliceMC10_MiSTer
 	url = https://github.com/MiSTer-devel/AliceMC10_MiSTer.git
+[submodule "abc80/ABC80-FPGA"]
+	path = abc80/ABC80-FPGA
+	url = https://github.com/gyurco/ABC80-FPGA.git
