@@ -1,6 +1,6 @@
 CORE_ID=alice
 PROJECT_NAME=alice
-VERSION=0.2
+VERSION=0.3
 BITSTREAM_FILE=output_files/alice.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=../common/mist-modules

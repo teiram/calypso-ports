@@ -7,3 +7,4 @@ No extra files are needed
 # Changelog
 - 0.1. Initial release
 - 0.2. Fixed tape load from OSD file. Video output freq improved
+- 0.3. Some video improvements, overlay working (somehow), better keyboard
