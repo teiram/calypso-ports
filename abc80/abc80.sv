@@ -335,7 +335,7 @@ mist_video #(
     .COLOR_DEPTH(1),
     .SD_HCNT_WIDTH(10),
     .OUT_COLOR_DEPTH(VGA_BITS),
-//    .USE_BLANKS(1'b1),
+    .USE_BLANKS(1'b1),
     .BIG_OSD(BIG_OSD)) 
 mist_video(
 	.clk_sys        ( clk48            ),
@@ -347,8 +347,8 @@ mist_video(
 	.B              ( video            ),
 	.HBlank         ( hb               ),
 	.VBlank         ( vb               ),
-	.HSync          ( hs               ),
-	.VSync          ( vs               ),
+	.HSync          ( ~hs               ),
+	.VSync          ( ~vs               ),
 	.VGA_R          ( VGA_R            ),
 	.VGA_G          ( VGA_G            ),
 	.VGA_B          ( VGA_B            ),
