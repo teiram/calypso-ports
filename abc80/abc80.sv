@@ -326,8 +326,8 @@ i2s i2s (
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
-    .left_chan({~audio_mix[14], audio_mix[13:0], 2'b00}),
-    .right_chan({~audio_mix[14], audio_mix[13:0], 2'b00})
+    .left_chan({~audio_mix[14], audio_mix[13:0], 1'b0}),
+    .right_chan({~audio_mix[14], audio_mix[13:0], 1'b0})
 );
 `endif
 
