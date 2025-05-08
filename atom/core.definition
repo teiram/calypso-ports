@@ -1,0 +1,6 @@
+CORE_ID=atom
+PROJECT_NAME=atom
+VERSION=0.1
+BITSTREAM_FILE=output_files/atom.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
