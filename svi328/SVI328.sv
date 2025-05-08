@@ -119,7 +119,7 @@ wire TAPE_SOUND = AUDIO_IN;
 wire TAPE_SOUND = UART_RX;
 `endif
 
-assign LED[0]  =  svi_audio_in;
+assign LED[0]  =  ~ioctl_download;
 
 `include "build_id.v" 
 localparam CONF_STR = {
@@ -128,12 +128,13 @@ localparam CONF_STR = {
     "F2,CAS,Cas File;",
     "OF,Tape Input,File,Line;",
     "TD,Rewind Tape;",
+    "O4,Tape Audio,On,Off;",
     "O79,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
     "O6,Show border,No,Yes;",
     "O3,Swap joysticks,No,Yes;",
     "T0,Reset;",
     "T1,Hard reset;",
-    "V,calypso-",`BUILD_DATE
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 wire clk_sys;
@@ -346,7 +347,10 @@ svi_mapper RamMapper(
     .ram(isRam)
 );
 
-wire [10:0] audio;
+wire [10:0] core_audio;
+
+// Select audio source based on cassette status
+wire [10:0] audio = (cas_status != 0 && !status[4]) ? {svi_audio_in, 10'b0000000000} : core_audio;
 
 `ifdef I2S_AUDIO
 wire [31:0] clk_rate =  32'd42_660_000;
@@ -381,7 +385,7 @@ cv_console console(
     .reset_n_i(~reset),
 
     .svi_row_o(svi_row),
-    .svi_col_i(svi_col),	
+    .svi_col_i(svi_col),
 
     .svi_tap_i(svi_audio_in),
 
@@ -398,7 +402,7 @@ cv_console console(
     .cpu_ram_d_o(ram_do),
     .cpu_rfsh_n_o(cpu_rfsh_n),
     .ay_port_b(ay_port_b),
-	
+
     .vram_a_o(vram_a),
     .vram_we_o(vram_we),
     .vram_d_o(vram_do),
@@ -413,7 +417,7 @@ cv_console console(
     .hblank_o(hblank),
     .vblank_o(vblank),
 
-    .audio_o(audio)
+    .audio_o(core_audio)
 );
 
 wire [1:0] scanlines = status[9:7];
