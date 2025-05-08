@@ -6,3 +6,4 @@ SVI328.ROM file must be provided in the SD card root folder (or core folder)
 
 # Changelog
 - 0.1. Initial release
+- 0.2. Tape audio (courtesy of Turri)
