@@ -1,0 +1,13 @@
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE GalaksijaPLUS_poseidon-ep4cgx150/rtl/galaksija_keyboard.sv
+set_global_assignment -name SYSTEMVERILOG_FILE GalaksijaPLUS_poseidon-ep4cgx150/rtl/AY8912.sv
+set_global_assignment -name VHDL_FILE GalaksijaPLUS_poseidon-ep4cgx150/rtl/spram.vhd
+set_global_assignment -name VHDL_FILE GalaksijaPLUS_poseidon-ep4cgx150/rtl/sprom.vhd
+
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name SYSTEMVERILOG_FILE galaksija_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE galaksija.sv
+set_global_assignment -name SYSTEMVERILOG_FILE galaksija_video.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv

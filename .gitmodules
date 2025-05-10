@@ -157,3 +157,9 @@
 [submodule "coco3/CoCo3_MiSTer"]
 	path = coco3/CoCo3_MiSTer
 	url = https://github.com/MiSTer-devel/CoCo3_MiSTer.git
+[submodule "aquarius/Aquarius_MISTer"]
+	path = aquarius/Aquarius_MISTer
+	url = https://github.com/MiSTer-devel/Aquarius_MISTer.git
+[submodule "galaksija/GalaksijaPLUS_poseidon-ep4cgx150"]
+	path = galaksija/GalaksijaPLUS_poseidon-ep4cgx150
+	url = https://github.com/turri21/GalaksijaPLUS_poseidon-ep4cgx150
