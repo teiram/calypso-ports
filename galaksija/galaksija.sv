@@ -106,6 +106,7 @@ localparam CONF_STR = {
     `SEP
     "F0,ROM;Reload ROM;",
     "F1,TAPGTP;",
+    "O4,Tape Audio,Off,On;",
     `SEP
     "O23,Screen Color,White,Green,Amber,Cyan;",
 //    "O76,Scanlines,None, 25%, 50%, 75%;", Needs the scandoubler. galaksija_video should output 15khz
@@ -161,15 +162,17 @@ wire [7:0] ioctl_dout;
 wire reset = status[0] | status[9] | buttons[1];
 
 galaksija_top galaksija_top (
-   .cpuclk(clk_3p125),
+    .cpuclk(clk_3p125),
     .vidclk(clk_25),
     .audclk(clk_1p7),
     .ramclk(clk_64),
     .reset_in(~reset),
     .ps2_key(ps2_key),
+    
     .audio_l(audio_l),
     .audio_r(audio_r),
-
+    .tape_audio(status[4]),
+    
     .video_dat(video),
     .video_hsync(hsync),
     .video_vsync(vsync),
@@ -204,7 +207,6 @@ user_io #(
     .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
 user_io(
     .clk_sys(clk_25),
-    .clk_sd(clk_25),
     .conf_str(CONF_STR),
     .SPI_CLK(SPI_SCK),
     .SPI_SS_IO(CONF_DATA0),

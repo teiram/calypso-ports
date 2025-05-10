@@ -7,6 +7,7 @@ module galaksija_top(
     input [10:0] ps2_key,
     output [9:0] audio_l,
     output [9:0] audio_r,
+    input tape_audio,
     output [7:0] video_dat,
     output video_hsync,
     output video_vsync,
@@ -421,22 +422,22 @@ wire A02 = ~(C00 | PIN_A);
 wire B02 = ~(C00 | addr[0]);
 wire D02 = ~(addr[6] | iorq_n);
 wire C00 = ~(D02 & m1_n);
-//assign audio = reading_tape ? {1'b0, tape_bit_out, 8'b0} : ({chan_A, 1'b0} + {1'b0, chan_B} + {chan_C, 1'b0});
-assign audio_l = reading_tape ? {2'b00, tape_bit_out, 7'b0} : ({chan_A, 1'b0} + {1'b0, chan_B});
-assign audio_r = reading_tape ? {2'b00, tape_bit_out, 7'b0} : ({chan_C, 1'b0} + {1'b0, chan_B});
+
+assign audio_l = (reading_tape & tape_audio) ? {2'b00, tape_bit_out, 7'b0} : ({chan_A, 1'b0} + {1'b0, chan_B});
+assign audio_r = (reading_tape & tape_audio) ? {2'b00, tape_bit_out, 7'b0} : ({chan_C, 1'b0} + {1'b0, chan_B});
 
 AY8912 AY8912(
-   .CLK(vidclk),
+    .CLK(vidclk),
     .CE(audclk),
-   .RESET(~reset_in),
-   .BDIR(A02),
-   .BC(B02),
-   .DI(odata),
-   .DO(),//not used
-   .CHANNEL_A(chan_A),
-   .CHANNEL_B(chan_B),
-   .CHANNEL_C(chan_C),
-   .SEL(1'b1),//
+    .RESET(~reset_in),
+    .BDIR(A02),
+    .BC(B02),
+    .DI(odata),
+    .DO(),//not used
+    .CHANNEL_A(chan_A),
+    .CHANNEL_B(chan_B),
+    .CHANNEL_C(chan_C),
+    .SEL(1'b1),//
     .IO_in(),//not used
     .IO_out()//not used
 );
