@@ -1,0 +1,6 @@
+CORE_ID=aquarius
+PROJECT_NAME=aquarius
+VERSION=0.1
+BITSTREAM_FILE=output_files/aquarius.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/T80 ../common/mist-modules
