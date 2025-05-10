@@ -1,0 +1,6 @@
+CORE_ID=galaksija
+PROJECT_NAME=galaksija
+VERSION=0.1
+BITSTREAM_FILE=output_files/galaksija.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/T80 ../common/mist-modules
