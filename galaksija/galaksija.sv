@@ -108,7 +108,7 @@ localparam CONF_STR = {
     "F1,TAPGTP;",
     `SEP
     "O23,Screen Color,White,Green,Amber,Cyan;",
-//    "O76,Scanlines,None, 25%, 50%, 75%;",
+//    "O76,Scanlines,None, 25%, 50%, 75%;", Needs the scandoubler. galaksija_video should output 15khz
     `SEP
     "T5,Break;",
     "T9,Reset;",
@@ -133,8 +133,8 @@ pll pll(
 );
 
 wire [7:0] video;
-wire hs, vs;
-wire blank;
+wire hsync, vsync;
+wire hblank, vblank;
 
 wire ypbpr, no_csync;
 wire scandoubler_disable;
@@ -143,7 +143,8 @@ wire [2:0] scanlines = status[7:6];
 wire [1:0] buttons;
 wire [1:0] switches;
 wire [31:0] status;
-wire [9:0]  audio;
+wire [9:0]  audio_l;
+wire [9:0]  audio_r;
 wire ps2_kbd_clk, ps2_kbd_data;
 
 wire key_pressed;
@@ -166,12 +167,14 @@ galaksija_top galaksija_top (
     .ramclk(clk_64),
     .reset_in(~reset),
     .ps2_key(ps2_key),
-    .audio(audio),
+    .audio_l(audio_l),
+    .audio_r(audio_r),
 
     .video_dat(video),
-    .video_hs(hs),
-    .video_vs(vs),
-    .video_blank(blank),
+    .video_hsync(hsync),
+    .video_vsync(vsync),
+    .video_hblank(hblank),
+    .video_vblank(vblank),
 
     .status(status),
     .ioctl_download(ioctl_download),
@@ -264,17 +267,20 @@ mist_video #(
     .COLOR_DEPTH(6),
     .SD_HCNT_WIDTH(10),
     .OUT_COLOR_DEPTH(VGA_BITS),
+    .USE_BLANKS(1'b1),
     .BIG_OSD(BIG_OSD))
 mist_video(
     .clk_sys(clk_25),
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
-    .R(blank ? 0 : r_out), 
-    .G(blank ? 0 : g_out),
-    .B(blank ? 0 : b_out),
-    .HSync(hs),
-    .VSync(vs),
+    .R(r_out), 
+    .G(g_out),
+    .B(b_out),
+    .HSync(hsync),
+    .VSync(vsync),
+    .HBlank(hblank),
+    .VBlank(vblank),
     .VGA_R(VGA_R),
     .VGA_G(VGA_G),
     .VGA_B(VGA_B),
@@ -300,8 +306,8 @@ i2s i2s (
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
 
-    .left_chan({1'b0, audio[9:0], 5'd0}),
-    .right_chan({1'b0, audio[9:0], 5'd0})
+    .left_chan({1'b0, audio_l[9:0], 5'd0}),
+    .right_chan({1'b0, audio_r[9:0], 5'd0})
 );
 
 `endif

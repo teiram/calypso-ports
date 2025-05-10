@@ -5,11 +5,13 @@ module galaksija_top(
     input ramclk,
     input reset_in,
     input [10:0] ps2_key,
-    output [9:0] audio,
+    output [9:0] audio_l,
+    output [9:0] audio_r,
     output [7:0] video_dat,
-    output video_hs,
-    output video_vs,
-    output video_blank,
+    output video_hsync,
+    output video_vsync,
+    output video_hblank,
+    output video_vblank,
     input [31:0] status,
     input ioctl_download,
     input ioctl_wr,
@@ -45,17 +47,17 @@ always @(posedge cpuclk) begin
     else if(cpu_resetn == 0) 
         reset_cnt <= reset_cnt + 1;
 
-    old_vsync <= video_vs;
+    old_vsync <= video_vsync;
     int_cnt <= int_cnt + 1'b1;
 
     clock_correct <= clock_correct > 3125000 ? 0 : clock_correct + 1'b1;
 
-    if (old_vsync & ~video_vs)
+    if (old_vsync & ~video_vsync)
         int_cnt <= 0;
 
     int_n <= ~(int_cnt > 12500 && int_cnt < 18750);
 
-    wait_n_reg <= (iorq_n | mreq_n) & (wait_n_reg | ~video_hs);
+    wait_n_reg <= (iorq_n | mreq_n) & (wait_n_reg | ~video_hsync);
 
 end
 
@@ -243,9 +245,10 @@ galaksija_video(
     .cpuclk(cpuclk),
     .resetn(reset_in),
     .vga_dat(video_dat),
-    .vga_hsync(video_hs),
-    .vga_vsync(video_vs),
-    .vga_blank(video_blank),
+    .vga_hsync(video_hsync),
+    .vga_vsync(video_vsync),
+    .vga_hblank(video_hblank),
+    .vga_vblank(video_vblank),
     .rd_ram1(rd_vram1),
     .wr_ram1(wr_vram1),
     .ram1_out(vram_out1),
@@ -418,7 +421,9 @@ wire A02 = ~(C00 | PIN_A);
 wire B02 = ~(C00 | addr[0]);
 wire D02 = ~(addr[6] | iorq_n);
 wire C00 = ~(D02 & m1_n);
-assign audio = reading_tape ? {1'b0, tape_bit_out, 8'b0} : (chan_A + chan_B + chan_C);
+//assign audio = reading_tape ? {1'b0, tape_bit_out, 8'b0} : ({chan_A, 1'b0} + {1'b0, chan_B} + {chan_C, 1'b0});
+assign audio_l = reading_tape ? {2'b00, tape_bit_out, 7'b0} : ({chan_A, 1'b0} + {1'b0, chan_B});
+assign audio_r = reading_tape ? {2'b00, tape_bit_out, 7'b0} : ({chan_C, 1'b0} + {1'b0, chan_B});
 
 AY8912 AY8912(
    .CLK(vidclk),
