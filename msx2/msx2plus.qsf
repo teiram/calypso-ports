@@ -268,20 +268,16 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[1]
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[0]
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 
-set_global_assignment -name TOP_LEVEL_ENTITY MSX
+set_global_assignment -name TOP_LEVEL_ENTITY msx2plus
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
+set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
+set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
 
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:MSX_MiST/mist/build_id_verilog.tcl"
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
+set_global_assignment -name QIP_FILE files.qip
 
 set_global_assignment -name ENABLE_DRC_SETTINGS OFF
 set_global_assignment -name FLOW_ENABLE_POWER_ANALYZER OFF
-set_global_assignment -name VERILOG_FILE "mist-modules/i2s.v"
-set_global_assignment -name SYSTEMVERILOG_FILE MSX.sv
-set_global_assignment -name VHDL_FILE MSX_MiST/mist/rtc_mist.vhd
-set_global_assignment -name QIP_FILE MSX_MiST/T80/T80.qip
-set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
-set_global_assignment -name VERILOG_FILE "MSX_MiST/mist/mist-modules/sd_card.v"
-set_global_assignment -name QIP_FILE MSX_MiST/esemsx3/emsx.qip
-set_global_assignment -name QIP_FILE pll.qip
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

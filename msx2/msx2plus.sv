@@ -16,7 +16,7 @@
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
 
-module MSX
+module msx2plus
 (
 	input         CLK12M,
 
@@ -161,23 +161,28 @@ assign SDRAM2_nWE = 0;
 
 `include "build_id.v" 
 
-assign LED  = ~leds;
+assign LED  = leds;
 
 parameter CONF_STR = {
-	"MSX;;",
-	"S0,VHD,Mount;",
-	"O2,CPU Clock,Normal,Turbo;",
-	"O3,Slot1,Empty,MegaSCC+ 1MB;",
-	"O45,Slot2,Empty,MegaSCC+ 2MB,MegaRAM 1MB,MegaRAM 2MB;",    
-	"O6,RAM,2048kB,4096kB;",
-	"O7,Swap joysticks,No,Yes;",
-	"O8,VGA Output,CRT,LCD;",
-	"O9,Tape sound,OFF,ON;",
+    "MSX2+;;",
+    "S0,VHD,Mount;",
+    `SEP
+    "O2,CPU Clock,Normal,Turbo;",
+    "O3,Slot1,Empty,MegaSCC+ 1MB;",
+    "O45,Slot2,Empty,MegaSCC+ 2MB,MegaRAM 1MB,MegaRAM 2MB;",
+    "O6,RAM,2048kB,4096kB;",
+    `SEP
+    "O7,Swap joysticks,No,Yes;",
+    `SEP
+    "O8,VGA Output,CRT,LCD;",
+//    "OAB,Scanlines,Off,25%,50%,75%;",
+    "O9,Tape sound,OFF,ON;",
 `ifndef USE_MIDI_PINS
-	"OA,UART TX,MIDI,WiFi;",
+//    "OA,UART TX,MIDI,WiFi;",
 `endif
-	"T0,Reset;",
-	"V,v1.0.",`BUILD_DATE
+    `SEP
+    "T0,Reset;",
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 wire        uart_sel = status[10];
@@ -191,15 +196,14 @@ wire memclk;
 wire hdmiclk;
 `endif
 
-pll pll
-(
-	.inclk0(CLK12M),
-	.c0(memclk),
-	.c1(clk_sys),
+pll pll(
+    .inclk0(CLK12M),
+    .c0(memclk),
+    .c1(clk_sys),
 `ifdef USE_HDMI
     .c2(hdmiclk),
 `endif
-	.locked(locked)
+    .locked(locked)
 );
 
 assign SDRAM_CLK = memclk;
@@ -350,7 +354,7 @@ wire [7:0] leds;
 
 reg reset;
 reg  [27:0] img_reset_cnt = 0;
-wire resetW = status[0] | buttons[1] | img_reset_cnt != 0;
+wire resetW = status[0] | buttons[1] | img_reset_cnt != 0 | ~locked;
 
 always @(posedge clk_sys) begin
 	if (img_reset_cnt != 0) img_reset_cnt <= img_reset_cnt - 1'd1;
@@ -508,22 +512,16 @@ assign AUDIO_R = status[9] ? Cmt_Out : Dac_SR[0];
 
 //////////////////   VIDEO   //////////////////
 
-wire [7:0] osd_r_i, osd_g_i, osd_b_i;
-wire [7:0] osd_r_o, osd_g_o, osd_b_o;
+wire [5:0] osd_r_o, osd_g_o, osd_b_o;
 
-assign osd_r_i = {R_O, R_O[5:4]};
-assign osd_g_i = {G_O, G_O[5:4]};
-assign osd_b_i = {B_O, B_O[5:4]};
-
-osd #(.OUT_COLOR_DEPTH(6)) osd
-(
+osd #(.OUT_COLOR_DEPTH(6), .BIG_OSD(BIG_OSD), .OSD_COLOR(3'b001)) osd(
     .clk_sys(clk_sys),
     .SPI_DI(SPI_DI),
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
-    .R_in(osd_r_i),
-    .G_in(osd_g_i),
-    .B_in(osd_b_i),
+    .R_in(R_O),
+    .G_in(G_O),
+    .B_in(B_O),
     .HSync(HSync),
     .VSync(VSync),
     .R_out(osd_r_o),
@@ -531,10 +529,10 @@ osd #(.OUT_COLOR_DEPTH(6)) osd
     .B_out(osd_b_o)
     );
 
-wire [7:0] r, g, b;
+wire [5:0] r, g, b;
 wire       cs, hs, vs, bl;
 
-RGBtoYPbPr #(8) RGBtoYPbPr
+RGBtoYPbPr #(6) RGBtoYPbPr
 (
 	.clk      ( clk_sys ),
 	.ena      ( ypbpr   ),
@@ -555,73 +553,28 @@ RGBtoYPbPr #(8) RGBtoYPbPr
 );
 
 always @(posedge clk_sys) begin
-	VGA_R <= r[7:8-VGA_BITS];
-	VGA_G <= g[7:8-VGA_BITS];
-	VGA_B <= b[7:8-VGA_BITS];
+	VGA_R <= r[5:2];
+	VGA_G <= g[5:2];
+	VGA_B <= b[5:2];
 	// a minimig vga->scart cable expects a composite sync signal on the VGA_HS output.
 	// and VCC on VGA_VS (to switch into rgb mode)
 	VGA_HS <= ((~no_csync & scandoubler_disable) || ypbpr)? cs : hs;
 	VGA_VS <= ((~no_csync & scandoubler_disable) || ypbpr)? 1'b1 : vs;
 end
 
-`ifdef USE_HDMI
-i2c_master #(22_000_000) i2c_master (
-	.CLK         (clk_sys),
-	.I2C_START   (i2c_start),
-	.I2C_READ    (i2c_read),
-	.I2C_ADDR    (i2c_addr),
-	.I2C_SUBADDR (i2c_subaddr),
-	.I2C_WDATA   (i2c_dout),
-	.I2C_RDATA   (i2c_din),
-	.I2C_END     (i2c_end),
-	.I2C_ACK     (i2c_ack),
-
-	//I2C bus
-	.I2C_SCL     (HDMI_SCL),
-	.I2C_SDA     (HDMI_SDA)
-);
-
-assign HDMI_PCLK = hdmiclk;
-always @(posedge hdmiclk) begin
-	HDMI_R <= r;
-	HDMI_G <= g;
-	HDMI_B <= b;
-	HDMI_HS <= hs;
-	HDMI_VS <= vs;
-	HDMI_DE <= !bl;
-end
-`endif
 
 `ifdef I2S_AUDIO
 i2s i2s (
 	.reset(1'b0),
 	.clk(clk_sys),
-	.clk_rate(32'd21_480_000),
+	.clk_rate(32'd21_000_000),
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
 	.left_chan({1'b0, audio, 1'b0}),
 	.right_chan({1'b0, audio, 1'b0})
 );
-
-`ifdef I2S_AUDIO_HDMI
-assign HDMI_MCLK = 0;
-always @(posedge clk_sys) begin
-	HDMI_BCK <= I2S_BCK;
-	HDMI_LRCK <= I2S_LRCK;
-	HDMI_SDATA <= I2S_DATA;
-end
-`endif
 `endif
 
-`ifdef SPDIF_AUDIO
-spdif spdif (
-	.rst_i(1'b0),
-	.clk_i(clk_sys),
-	.clk_rate_i(32'd21_480_000),
-	.spdif_o(SPDIF),
-	.sample_i({2{1'b0, audio, 1'b0}})
-);
-`endif
 
 endmodule
