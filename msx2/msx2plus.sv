@@ -558,21 +558,23 @@ always @(posedge clk_sys) begin
 	VGA_B <= b[5:2];
 	// a minimig vga->scart cable expects a composite sync signal on the VGA_HS output.
 	// and VCC on VGA_VS (to switch into rgb mode)
-	VGA_HS <= ((~no_csync & scandoubler_disable) || ypbpr)? cs : hs;
-	VGA_VS <= ((~no_csync & scandoubler_disable) || ypbpr)? 1'b1 : vs;
+	VGA_HS <= ((~no_csync & scandoubler_disable) || ypbpr) ? cs : hs;
+	VGA_VS <= ((~no_csync & scandoubler_disable) || ypbpr) ? 1'b1 : vs;
 end
 
+wire [15:0] audio_l = {1'b0, audio, 1'b0};
+wire [15:0] audio_r = {1'b0, audio, 1'b0};
 
 `ifdef I2S_AUDIO
-i2s i2s (
-	.reset(1'b0),
-	.clk(clk_sys),
-	.clk_rate(32'd21_000_000),
-	.sclk(I2S_BCK),
-	.lrclk(I2S_LRCK),
-	.sdata(I2S_DATA),
-	.left_chan({1'b0, audio, 1'b0}),
-	.right_chan({1'b0, audio, 1'b0})
+i2s i2s(
+    .reset(1'b0),
+    .clk(clk_sys),
+    .clk_rate(32'd21_250_000),
+    .sclk(I2S_BCK),
+    .lrclk(I2S_LRCK),
+    .sdata(I2S_DATA),
+    .left_chan(audio_l),
+    .right_chan(audio_r)
 );
 `endif
 

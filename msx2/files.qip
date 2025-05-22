@@ -28,7 +28,6 @@ set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/Env
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/FeedbackMemory.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/LinearTable.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/Operator.vhd
-set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/Opll.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/OutputGenerator.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/OutputMemory.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/PhaseGenerator.vhd
@@ -36,11 +35,8 @@ set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/Pha
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/RegisterMemory.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/SineTable.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/SlotCounter.vhd
-set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/TemporalMixer.vhd
-set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/vm2413.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/VoiceMemory.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/vm2413/VoiceRom.vhd
-set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/opll/eseopll.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/lpf/lpf.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/filter/esefir5.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/sound/filter/tapram.vhd
@@ -61,7 +57,12 @@ set_global_assignment -name VERILOG_FILE MSX_MiST/esemsx3/src/peripheral/rtc.v
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/peripheral/swioports.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/esemsx3/src/peripheral/systemtimer.vhd
 
-#set_global_assignment -name VERILOG_FILE mist-modules/i2s.v
+
+set_global_assignment -name VHDL_FILE opll/TemporalMixer.vhd
+set_global_assignment -name VHDL_FILE opll/eseopll.vhd
+set_global_assignment -name VHDL_FILE opll/Opll.vhd
+set_global_assignment -name VHDL_FILE opll/vm2413.vhd
+
 set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name SYSTEMVERILOG_FILE msx2plus.sv
 set_global_assignment -name VHDL_FILE emsx_top.vhd

@@ -127,7 +127,7 @@ entity emsx_top is
         pVideoDat       : out   std_logic;                          -- (Reserved)
 
         audio_o         : out   std_logic_vector( 13 downto 0 );
-
+        
         -- CMT
         CmtIn           :  in   std_logic;
         CmtOut          :  out  std_logic;
@@ -913,7 +913,7 @@ architecture RTL of emsx_top is
     -- OPLL signals
     signal  OpllReq         : std_logic;
     signal  OpllAck         : std_logic;
-    signal  OpllAmp         : std_logic_vector(  9 downto 0 );
+    signal  OpllAmp         : std_logic_vector(9 downto 0);
     signal  OpllEnaWait     : std_logic;
 
     -- Sound signals
@@ -1010,6 +1010,7 @@ architecture RTL of emsx_top is
     signal  ff_tr_pcm       : std_logic_vector( DACin'high + 2 downto DACin'low );
     signal  ff_pre_dacin    : std_logic_vector( DACin'high + 2 downto DACin'low );
     constant c_opll_offset  : std_logic_vector( DACin'high + 2 downto DACin'low ) := ( ff_pre_dacin'high => '1', others => '0' );
+
     constant c_opll_zero    : std_logic_vector( OpllAmp'range ) := ( OpllAmp'high => '1', others => '0' );
 
     -- Sound output filter
@@ -2179,7 +2180,6 @@ begin
 
             -- ff_pre_dacin assignment
             ff_pre_dacin <= (not ff_psg) + ff_scc + ff_opll + ff_tr_pcm;
-
             -- amplitude limiter
             case ff_pre_dacin( ff_pre_dacin'high downto ff_pre_dacin'high - 2 ) is
                 when "100" => DACin <= ff_pre_dacin( ff_pre_dacin'high ) & ff_pre_dacin( ff_pre_dacin'high - 3 downto 0 );
@@ -2751,7 +2751,6 @@ begin
         );
 
     audio_o <= lpf5_wave;
-
     U33: esepwm
         generic map(DAC_msbi) port map(clk21m, not power_on_reset, lpf5_wave, DACout);
 

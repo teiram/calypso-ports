@@ -163,3 +163,6 @@
 [submodule "galaksija/GalaksijaPLUS_poseidon-ep4cgx150"]
 	path = galaksija/GalaksijaPLUS_poseidon-ep4cgx150
 	url = https://github.com/turri21/GalaksijaPLUS_poseidon-ep4cgx150
+[submodule "sparc/ss"]
+	path = sparc/ss
+	url = https://github.com/Grabulosaure/ss.git
