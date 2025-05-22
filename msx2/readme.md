@@ -6,4 +6,5 @@ You need a VHD file to run this core. Load it using the OSD
 
 
 # Changelog
+- 0.2 OPLL sound fixes
 - 0.1 First version

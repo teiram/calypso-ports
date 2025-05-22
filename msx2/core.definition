@@ -1,6 +1,6 @@
 CORE_ID=msx2+
 PROJECT_NAME=msx2plus
-VERSION=0.1
+VERSION=0.2
 BITSTREAM_FILE=output_files/msx2plus.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=../common/T80 ../common/mist-modules
