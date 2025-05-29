@@ -120,16 +120,19 @@ wire TAPE_SOUND = UART_RX;
 `endif
 
 assign LED[0]  =  ~ioctl_download;
+assign LED[1] = ~motor;
+assign LED[2] = megarom;
+assign LED[3] = tape_loaded;
 
 `include "build_id.v" 
 localparam CONF_STR = {
     "SVI328;;",
     "F,BINROM,Load Cartridge;",
-    "F2,CAS,Cas File;",
+    "F2,CAS,Load Tape;",
     "OF,Tape Input,File,Line;",
     "TD,Rewind Tape;",
     "O4,Tape Audio,On,Off;",
-    "O79,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
+    "O79,Scanlines,None,25%,50%,75%;",
     "O6,Show border,No,Yes;",
     "O3,Swap joysticks,No,Yes;",
     "T0,Reset;",
@@ -150,12 +153,22 @@ pll pll(
 
 reg ce_10m7 = 0;
 reg ce_5m3 = 0;
+// Megarom logic
+reg megarom;
+reg [5:0] megarom_index;
+
 always @(posedge clk_sys) begin
     reg [2:0] div;
-
+    reg [19:0] megarom_cnt;
     div <= div + 1'd1;
     ce_10m7 <= !div[1:0];
     ce_5m3  <= !div[2:0];
+    if (!div[2:0]) begin
+        if (megarom_cnt == 20'd666666) begin
+            megarom_cnt <= 20'd0;
+            megarom_index <= megarom_index + 6'd1;
+        end else megarom_cnt <= megarom_cnt + 20'd1;
+    end
 end
 
 wire [31:0] status;
@@ -223,6 +236,7 @@ wire hard_reset = status[1];
 reg [15:0] cleanup_addr = 16'd0;
 reg cleanup_we;
 wire in_hard_reset = |cleanup_addr;
+reg tape_loaded;
 
 always @(posedge clk_sys) begin
     reg hard_reset_last;
@@ -233,17 +247,26 @@ always @(posedge clk_sys) begin
     if (~hard_reset_last & hard_reset) begin
         cleanup_addr <= 16'hffff;
         cleanup_we <= 1'b1;
+        megarom <= 1'b0;
+        tape_loaded <= 1'b0;
     end
-    else if (~ce_last & ce_5m3) begin
-        if (|cleanup_addr) begin
-            case (cleanup_we) 
-                1'b0: cleanup_we <= 1'b1;
-                1'b1: begin
-                    cleanup_we <= 1'b0;
-                    cleanup_addr <= cleanup_addr - 1'b1;
-                end
-            endcase
+    else begin
+        if (~ce_last & ce_5m3) begin
+            if (|cleanup_addr) begin
+                case (cleanup_we) 
+                    1'b0: cleanup_we <= 1'b1;
+                    1'b1: begin
+                        cleanup_we <= 1'b0;
+                        cleanup_addr <= cleanup_addr - 1'b1;
+                    end
+                endcase
+            end
         end
+        if (ioctl_index[1:0] == 2'b01 && ioctl_download == 1'b1) begin
+            megarom <= |ioctl_addr[19:16];
+        end
+        if (ioctl_index[1:0] == 2'b10 && ioctl_download == 1'b1) tape_loaded <= 1'b1;
+        else if (reset == 1'b1) tape_loaded <= 1'b0;
     end
 end
 
@@ -292,16 +315,21 @@ wire [22:0] sdram_addr;
 wire  [7:0] sdram_din;
 wire ioctl_isROM = ioctl_index[5:0] < 6'd2; //OSD file index is 0 (ROM) or 1 (ROM Cartridge)
 wire ioctl_cas_download = ioctl_download & ioctl_index[5:0] == 6'd2;
+wire [8:0] megarom_page = megarom ? 
+    megarom_index < 6'd4 ? {6'd0, 1'b1, megarom_index[1:0]} : {3'b100, megarom_index[5:0]} 
+    : {6'd0, 1'b1, ram_a[15:14]};
 
 assign sdram_we = ioctl_wr | 
                   (isRam & ~(ram_we_n | ram_ce_n)) | 
                   (in_hard_reset & cleanup_we);
 
-assign sdram_addr = (ioctl_download && ioctl_isROM) ? {6'd0, ioctl_index[0], ioctl_addr[15:0]} : 
-        ioctl_cas_download ? {2'b11, ioctl_addr[20:0]} :
-        in_hard_reset ? {1'b1, cleanup_addr} :
-        sdram_cas_rd ? {2'b11, sdram_cas_addr[20:0]} :
-        ram_a;
+assign sdram_addr = 
+        (ioctl_download && ioctl_isROM && ~|ioctl_addr[24:16]) ? {6'd0, ioctl_index[0], ioctl_addr[15:0]} : //ioctl: ROM and Cartridge (64K)
+        (ioctl_download && ioctl_isROM && |ioctl_addr[24:16]) ? {3'b100,  ioctl_addr[19:0]} :               //ioctl: Cartridge (> 64K)
+        ioctl_cas_download ? {2'b11, ioctl_addr[20:0]} :                                                    //ioctl: Cassette
+        in_hard_reset ? {1'b1, cleanup_addr} :                                                              //Hard reset
+        sdram_cas_rd ? {2'b11, sdram_cas_addr[20:0]} :                                                      //Cassette: Play
+        ram_a[17:16] == 2'b01 ? {megarom_page, ram_a[13:0]} : ram_a;                                        //CPU&Mapper accesses
 
 assign sdram_din = ioctl_wr ? ioctl_dout : 
     in_hard_reset ? 8'h00 :
@@ -339,6 +367,11 @@ wire [17:0] ram_a;
 wire isRam;
 
 wire motor;
+
+// Mapper returns an address of 18 bits (256Kb)
+// 00000 - 0FFFF. 64Kb  - ROM
+// 10000 - 1FFFF. 64Kb  - Cartridge ROM
+// 20000 - 3FFFF. 128Kb - RAM
 
 svi_mapper RamMapper(
     .addr_i(cpu_ram_a),
@@ -461,7 +494,7 @@ wire cas_data_out;
 wire [2:0] cas_status;
 wire play, rewind;
 
-assign play = ~motor;
+assign play = ~motor & tape_loaded;
 assign rewind = status[13] | ioctl_cas_download | reset;
 
 cassette CASReader(
