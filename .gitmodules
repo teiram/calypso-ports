@@ -1,168 +1,168 @@
 [submodule "menu/Menu_MIST"]
 	path = menu/Menu_MIST
-	url = https://github.com/mist-devel/Menu_MIST.git
+	url = https://github.com/teiram/Menu_MIST.git
 [submodule "plus_too/plus_too"]
 	path = plus_too/plus_too
-	url = https://github.com/mist-devel/plus_too.git
+	url = https://github.com/teiram/plus_too.git
 [submodule "amstrad-cpc/Amstrad_MiST"]
 	path = amstrad-cpc/Amstrad_MiST
-	url = https://github.com/sorgelig/Amstrad_MiST.git
+	url = https://github.com/teiram/Amstrad_MiST.git
 [submodule "archimedes/archimedes"]
 	path = archimedes/archimedes
-	url = https://github.com/mist-devel/archimedes.git
+	url = https://github.com/teiram/archimedes.git
 [submodule "nes/nes"]
 	path = nes/nes
-	url = https://github.com/mist-devel/nes.git
+	url = https://github.com/teiram/nes.git
 [submodule "c64/c64"]
 	path = c64/c64
-	url = https://github.com/mist-devel/c64.git
+	url = https://github.com/teiram/c64.git
 [submodule "wsoltys-mist-cores/mist-cores"]
 	path = wsoltys-mist-cores/mist-cores
-	url = https://github.com/wsoltys/mist-cores.git
+	url = https://github.com/teiram/mist-cores.git
 [submodule "wsoltys-mist-cores/mist-modules"]
 	path = wsoltys-mist-cores/mist-modules
-	url = https://github.com/mist-devel/mist-modules.git
+	url = https://github.com/teiram/mist-modules.git
 [submodule "atari2600/TCA2601"]
 	path = atari2600/TCA2601
-	url = https://github.com/mist-devel/TCA2601.git
+	url = https://github.com/teiram/TCA2601.git
 [submodule "colecovision/colecovision_fpga"]
 	path = colecovision/colecovision_fpga
-	url = https://github.com/mist-devel/colecovision_fpga.git
+	url = https://github.com/teiram/colecovision_fpga.git
 [submodule "SMS/SMS-Nuked"]
 	path = SMS/SMS-Nuked
-	url = https://github.com/gyurco/SMS-Nuked.git
+	url = https://github.com/teiram/SMS-Nuked.git
 [submodule "xt/PCXT_DeMiSTify"]
 	path = xt/PCXT_DeMiSTify
-	url = https://github.com/somhi/PCXT_DeMiSTify
+	url = https://github.com/teiram/PCXT_DeMiSTify
 [submodule "bbcmicro/beeb"]
 	path = bbcmicro/beeb
-	url = https://github.com/mist-devel/beeb.git
+	url = https://github.com/teiram/beeb.git
 [submodule "xt/mist-modules"]
 	path = xt/mist-modules
-	url = https://github.com/mist-devel/mist-modules.git
+	url = https://github.com/teiram/mist-modules.git
 [submodule "oric/Oric_Mist_48K"]
 	path = oric/Oric_Mist_48K
-	url = https://github.com/rampa069/Oric_Mist_48K.git
+	url = https://github.com/teiram/Oric_Mist_48K.git
 [submodule "spectrum/ZX_Spectrum-128K_MIST"]
 	path = spectrum/ZX_Spectrum-128K_MIST
-	url = https://github.com/sorgelig/ZX_Spectrum-128K_MIST.git
+	url = https://github.com/teiram/ZX_Spectrum-128K_MIST.git
 [submodule "c16/c16"]
 	path = c16/c16
-	url = https://github.com/mist-devel/c16.git
+	url = https://github.com/teiram/c16.git
 [submodule "vic20/VIC20_MiST"]
 	path = vic20/VIC20_MiST
-	url = https://github.com/mist-devel/VIC20_MiST.git
+	url = https://github.com/teiram/VIC20_MiST.git
 [submodule "zx8x-bm/Sinclair_ZX8X"]
 	path = zx81/Sinclair_ZX8X
-	url = https://github.com/BigMist/Sinclair_ZX8X.git
+	url = https://github.com/teiram/Sinclair_ZX8X.git
 [submodule "pcw/mist-modules"]
 	path = pcw/mist-modules
-	url = https://github.com/mist-devel/mist-modules.git
+	url = https://github.com/teiram/mist-modules.git
 [submodule "amstrad-cpc/mist-modules"]
 	path = amstrad-cpc/mist-modules
-	url = https://github.com/mist-devel/mist-modules.git
+	url = https://github.com/teiram/mist-modules.git
 [submodule "pcw/Amstrad_PCW"]
 	path = pcw/Amstrad_PCW
-	url = https://github.com/BigMist/Amstrad_PCW.git
+	url = https://github.com/teiram/Amstrad_PCW.git
 [submodule "ql/ql"]
 	path = ql/ql
-	url = https://github.com/mist-devel/ql.git
+	url = https://github.com/teiram/ql.git
 [submodule "msx/MSX_MiST"]
 	path = msx2/MSX_MiST
-	url = https://github.com/mist-devel/MSX_MiST.git
+	url = https://github.com/teiram/MSX_MiST.git
 [submodule "msx/mist-modules"]
 	path = msx2/mist-modules
-	url = https://github.com/mist-devel/mist-modules.git
+	url = https://github.com/teiram/mist-modules.git
 [submodule "msx/msx1fpga"]
 	path = msx1/msx1fpga
-	url = https://github.com/BigMist/msx1fpga.git
+	url = https://github.com/teiram/msx1fpga.git
 [submodule "pcw/T80"]
 	path = pcw/T80
-	url = https://github.com/mist-devel/T80.git
+	url = https://github.com/teiram/T80.git
 [submodule "intellivision/Intv_DeMiSTified"]
 	path = intellivision/Intv_DeMiSTified
-	url = https://github.com/robinsonb5/Intv_DeMiSTified.git
+	url = https://github.com/teiram/Intv_DeMiSTified.git
 [submodule "mist/MiSTery"]
 	path = mist/MiSTery
-	url = https://github.com/gyurco/MiSTery.git
+	url = https://github.com/teiram/MiSTery.git
 [submodule "atari800/Atari800XL"]
 	path = atari800/Atari800XL
-	url = https://github.com/gyurco/Atari800XL.git
+	url = https://github.com/teiram/Atari800XL.git
 [submodule "minimig/minimig-mist"]
 	path = minimig/minimig-mist
-	url = https://github.com/mist-devel/minimig-mist.git
+	url = https://github.com/teiram/minimig-mist.git
 [submodule "x68000/X68000"]
 	path = x68000/X68000
-	url = https://github.com/BigMist/X68000.git
+	url = https://github.com/teiram/X68000.git
 [submodule "atari800/mist-modules"]
 	path = atari800/mist-modules
-	url = https://github.com/mist-devel/mist-modules.git
+	url = https://github.com/teiram/mist-modules.git
 [submodule "samcoupe/SAMCoupe_MIST"]
 	path = samcoupe/SAMCoupe_MIST
-	url = https://github.com/sorgelig/SAMCoupe_MIST.git
+	url = https://github.com/teiram/SAMCoupe_MIST.git
 [submodule "gehstock/Mist_FPGA"]
 	path = gehstock/Mist_FPGA
-	url = https://github.com/Gehstock/Mist_FPGA.git
+	url = https://github.com/teiram/Mist_FPGA.git
 [submodule "coco2/CoCo2-FPGA"]
 	path = coco2/CoCo2-FPGA
-	url = https://github.com/gyurco/CoCo2-FPGA.git
+	url = https://github.com/teiram/CoCo2-FPGA.git
 [submodule "mo/MO_MiSTer"]
 	path = mo/MO_MiSTer
-	url = https://github.com/Grabulosaure/MO_MiSTer.git
+	url = https://github.com/teiram/MO_MiSTer.git
 [submodule "dvk/dvk-fpga"]
 	path = dvk/dvk-fpga
-	url = https://github.com/xolod79/dvk-fpga.git
+	url = https://github.com/teiram/dvk-fpga.git
 [submodule "dkv/mist-modules"]
 	path = dvk/mist-modules
-	url = https://github.com/mist-devel/mist-modules.git
+	url = https://github.com/teiram/mist-modules.git
 [submodule "mtx512/MTX512-poseidon"]
 	path = mtx512/MTX512-poseidon
-	url = https://github.com/retrocrypta/MTX512-poseidon.git
+	url = https://github.com/teiram/MTX512-poseidon.git
 [submodule "common/mist-modules"]
 	path = common/mist-modules
-	url = https://github.com/mist-devel/mist-modules.git
+	url = https://github.com/teiram/mist-modules.git
 [submodule "common/T80"]
 	path = common/T80
-	url = https://github.com/mist-devel/T80.git
+	url = https://github.com/teiram/T80.git
 [submodule "svi328/SVI328-SiDi"]
 	path = svi328/SVI328-SiDi
-	url = https://github.com/RW-FPGA-devel-Team/SVI328-SiDi.git
+	url = https://github.com/teiram/SVI328-SiDi.git
 [submodule "adam/Adam_Coleco"]
 	path = adam/Adam_Coleco
-	url = https://github.com/BigMist/Adam_Coleco
+	url = https://github.com/teiram/Adam_Coleco
 [submodule "einstein/Tatung-Einstein-TC01-poseidon"]
 	path = einstein/Tatung-Einstein-TC01-poseidon
-	url = https://github.com/retrocrypta/Tatung-Einstein-TC01-poseidon
+	url = https://github.com/teiram/Tatung-Einstein-TC01-poseidon
 [submodule "common/jt49"]
 	path = common/jt49
-	url = https://github.com/jotego/jt49.git
+	url = https://github.com/teiram/jt49.git
 [submodule "sordm5/SordM5_Poseidon"]
 	path = sordm5/SordM5_Poseidon
-	url = https://github.com/retrocrypta/SordM5_Poseidon.git
+	url = https://github.com/teiram/SordM5_Poseidon.git
 [submodule "fm7/FM-7_BigMiST"]
 	path = fm7/FM-7_BigMiST
-	url = https://github.com/retrocrypta/FM-7_BigMiST.git
+	url = https://github.com/teiram/FM-7_BigMiST.git
 [submodule "atom/AcornAtom_MiSTer"]
 	path = atom/AcornAtom_MiSTer
-	url = https://github.com/MiSTer-devel/AcornAtom_MiSTer.git
+	url = https://github.com/teiram/AcornAtom_MiSTer.git
 [submodule "vectrex/Vectrex_poseidon-ep4cgx150"]
 	path = vectrex/Vectrex_poseidon-ep4cgx150
-	url = https://github.com/turri21/Vectrex_poseidon-ep4cgx150.git
+	url = https://github.com/teiram/Vectrex_poseidon-ep4cgx150.git
 [submodule "alice/AliceMC10_MiSTer"]
 	path = alice/AliceMC10_MiSTer
-	url = https://github.com/MiSTer-devel/AliceMC10_MiSTer.git
+	url = https://github.com/teiram/AliceMC10_MiSTer.git
 [submodule "abc80/ABC80-FPGA"]
 	path = abc80/ABC80-FPGA
-	url = https://github.com/gyurco/ABC80-FPGA.git
+	url = https://github.com/teiram/ABC80-FPGA.git
 [submodule "coco3/CoCo3_MiSTer"]
 	path = coco3/CoCo3_MiSTer
-	url = https://github.com/MiSTer-devel/CoCo3_MiSTer.git
+	url = https://github.com/teiram/CoCo3_MiSTer.git
 [submodule "aquarius/Aquarius_MISTer"]
 	path = aquarius/Aquarius_MISTer
-	url = https://github.com/MiSTer-devel/Aquarius_MISTer.git
+	url = https://github.com/teiram/Aquarius_MISTer.git
 [submodule "galaksija/GalaksijaPLUS_poseidon-ep4cgx150"]
 	path = galaksija/GalaksijaPLUS_poseidon-ep4cgx150
-	url = https://github.com/turri21/GalaksijaPLUS_poseidon-ep4cgx150
+	url = https://github.com/teiram/GalaksijaPLUS_poseidon-ep4cgx150
 [submodule "sparc/ss"]
 	path = sparc/ss
-	url = https://github.com/Grabulosaure/ss.git
+	url = https://github.com/teiram/ss.git
