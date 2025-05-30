@@ -132,12 +132,28 @@ assign address[17:1] = address_in[17:1];
 assign address[22:18] = (bank[7] ? // access to $F8-$FF or ovl
 								{ 4'b111_1, address_in[18] } : (bank[5] ? // chipram access
 								{ 2'b0, bank[3]|bank[2], bank[3]|bank[1], address_in[18] } : address_in[22:18]));
-*/
+
 assign address = {
+    1'b0,
     bank[7]|bank[6]|bank[5]|bank[4],
     bank[7]|bank[6]|bank[3]|bank[2],
     bank[7]|bank[5]|bank[3]|bank[1],
     address_in[18:1]};
+*/
+assign address[18:1] = address_in[18:1];
+assign address[22] = 1'b0;                         //Low banks only (4Mb)
+assign address[21:19] = 
+    bank[0] ? 3'b000 :                             //CHIP RAM 1
+    bank[1] ? 3'b001 :                             //CHIP RAM 2
+    bank[2] ? 3'b010 :                             //CHIP RAM 3
+    bank[3] ? 3'b011 :                             //CHIP RAM 4
+    bank[4] ? 
+        address_in[23:19] == 5'b11000 ? 3'b100 :      //SLOW RAM 1
+        address_in[23:19] == 5'b11001 ? 3'b101 :      //SLOW RAM 2
+        address_in[23:19] == 5'b11010 ? 3'b110 :      //SLOW RAM 3
+            address_in[21:19] :                               
+    bank[7] ? 3'b111 : address_in[21:19];          //Kickstart
+
 
 //assign address = {bank[7]|bank[5]|bank[3]|bank[1],address_in[18:1]};
 //always @(posedge clk28m)
