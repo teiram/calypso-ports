@@ -1,0 +1,19 @@
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+
+#set_global_assignment -name VHDL_FILE uGalaksija/T80_ALU.vhd
+#set_global_assignment -name VHDL_FILE uGalaksija/T80a.vhd
+#set_global_assignment -name VHDL_FILE uGalaksija/T80_MCode.vhd
+#set_global_assignment -name VHDL_FILE uGalaksija/T80_Pack.vhd
+#set_global_assignment -name VHDL_FILE uGalaksija/T80_Reg.vhd
+#set_global_assignment -name VHDL_FILE uGalaksija/T80.vhd
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name QIP_FILE rom.qip
+set_global_assignment -name QIP_FILE charrom.qip
+set_global_assignment -name QIP_FILE ram.qip
+set_global_assignment -name SYSTEMVERILOG_FILE bram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE brom.sv
+set_global_assignment -name QIP_FILE uGalaksija/uGalaksija.qip
+set_global_assignment -name SYSTEMVERILOG_FILE galaksija_calypso.sv
