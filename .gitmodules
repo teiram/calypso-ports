@@ -166,3 +166,9 @@
 [submodule "sparc/ss"]
 	path = sparc/ss
 	url = https://github.com/teiram/ss.git
+[submodule "zxnext/ZXN_MiST"]
+	path = zxnext/ZXN_MiST
+	url = https://gitlab.com/gyurco/ZXN_MiST.git
+[submodule "zxnext/ZX_Spectrum_Next_FPGA"]
+	path = zxnext/ZX_Spectrum_Next_FPGA
+	url = https://gitlab.com/gyurco/ZX_Spectrum_Next_FPGA.git
