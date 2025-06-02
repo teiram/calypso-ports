@@ -1,0 +1,7 @@
+CORE_ID=zxnext
+PROJECT_NAME=zxnext
+VERSION=0.1
+BITSTREAM_FILE=output_files/zxnext.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
+
