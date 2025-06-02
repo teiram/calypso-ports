@@ -110,7 +110,7 @@ wire TAPE_SOUND=UART_RX;
 
 `include "build_id.v"
 localparam CONF_STR = {
-    "ZXN;;",
+    "ZXNEXT;;",
     "F,TZX,Load;",
     "T1,Start/Stop TZX;",
     `SEP
