@@ -306,27 +306,19 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[1]
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[0]
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 
-set_global_assignment -name TOP_LEVEL_ENTITY calypso_top
 
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
 set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
 
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:msx1fpga/Mist/build_id.tcl"
-set_global_assignment -name QIP_FILE msx1fpga/rtl/video/f18a/f18a.qip
-set_global_assignment -name SDC_FILE constraints.sdc
-set_global_assignment -name SYSTEMVERILOG_FILE msx1fpga/Mist/sd_card.sv
-set_global_assignment -name VHDL_FILE msx1fpga/Mist/ssdram.vhd
-set_global_assignment -name QIP_FILE "msx1fpga/mist-modules/mist_core.qip"
-set_global_assignment -name VHDL_FILE msx1fpga/Mist/Mist_top.vhd
-set_global_assignment -name QIP_FILE "msx1fpga/mist-modules/mist.qip"
-set_global_assignment -name SYSTEMVERILOG_FILE MSX1.sv
+set_global_assignment -name TOP_LEVEL_ENTITY calypso_top
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
 set_global_assignment -name QIP_FILE files.qip
-set_global_assignment -name QIP_FILE pll1.qip
-set_global_assignment -name QIP_FILE pll_vdp.qip
+
 
 
 set_global_assignment -name ENABLE_DRC_SETTINGS OFF
 set_global_assignment -name FLOW_ENABLE_POWER_ANALYZER OFF
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

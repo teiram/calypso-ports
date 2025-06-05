@@ -1,7 +1,4 @@
-set_global_assignment -name SYSTEMVERILOG_FILE MSX1.sv
-set_global_assignment -name QIP_FILE msx1fpga/mist-modules/mist.qip
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/msx_pack.vhd
-set_global_assignment -name VHDL_FILE msx1fpga/rtl/msx.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/clocks.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/cpu/t80a.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/cpu/t80_reg.vhd
@@ -89,3 +86,15 @@ set_global_assignment -name VERILOG_FILE msx1fpga/rtl/audio/jt51/jt51.v
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/Debug-Overlay.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/Monochrome.vhd
 set_global_assignment -name VERILOG_FILE msx1fpga/rtl/RgbGrey.v
+
+set_global_assignment -name SYSTEMVERILOG_FILE MSX1.sv
+set_global_assignment -name VHDL_FILE Mist_top.vhd
+set_global_assignment -name VHDL_FILE msx.vhd
+set_global_assignment -name QIP_FILE pll1.qip
+set_global_assignment -name QIP_FILE pll_vdp.qip
+set_global_assignment -name QIP_FILE f18a.qip
+set_global_assignment -name SDC_FILE constraints.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE msx1fpga/Mist/sd_card.sv
+set_global_assignment -name VHDL_FILE msx1fpga/Mist/ssdram.vhd
+set_global_assignment -name QIP_FILE msx1fpga/mist-modules/mist_core.qip
+set_global_assignment -name QIP_FILE msx1fpga/mist-modules/mist.qip

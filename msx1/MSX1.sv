@@ -169,15 +169,17 @@ assign SDRAM_CLK = sdram_clk_o;
 parameter CONF_STR = {
         "MSX1;;",
         "S0,VHDIMGDSK;",
-		  "O2,Hard reset after Mount,No,Yes;",
+        "O2,Hard reset after Mount,No,Yes;",
         "O3,Joysticks Swap,No,Yes;",
-		  `SEP
-		  "OD,F18A Max Sprites,4,32;",
+        `SEP
+        "OF,VDP,VDP18,F18A;",
+        "OBC,MiST Scanlines,Off,25%,50%,75%;",
+        "OD,F18A Max Sprites,4,32;",
         "OE,F18A Scanlines,Off,On;",
-		  `SEP
+        `SEP
         "T1,Reset (soft);",
-		  "T0,Reset (hard);",
-        "V,calypso-",`BUILD_DATE 
+        "T0,Reset (hard);",
+        "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 
@@ -451,9 +453,9 @@ Mist_top msx
 		.vga_vsync_n_o	(VSync),	//	: out   std_logic								:= '1';
 		.VBlank		(VBlank),			//
 		.HBlank		(HBlank),			//
-		.vga_DE		(vga_DE)
+		.vga_DE		(vga_DE),
 		
-
+        .f18a_i(status[15])
 	);
 	
 
@@ -464,7 +466,7 @@ assign tape_in = TAPE_SOUND;
 
 
 	mist_video #(.COLOR_DEPTH(4), .SD_HCNT_WIDTH(11), .OUT_COLOR_DEPTH(VGA_BITS), .BIG_OSD(BIG_OSD)) mist_video (	
-	.clk_sys      (clk_25     ),
+	.clk_sys      (status[15] ? clk_25 : clk_sys     ),
 	.SPI_SCK      (SPI_SCK    ),
 	.SPI_SS3      (SPI_SS3    ),
 	.SPI_DI       (SPI_DI     ),
@@ -478,11 +480,11 @@ assign tape_in = TAPE_SOUND;
 	.VGA_B        (VGA_B      ),
 	.VGA_VS       (VGA_VS     ),
 	.VGA_HS       (VGA_HS     ),
-	.ce_divider   (1'b0       ),
-	.scandoubler_disable(1'b1	),
-	.no_csync     (1'b1	),
-	.scanlines    (2'b0),
-	.ypbpr        (ypbpr      )
+	.ce_divider   (status[15] ? 3'd0 : 3'd1),
+	.scandoubler_disable(status[15] ? 1'b1 : scandoubler_disable),
+	.no_csync     (status[15] ? 1'b1 : no_csync),
+	.scanlines    (status[15] ? 2'b0 : status[12:11]),
+	.ypbpr        (ypbpr)
 	);
 
 `ifdef USE_HDMI
@@ -504,7 +506,7 @@ i2c_master #(21_000_000) i2c_master (
 
 mist_video #(.COLOR_DEPTH(4), .SD_HCNT_WIDTH(11),.OUT_COLOR_DEPTH(8), .USE_BLANKS(1), .BIG_OSD(BIG_OSD), .VIDEO_CLEANER(1)) hdmi_video (
 	.*,
-	.clk_sys     ( clk_25   ),
+	.clk_sys     ( status[15] ? clk_25 : clk_sys   ),
 	.scanlines   (),
 	.ce_divider  ( 3'd0       ),
 	.scandoubler_disable (1'b1),
