@@ -96,5 +96,4 @@ set_global_assignment -name QIP_FILE f18a.qip
 set_global_assignment -name SDC_FILE constraints.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE msx1fpga/Mist/sd_card.sv
 set_global_assignment -name VHDL_FILE msx1fpga/Mist/ssdram.vhd
-set_global_assignment -name QIP_FILE msx1fpga/mist-modules/mist_core.qip
-set_global_assignment -name QIP_FILE msx1fpga/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip

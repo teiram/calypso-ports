@@ -341,7 +341,7 @@ begin
 	the_msx: entity work.msx
 	generic map (
 		hw_id_g			=> 8,  -- 10 Mister, 8 Mist
-		hw_txt_g			=> "BigMiST",
+		hw_txt_g			=> "Calypso",
 		hw_version_g	=> actual_version,
 		video_opt_g		=> 0,				
 		ramsize_g		=> 8192, --8192,
