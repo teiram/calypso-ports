@@ -43,7 +43,8 @@ generic
    BIG_OSD : boolean := false;
    HDMI : boolean := false;
    DRIVE_N : integer := 0;
-   BUILD_DATE : string :=""
+   BUILD_DATE : string :="";
+   BUILD_VERSION: string :=""
 );
 port
 (
@@ -210,7 +211,7 @@ constant CONF_STR : string :=
 	SEP&
 	"T1,Reset;"&
 	"T5,Reset & Detach Cartridge;"&
-	"V,v"&BUILD_DATE;
+	"V,"&BUILD_VERSION&"-"&BUILD_DATE;
 
 type   conf_ram_t is array (CONF_STR'length-1 downto 0) of std_logic_vector(7 downto 0);
 
@@ -1340,7 +1341,8 @@ begin
 		aright => AUDIO_R
 	);
 
-	c64_clk_rate <= 31520000 when st_ntsc = '0' else 32720000;
+--	c64_clk_rate <= 31520000 when st_ntsc = '0' else 32720000;
+c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 	my_i2s : i2s
 	port map (
 		clk => clk_c64,

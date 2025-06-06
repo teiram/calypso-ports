@@ -183,7 +183,8 @@ c64_calypso
 	.BIG_OSD(BIG_OSD ? "true" : "false"),
 	.HDMI(HDMI ? "true" : "false"),
 	.DRIVE_N(DRIVE_N),
-	.BUILD_DATE(`BUILD_DATE)
+	.BUILD_DATE(`BUILD_DATE),
+    .BUILD_VERSION(`BUILD_VERSION)
 )
 c64_calypso (
 `ifdef CLOCK_IN_50

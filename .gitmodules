@@ -172,3 +172,6 @@
 [submodule "zxnext/ZX_Spectrum_Next_FPGA"]
 	path = zxnext/ZX_Spectrum_Next_FPGA
 	url = https://gitlab.com/gyurco/ZX_Spectrum_Next_FPGA.git
+[submodule "c64/cbm_sid"]
+	path = c64/cbm_sid
+	url = git@github.com:teiram/cbm_sid.git

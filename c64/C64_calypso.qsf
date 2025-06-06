@@ -22,7 +22,6 @@
 
 set_global_assignment -name FAMILY "Cyclone 10 LP"
 set_global_assignment -name DEVICE 10CL025YU256C8G
-set_global_assignment -name TOP_LEVEL_ENTITY c64_calypso_top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "23.1STD.0 LITE EDITION"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "18:32:00  JULY 18, 2024"
 set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.2 Lite Edition"
@@ -44,10 +43,7 @@ set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 set_global_assignment -name ON_CHIP_BITSTREAM_DECOMPRESSION OFF
 set_global_assignment -name OPTIMIZATION_MODE BALANCED
 set_global_assignment -name REMOVE_REDUNDANT_LOGIC_CELLS ON
-set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
-set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
-set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:c64/build_id.tcl"
+
 set_global_assignment -name SAVE_DISK_SPACE OFF
 set_global_assignment -name GENERATE_RBF_FILE ON
 
@@ -363,22 +359,19 @@ set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 
-
-
-
-
-
+set_global_assignment -name TOP_LEVEL_ENTITY c64_calypso_top
 set_global_assignment -name QIP_FILE "c64/rtl/mist/mist-modules/mist.qip"
 set_global_assignment -name VERILOG_FILE build_id.v
 set_global_assignment -name QIP_FILE fpga64.qip
-set_global_assignment -name SIGNALTAP_FILE output_files/uio.stp
-set_global_assignment -name SIGNALTAP_FILE output_files/reu.stp
-set_global_assignment -name SIGNALTAP_FILE output_files/1541cpu.stp
-set_global_assignment -name SIGNALTAP_FILE output_files/acia.stp
-set_global_assignment -name SIGNALTAP_FILE output_files/cia2dd0test.stp
+set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
+set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
+set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
+
 set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name QIP_FILE pll_c64.qip
 set_global_assignment -name QIP_FILE pll_c64_reconfig.qip
 set_global_assignment -name QIP_FILE rom_reconfig_pal.qip
 set_global_assignment -name QIP_FILE rom_reconfig_ntsc.qip
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
