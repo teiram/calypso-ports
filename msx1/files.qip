@@ -16,7 +16,7 @@ set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_core.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_pack-p.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_sprite.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_pattern.vhd
-set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_hor_vert.vhd
+#set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_hor_vert.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_ctrl.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_cpuio.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_col_mux.vhd
@@ -25,7 +25,6 @@ set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_addr_mux.vh
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vdp18/vdp18_palette.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/dblscan.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/video/vga.vhd
-#set_global_assignment -name VHDL_FILE msx1fpga/rtl/hdmi2/serializer_generic.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/shared/debounce.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/shared/fifo.vhd
 set_global_assignment -name VHDL_FILE msx1fpga/rtl/peripheral/memoryctl.vhd
@@ -97,3 +96,6 @@ set_global_assignment -name SDC_FILE constraints.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE msx1fpga/Mist/sd_card.sv
 set_global_assignment -name VHDL_FILE msx1fpga/Mist/ssdram.vhd
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name VERILOG_FILE ../common/sync_shifter.v
+set_global_assignment -name VHDL_FILE vdp18_hor_vert.vhd
+

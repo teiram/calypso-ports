@@ -117,7 +117,11 @@ parameter CONF_STR = {
         "O3,Joysticks Swap,No,Yes;",
         `SEP
         "OF,VDP,VDP18,F18A;",
-        "OBC,MiST Scanlines,Off,25%,50%,75%;",
+        "OGH,MiST Scanlines,Off,25%,50%,75%;",
+        "P2,Screen position;",
+        "P2O4,Enable Adjustment,No,Yes;",
+        "P2O58,H-Pos,0,-1,-2,-3,-4,-5,-6,-7,8,7,6,5,4,3,2,1;",
+        "P2O9C,V-Pos,0,-1,-2,-3,-4,-5,-6,-7,8,7,6,5,4,3,2,1;",
         "OD,F18A Max Sprites,4,32;",
         "OE,F18A Scanlines,Off,On;",
         `SEP
@@ -219,7 +223,7 @@ assign LED[0] = sd_rd | sd_wr;
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 wire clock_sdram_s, sdram_clk_o, clock_vga_s, pll_locked;
-wire clk_sys;
+wire clk_sys /* synthesis keep */;
 wire clk_100,clk_25;
 
 
@@ -242,10 +246,10 @@ wire reset = status[0] | buttons[1] | !pll_locked | (status[2] && img_mounted);
 
 
 //////////////////////////////////////////////////////////////////
-wire HBlank;
-wire HSync;
-wire VBlank;
-wire VSync;
+wire HBlank /* synthesis keep */;
+wire HSync /* synthesis keep */;
+wire VBlank /* synthesis keep */;
+wire VSync /* synthesis keep */;
 wire vga_blank;
 
 //////////////////   SD   ///////////////////
@@ -341,6 +345,23 @@ reg [3:0] Rx, Gx, Bx;
 wire tape_in;
 assign tape_in = TAPE_SOUND;
 
+wire chsync /* synthesis keep */;
+wire cvsync /* synthesis keep */;
+
+sync_shifter sync_shifter(
+    .clk(clk_sys),
+    .ce_divider(3'd1),
+    .hs_in(~HSync),
+    .hblank(HBlank),
+    .vs_in(~VSync),
+    .vblank(VBlank),
+    .hoffset(status[8:5]),
+    .voffset(status[12:9]),
+    .hs_out(chsync),
+    .vs_out(cvsync)
+);
+
+
 mist_video #(
     .COLOR_DEPTH(4),
     .SD_HCNT_WIDTH(11),
@@ -354,17 +375,19 @@ mist_video(
     .R(Rx),
     .G(Gx),
     .B(Bx),
-    .HSync(HSync),
-    .VSync(VSync),
+    .HSync(status[15] | ~status[4] ? HSync : ~chsync),
+    .VSync(status[15] | ~status[4] ? VSync : ~cvsync),
+    .HBlank(HBlank),
+    .VBlank(VBlank),
     .VGA_R(VGA_R),
     .VGA_G(VGA_G),
     .VGA_B(VGA_B),
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
-    .ce_divider(status[15] ? 3'd2 : 3'd1),
+    .ce_divider(3'd1),
     .scandoubler_disable(status[15] ? 1'b1 : scandoubler_disable),
     .no_csync(status[15] ? 1'b1 : no_csync),
-    .scanlines(status[15] ? 2'b0 : status[12:11]),
+    .scanlines(status[15] ? 2'b0 : status[17:16]),
     .ypbpr(ypbpr)
 );
 
