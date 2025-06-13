@@ -1,0 +1,31 @@
+set_global_assignment -name VHDL_FILE fpgagen/src/fpgagen_sdram_top.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/fpgagen_top.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/os_rom.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/gen_cart.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/gen_io.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/gen_ctrl.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/gen_lightgun.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/gen_4wayplay.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/SinglePortRAM.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/DualPortRAM.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/vdp_common.vhd
+set_global_assignment -name VHDL_FILE fpgagen/src/vdp.vhd
+set_global_assignment -name QIP_FILE fpgagen/src/obj_cache.qip
+set_global_assignment -name QIP_FILE fpgagen/src/vram.qip
+set_global_assignment -name VHDL_FILE fpgagen/src/sdram.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE fpgagen/src/fx68k/uaddrPla.sv
+set_global_assignment -name SYSTEMVERILOG_FILE fpgagen/src/fx68k/fx68kAlu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE fpgagen/src/fx68k/fx68k.sv
+set_global_assignment -name VERILOG_FILE fpgagen/src/fx68k/altera_regs.v
+set_global_assignment -name QIP_FILE fpgagen/src/SVP/SVP.qip
+set_global_assignment -name QIP_FILE fpgagen/src/T80/T80.qip
+set_global_assignment -name QIP_FILE fpgagen/src/../jt89/hdl/jt89.qip
+set_global_assignment -name QIP_FILE fpgagen/src/../jt12/hdl/jt12.qip
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name SYSTEMVERILOG_FILE fpgagen_mist_top.sv
+set_global_assignment -name VHDL_FILE MIST_Toplevel.vhd
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
+
+

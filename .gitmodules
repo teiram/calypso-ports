@@ -178,3 +178,6 @@
 [submodule "snes/SNES_FPGA"]
 	path = snes/SNES_FPGA
 	url = https://github.com/gyurco/SNES_FPGA.git
+[submodule "megadrive/fpgagen"]
+	path = megadrive/fpgagen
+	url = https://github.com/mist-devel/fpgagen.git
