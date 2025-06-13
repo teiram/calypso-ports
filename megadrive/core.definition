@@ -1,0 +1,6 @@
+CORE_ID=megadrive
+PROJECT_NAME=megadrive
+VERSION=0.1
+BITSTREAM_FILE=output_files/megadrive.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
