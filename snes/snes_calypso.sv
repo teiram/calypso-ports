@@ -16,8 +16,7 @@
 //  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //============================================================================
 
-module snes_calypso
-(
+module snes_calypso(
     input CLK12M,
 
     output [7:0] LED,
@@ -39,13 +38,13 @@ module snes_calypso
 `endif
 
 `ifdef I2S_AUDIO
-	output        I2S_BCK,
-	output        I2S_LRCK,
-	output        I2S_DATA,
+    output I2S_BCK,
+    output I2S_LRCK,
+    output I2S_DATA,
 `endif
 
 `ifdef USE_AUDIO_IN
-	input         AUDIO_IN,
+    input AUDIO_IN,
 `endif
 
     output [12:0] SDRAM_A,
@@ -59,7 +58,6 @@ module snes_calypso
     output [1:0] SDRAM_BA,
     output SDRAM_CLK,
     output SDRAM_CKE
-
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -119,27 +117,28 @@ assign LED[0] = ~ioctl_download & ~bk_ena;
 // EXTRA_CHIPS_1 - SDD1, SA1, GSU
 // EXTRA_CHIPS_2 - CX4, SPC7110
 
+
 `include "build_id.v"
 parameter CONF_STR = {
-	"SNES;;",
-	"F1SNES,SFCSMCBIN,Load;",
-	"F2,SPC,Load;",
-	"S,SAV,Mount;",
-	"T3,Write Save RAM;",
-	`SEP
-	"OEF,Video Region,NTSC,PAL,NTSC-DeJittered;",
-	"OAB,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
-	"OG,Blend,On,Off;",
-	"O12,ROM Type,Auto,LoROM,HiROM,ExHiROM;",
-	"O56,Mouse,None,Port1,Port2;",
-	"OPQ,Lightgun,Off,Super Scope,Justifier;",
-	"O7,Swap Joysticks,No,Yes;",
-	"OH,Multitap,Disabled,Port2;",
+    "SNES;;",
+    "F1SNES,SFCSMCBIN,Load;",
+    "F2,SPC,Load;",
+    "S,SAV,Mount;",
+    "T3,Write Save RAM;",
+    `SEP
+    "OEF,Video Region,NTSC,PAL,NTSC-DeJittered;",
+    "OAB,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
+    "OG,Blend,On,Off;",
+    "O12,ROM Type,Auto,LoROM,HiROM,ExHiROM;",
+    "O56,Mouse,None,Port1,Port2;",
+    "OPQ,Lightgun,Off,Super Scope,Justifier;",
+    "O7,Swap Joysticks,No,Yes;",
+    "OH,Multitap,Disabled,Port2;",
 `ifdef BRAM_LEVEL_1
-	"OR,GSU Turbo,Off,On;",
+    "OR,GSU Turbo,Off,On;",
 `endif
-	"T0,Reset;",
-	"V,v1.0.",`BUILD_DATE
+    "T0,Reset;",
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 wire [1:0] st_rom = status[2:1];
@@ -972,8 +971,8 @@ wire [15:0] audioL, audioR;
 `ifdef I2S_AUDIO
 i2s i2s (
 	.reset(1'b0),
-	.clk(clk_mem),
-	.clk_rate(`AUDIO_CLOCK_RATE),
+	.clk(clk_sys),
+	.clk_rate(32'd21_333_333),
 
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),

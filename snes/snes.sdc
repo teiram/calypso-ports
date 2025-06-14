@@ -61,8 +61,8 @@ set_multicycle_path -from [get_clocks $mem_clk] -to [get_clocks $sys_clk] -hold 
 set_multicycle_path -from [get_clocks $sys_clk] -to {sdram_cl3:sdram|din_latch[*][*]} -setup -end 2
 set_multicycle_path -from [get_clocks $sys_clk] -to {sdram_cl3:sdram|din_latch[*][*]} -hold -end 1
 
-#set_multicycle_path -from {sdram:sdram|aram_dout[*]} -to {sdram_cl3:sdram|din_latch[1][*]} -setup -end 2
-#set_multicycle_path -from {sdram:sdram|aram_dout[*]} -to {sdram_cl3:sdram|din_latch[1][*]} -hold -end 1
+set_multicycle_path -from {sdram_cl3:sdram|aram_dout[*]} -to {sdram_cl3:sdram|din_latch[1][*]} -setup -end 2
+set_multicycle_path -from {sdram_cl3:sdram|aram_dout[*]} -to {sdram_cl3:sdram|din_latch[1][*]} -hold -end 1
 
 set_false_path -to [get_ports {SDRAM_CLK}]
 set_false_path -to [get_ports {LED[*]}]
