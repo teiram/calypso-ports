@@ -1,0 +1,507 @@
+Archive member included because of file (symbol)
+
+c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulhi3.o)
+                              mzmain.o (__mulhi3)
+c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulsi3.o)
+                              tff.o (__mulsi3)
+c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodqi4.o)
+                              tff.o (__udivmodqi4)
+c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodsi4.o)
+                              tff.o (__udivmodsi4)
+c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_clear_bss.o)
+                              mzmain.o (__do_clear_bss)
+c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memcmp.o)
+                              tff.o (memcmp)
+c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memcpy.o)
+                              tff.o (memcpy)
+c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memset.o)
+                              tff.o (memset)
+
+Allocating common symbols
+Common symbol       size              file
+
+fdcstep             0x1               mzmain.o
+dirs                0xa               mzmain.o
+fdcsect             0x1               mzmain.o
+fs                  0x21e             mzmain.o
+FatFs               0x2               tff.o
+finfo               0x16              mzmain.o
+fdcbuf              0x100             mzmain.o
+d88trk              0x2               mzmain.o
+fdcsts              0x1               mzmain.o
+fdcmode             0x1               mzmain.o
+d88wp               0x2               mzmain.o
+d88open             0x2               mzmain.o
+d88table            0x520             mzmain.o
+fdcptr              0x1               mzmain.o
+d88fo               0x30              mzmain.o
+status              0x1               diskio.o
+
+Discarded input sections
+
+ .stabstr       0x00000000        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+text             0x00000000         0x00020000         xr
+data             0x00800060         0x0000ffa0         rw !x
+eeprom           0x00810000         0x00010000         rw !x
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+LOAD mzmain.o
+LOAD tff.o
+LOAD diskio.o
+LOAD c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a
+LOAD c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a
+LOAD c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a
+
+.hash
+ *(.hash)
+
+.dynsym
+ *(.dynsym)
+
+.dynstr
+ *(.dynstr)
+
+.gnu.version
+ *(.gnu.version)
+
+.gnu.version_d
+ *(.gnu.version_d)
+
+.gnu.version_r
+ *(.gnu.version_r)
+
+.rel.init
+ *(.rel.init)
+
+.rela.init
+ *(.rela.init)
+
+.rel.text
+ *(.rel.text)
+ *(.rel.text.*)
+ *(.rel.gnu.linkonce.t*)
+
+.rela.text
+ *(.rela.text)
+ *(.rela.text.*)
+ *(.rela.gnu.linkonce.t*)
+
+.rel.fini
+ *(.rel.fini)
+
+.rela.fini
+ *(.rela.fini)
+
+.rel.rodata
+ *(.rel.rodata)
+ *(.rel.rodata.*)
+ *(.rel.gnu.linkonce.r*)
+
+.rela.rodata
+ *(.rela.rodata)
+ *(.rela.rodata.*)
+ *(.rela.gnu.linkonce.r*)
+
+.rel.data
+ *(.rel.data)
+ *(.rel.data.*)
+ *(.rel.gnu.linkonce.d*)
+
+.rela.data
+ *(.rela.data)
+ *(.rela.data.*)
+ *(.rela.gnu.linkonce.d*)
+
+.rel.ctors
+ *(.rel.ctors)
+
+.rela.ctors
+ *(.rela.ctors)
+
+.rel.dtors
+ *(.rel.dtors)
+
+.rela.dtors
+ *(.rela.dtors)
+
+.rel.got
+ *(.rel.got)
+
+.rela.got
+ *(.rela.got)
+
+.rel.bss
+ *(.rel.bss)
+
+.rela.bss
+ *(.rela.bss)
+
+.rel.plt
+ *(.rel.plt)
+
+.rela.plt
+ *(.rela.plt)
+
+.text           0x00000000     0x3124
+ *(.vectors)
+ .vectors       0x00000000       0x60 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+                0x00000000                __vectors
+                0x00000000                __vector_default
+ *(.vectors)
+ *(.progmem.gcc*)
+ *(.progmem*)
+                0x00000060                . = ALIGN (0x2)
+                0x00000060                __trampolines_start = .
+ *(.trampolines)
+ .trampolines   0x00000060        0x0 linker stubs
+ *(.trampolines*)
+                0x00000060                __trampolines_end = .
+ *(.jumptables)
+ *(.jumptables*)
+ *(.lowtext)
+ *(.lowtext*)
+                0x00000060                __ctors_start = .
+ *(.ctors)
+                0x00000060                __ctors_end = .
+                0x00000060                __dtors_start = .
+ *(.dtors)
+                0x00000060                __dtors_end = .
+ SORT(*)(.ctors)
+ SORT(*)(.dtors)
+ *(.init0)
+ .init0         0x00000060        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+                0x00000060                __init
+ *(.init0)
+ *(.init1)
+ *(.init1)
+ *(.init2)
+ .init2         0x00000060        0xc c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+ *(.init2)
+ *(.init3)
+ *(.init3)
+ *(.init4)
+ .init4         0x0000006c       0x20 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+                0x0000006c                __do_copy_data
+ .init4         0x0000008c       0x10 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_clear_bss.o)
+                0x0000008c                __do_clear_bss
+ *(.init4)
+ *(.init5)
+ *(.init5)
+ *(.init6)
+ *(.init6)
+ *(.init7)
+ *(.init7)
+ *(.init8)
+ *(.init8)
+ *(.init9)
+ .init9         0x0000009c        0x4 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+ *(.init9)
+ *(.text)
+ .text          0x000000a0        0x4 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+                0x000000a0                __vector_22
+                0x000000a0                __vector_12
+                0x000000a0                __bad_interrupt
+                0x000000a0                __vector_6
+                0x000000a0                __vector_23
+                0x000000a0                __vector_11
+                0x000000a0                __vector_13
+                0x000000a0                __vector_17
+                0x000000a0                __vector_19
+                0x000000a0                __vector_7
+                0x000000a0                __vector_5
+                0x000000a0                __vector_4
+                0x000000a0                __vector_9
+                0x000000a0                __vector_21
+                0x000000a0                __vector_15
+                0x000000a0                __vector_8
+                0x000000a0                __vector_14
+                0x000000a0                __vector_10
+                0x000000a0                __vector_16
+                0x000000a0                __vector_18
+                0x000000a0                __vector_20
+ .text          0x000000a4     0x158a mzmain.o
+                0x000000a4                __vector_1
+                0x000001ac                o20
+                0x00000262                clsline
+                0x0000050e                vmenu
+                0x00000784                pldload
+                0x00000ad8                fmenu
+                0x0000017e                z20
+                0x000014b0                __vector_3
+                0x000003a4                epcsread
+                0x0000011a                pulseout
+                0x000001da                sumout
+                0x0000042a                hmenu
+                0x000000da                wait20ms
+                0x000008a8                romupdate
+                0x00000340                save
+                0x00000d96                main
+                0x000006fe                progress
+                0x00000414                nom
+                0x0000014e                z11000
+                0x000000c6                __vector_2
+                0x000003fe                rev
+                0x00000602                flist
+                0x0000067e                epcswrite
+                0x00000372                restore
+                0x0000023a                cls
+                0x0000066e                epcscmd
+                0x00000654                epcsbusy
+                0x000002c0                disp
+ .text          0x0000162e     0x178c tff.o
+                0x000027d4                f_mountdrv
+                0x0000224a                f_close
+                0x0000254a                f_read
+                0x00001c80                f_readdir
+                0x0000218c                f_sync
+                0x00002994                f_opendir
+                0x00001a46                f_lseek
+                0x00002276                f_write
+                0x00002a38                f_open
+ .text          0x00002dba      0x258 diskio.o
+                0x00002dfc                disk_initialize
+                0x00002e76                disk_status
+                0x00002dba                mmc_cmd
+                0x00003008                get_fattime
+                0x00002f3e                disk_write
+                0x00002e7e                disk_read
+ .text          0x00003012        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulhi3.o)
+ .text          0x00003012        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulsi3.o)
+ .text          0x00003012        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodqi4.o)
+ .text          0x00003012        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodsi4.o)
+ .text          0x00003012        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_clear_bss.o)
+ .text          0x00003012       0x1e c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memcmp.o)
+                0x00003012                memcmp
+ .text          0x00003030       0x1e c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memcpy.o)
+                0x00003030                memcpy
+ .text          0x0000304e       0x16 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memset.o)
+                0x0000304e                memset
+                0x00003064                . = ALIGN (0x2)
+ *(.text.*)
+ .text.libgcc   0x00003064       0x24 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulhi3.o)
+                0x00003064                __mulhi3
+ .text.libgcc   0x00003088       0x36 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulsi3.o)
+                0x00003088                __mulsi3
+ .text.libgcc   0x000030be       0x18 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodqi4.o)
+                0x000030be                __udivmodqi4
+ .text.libgcc   0x000030d6       0x4e c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodsi4.o)
+                0x000030d6                __udivmodsi4
+ .text.libgcc   0x00003124        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_clear_bss.o)
+                0x00003124                . = ALIGN (0x2)
+ *(.fini9)
+ *(.fini9)
+ *(.fini8)
+ *(.fini8)
+ *(.fini7)
+ *(.fini7)
+ *(.fini6)
+ *(.fini6)
+ *(.fini5)
+ *(.fini5)
+ *(.fini4)
+ *(.fini4)
+ *(.fini3)
+ *(.fini3)
+ *(.fini2)
+ *(.fini2)
+ *(.fini1)
+ *(.fini1)
+ *(.fini0)
+ *(.fini0)
+                0x00003124                _etext = .
+
+.data           0x00800060      0x25a load address 0x00003124
+                0x00800060                PROVIDE (__data_start, .)
+ *(.data)
+ .data          0x00800060        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+ .data          0x00800060      0x24e mzmain.o
+                0x00800207                dmenu
+                0x00800271                mes_foerr
+                0x00800297                mes_update
+                0x00800282                mes_waiting
+                0x0080028d                mes_fpga
+                0x00800261                mes_filefor
+                0x00800144                smenu
+                0x00800159                rmenu
+                0x00800101                low
+                0x008002a7                bcdt
+                0x008000c1                dcode
+                0x00800133                mmenu
+ .data          0x008002ae        0xb tff.o
+ .data          0x008002b9        0x0 diskio.o
+ .data          0x008002b9        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulhi3.o)
+ .data          0x008002b9        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulsi3.o)
+ .data          0x008002b9        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodqi4.o)
+ .data          0x008002b9        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodsi4.o)
+ .data          0x008002b9        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_clear_bss.o)
+ .data          0x008002b9        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memcmp.o)
+ .data          0x008002b9        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memcpy.o)
+ .data          0x008002b9        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memset.o)
+ *(.data*)
+ *(.rodata)
+ *(.rodata*)
+ *(.gnu.linkonce.d*)
+                0x008002ba                . = ALIGN (0x2)
+ *fill*         0x008002b9        0x1 00
+                0x008002ba                _edata = .
+                0x008002ba                PROVIDE (__data_end, .)
+
+.bss            0x008002ba      0x89c
+                0x008002ba                PROVIDE (__bss_start, .)
+ *(.bss)
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+ .bss           0x008002ba        0x0 mzmain.o
+ .bss           0x008002ba        0x0 tff.o
+ .bss           0x008002ba        0x0 diskio.o
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulhi3.o)
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_mulsi3.o)
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodqi4.o)
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_udivmodsi4.o)
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/avr3\libgcc.a(_clear_bss.o)
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memcmp.o)
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memcpy.o)
+ .bss           0x008002ba        0x0 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3\libc.a(memset.o)
+ *(.bss*)
+ *(COMMON)
+ COMMON         0x008002ba      0x899 mzmain.o
+                0x008002ba                fdcstep
+                0x008002bb                dirs
+                0x008002c5                fdcsect
+                0x008002c6                fs
+                0x008004e4                finfo
+                0x008004fa                fdcbuf
+                0x008005fa                d88trk
+                0x008005fc                fdcsts
+                0x008005fd                fdcmode
+                0x008005fe                d88wp
+                0x00800600                d88open
+                0x00800602                d88table
+                0x00800b22                fdcptr
+                0x00800b23                d88fo
+ COMMON         0x00800b53        0x2 tff.o
+                0x00800b53                FatFs
+ COMMON         0x00800b55        0x1 diskio.o
+                0x00800b55                status
+                0x00800b56                PROVIDE (__bss_end, .)
+                0x00003124                __data_load_start = LOADADDR (.data)
+                0x0000337e                __data_load_end = (__data_load_start + SIZEOF (.data))
+
+.noinit         0x00800b56        0x0
+                0x00800b56                PROVIDE (__noinit_start, .)
+ *(.noinit*)
+                0x00800b56                PROVIDE (__noinit_end, .)
+                0x00800b56                _end = .
+                0x00800b56                PROVIDE (__heap_start, .)
+
+.eeprom         0x00810000        0x0
+ *(.eeprom*)
+                0x00810000                __eeprom_end = .
+
+.stab           0x00000000      0x42c
+ *(.stab)
+ .stab          0x00000000      0x42c c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+
+.stabstr        0x00000000       0x84
+ *(.stabstr)
+ .stabstr       0x00000000       0x84 c:/cygwin/bin/../lib/gcc/avr/4.1.1/../../../../avr/lib/avr3/crtm103.o
+
+.stab.excl
+ *(.stab.excl)
+
+.stab.exclstr
+ *(.stab.exclstr)
+
+.stab.index
+ *(.stab.index)
+
+.stab.indexstr
+ *(.stab.indexstr)
+
+.comment
+ *(.comment)
+
+.debug
+ *(.debug)
+
+.line
+ *(.line)
+
+.debug_srcinfo
+ *(.debug_srcinfo)
+
+.debug_sfnames
+ *(.debug_sfnames)
+
+.debug_aranges  0x00000000       0x60
+ *(.debug_aranges)
+ .debug_aranges
+                0x00000000       0x20 mzmain.o
+ .debug_aranges
+                0x00000020       0x20 tff.o
+ .debug_aranges
+                0x00000040       0x20 diskio.o
+
+.debug_pubnames
+                0x00000000      0x377
+ *(.debug_pubnames)
+ .debug_pubnames
+                0x00000000      0x271 mzmain.o
+ .debug_pubnames
+                0x00000271       0x8c tff.o
+ .debug_pubnames
+                0x000002fd       0x7a diskio.o
+
+.debug_info     0x00000000     0x2019
+ *(.debug_info)
+ .debug_info    0x00000000      0xfc4 mzmain.o
+ .debug_info    0x00000fc4      0xdf4 tff.o
+ .debug_info    0x00001db8      0x261 diskio.o
+ *(.gnu.linkonce.wi.*)
+
+.debug_abbrev   0x00000000      0x640
+ *(.debug_abbrev)
+ .debug_abbrev  0x00000000      0x27f mzmain.o
+ .debug_abbrev  0x0000027f      0x2d7 tff.o
+ .debug_abbrev  0x00000556       0xea diskio.o
+
+.debug_line     0x00000000     0x219f
+ *(.debug_line)
+ .debug_line    0x00000000     0x10a1 mzmain.o
+ .debug_line    0x000010a1      0xd8b tff.o
+ .debug_line    0x00001e2c      0x373 diskio.o
+
+.debug_frame    0x00000000      0x370
+ *(.debug_frame)
+ .debug_frame   0x00000000      0x1d0 mzmain.o
+ .debug_frame   0x000001d0      0x130 tff.o
+ .debug_frame   0x00000300       0x70 diskio.o
+
+.debug_str      0x00000000      0x584
+ *(.debug_str)
+ .debug_str     0x00000000      0x386 mzmain.o
+                                0x3f6 (size before relaxing)
+ .debug_str     0x00000386      0x180 tff.o
+                                0x36a (size before relaxing)
+ .debug_str     0x00000506       0x7e diskio.o
+                                0x160 (size before relaxing)
+
+.debug_loc      0x00000000     0x2329
+ *(.debug_loc)
+ .debug_loc     0x00000000      0xdbe mzmain.o
+ .debug_loc     0x00000dbe     0x12e5 tff.o
+ .debug_loc     0x000020a3      0x286 diskio.o
+
+.debug_macinfo
+ *(.debug_macinfo)
+OUTPUT(mzmain.elf elf32-avr)
+LOAD linker stubs
+
+.debug_ranges   0x00000000       0xb0
+ .debug_ranges  0x00000000       0xb0 tff.o

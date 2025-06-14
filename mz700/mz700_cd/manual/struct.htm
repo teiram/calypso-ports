@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+<META http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<META name="GENERATOR" content="IBM WebSphere Studio Homepage Builder Version 6.5.2.0 for Windows">
+<META http-equiv="Content-Style-Type" content="text/css">
+<TITLE>MZ-700 on 1chipMSX ユーザーズマニュアル【技術情報】</TITLE>
+</HEAD>
+<BODY>
+<P><B><FONT size="+2">技術情報</FONT></B></P>
+<P><B><FONT size="+1"><A name="vhdl">VHDLソース</A></FONT></B></P>
+<TABLE>
+  <TBODY>
+    <TR>
+      <TD colspan="5">mz700.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD colspan="4">各サブモジュール間の接続と、こまごました回路を含むトップモジュールです。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">T80s.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="3">T80.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="3">T80_ALU.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="3">T80_MCode.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="3">T80_Pack.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>└</B></TD>
+      <TD colspan="3">T80_Reg.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD colspan="3">OPENCORES で公開されているZ80互換ＩＰコア、T80です。同期用ラッパーT80sを使っています。データバスの入出力が分かれており、このモジュールの外で双方向制御をしなくてすむのが楽でいいです。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">8255.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD colspan="3">インテル 8255 互換のモジュールです。周辺回路が決まっているため入出力方向設定など一部の機能を実装していません。</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>└</B></TD>
+      <TD colspan="3">keymatrix.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD><B>│</B></TD>
+      <TD colspan="2">PS/2キーボードからのキーコードをMZ-700のキーマトリクス状に並べたフリップフロップのON/OFFに変換します。AVRが処理するユーザI/F用に一部のキー入力を横取りしています。</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD><B>└</B></TD>
+      <TD colspan="2">ps2kb.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD></TD>
+      <TD>　</TD>
+      <TD>PS/2キーボードからキーコードを受信するモジュールです。全く凝ってませんので、LEDの点灯とか一切やってません。Spartan-3時代のものとほとんど変わってません。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">8253.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="3">counter0.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="3">counter1.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>└</B></TD>
+      <TD colspan="3">counter2.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD></TD>
+      <TD colspan="2">インテル8253互換のモジュールです。本物はあまりにモードが多くて実装がたいへんだったので、使用するモードのみに絞って実装しています。そのため、もしかするとうまく動かないプログラムがあるかもしれません。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">memsel.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD colspan="3">バンクメモリ制御レジスタと各メモリへのチップセレクト信号を生成するブロックです。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">ls367.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD colspan="3">音楽再生のためのテンポ用クロック生成と、トーンジェネレータ(8253)動作制御を司るブロックです。水平ブランキング信号が必要な場合はここに追加することになります。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">sdram.vhd</TD>
+    </TR>
+    <TR>
+      <TD align="center"><B>│<BR>
+      │<BR>
+      │<BR>
+      │<BR>
+      │<BR>
+      │<BR>
+      │<BR>
+      │<BR>
+      │</B></TD>
+      <TD></TD>
+      <TD colspan="3">1chipMSXに搭載されている32MBの容量を持つSDRAMのコントロールを行います。SDRAMをアクセスするモジュールはこのモジュールを経由する必要があります。Z80などのプロセッサのアクセス速度に比べて桁違いに高速なので、複数のアクセスを調停してあたかもデュアルポートRAMのように振る舞えるようにしています。実際にはZ80とAVR-coreと画面出力モジュールとHAL研互換PCGモジュールがSDRAMを共有しており、コントローラもクアドラプル(4)ポートRAMとして動作します。どのポートもウェイトは必要ない設計になっています。<BR>
+SDRAMは次の用途で使用されています。<BR>
+・Z80のメインRAM<BR>
+・モニタROM<BR>
+・CG-ROM<BR>
+・HAL研互換PCG<BR>
+・キャラクタVRAM<BR>
+・MZ-1500互換PCG/グラフィックRAM<BR>
+・AVR-coreの外部RAM(ワーク用)</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">psio.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="3">avr_core.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">AVR_Core_CompPack.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">SynthCtrlPack.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">AVRuCPackage.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">alu_avr.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">bit_processor.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">io_adr_dec.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">io_reg_file.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">pm_fetch_dec.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>│</B></TD>
+      <TD><B>└</B></TD>
+      <TD colspan="2">reg_file.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>└</B></TD>
+      <TD colspan="3">avrrom.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">dpram8k.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="2">dpram4k.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD><B>└</B></TD>
+      <TD colspan="2">rom.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD colspan="3">MZ-700単体では処理できないI/Oや周辺機器の模擬をするモジュールです。サブCPUとしてAVR-Coreを埋め込んで、SDカードアクセスとファイルシステムへのアクセス、コンフィグレーションPROMのアクセス、ユーザI/Fを担当させています。1chipMSXでの実装の要とも言えるモジュールになっているわけです。<BR>
+      AVR-coreはT80同様OPENCORESの成果物で、ATmega103相当のAVRとなっています。ここでは通常のAVRチップに含まれる周辺機能をほぼ全て取り去り、リセットでROMがすげ替わったりと好き放題してます。回路規模もコンパイル後のオブジェクトサイズも他のマイコンに比べてコンパクトであるというのが採用の理由です。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">vgaout.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>├</B></TD>
+      <TD colspan="3">dpram05k.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│<BR>
+      │<BR>
+      │<BR>
+      │<BR>│</B></TD>
+      <TD><B>│<BR>
+      │<BR>
+      │<BR>
+      │<BR>│</B></TD>
+      <TD colspan="3">MZのVRAMからデータを拾って画面に表示するモジュールです。<BR>
+まず出力できる画面は、1chipMSXの元々の仕様を踏襲する形で、15kHz規格のRGBディスプレイとコンポジット/Sビデオモニタに出力できるようにしました。切り替えは裏面のディップスイッチで行います。ディップスイッチの詳細はこちらを参照してください。<BR>
+      VRAMをSDRAMに設ける構造になっています。ついでに、いずれやる予定だったMZ-1500仕様のPCGやパレットも実装しています。実装のポイントは、一つのタイミングで取得すべきひとつの座標に割り当てられたデータを一度に取り出すことができるようVRAMなどをインターリーブ配置し、SDRAMからは2アドレスのデータを連続で出力させて最小限の時間でデータを揃えるようにしたところです。例えばひとつの座標にはVRAM1(MZ-700互換の文字コードを指す)、VRAM2(PCGのコードの一部)、アトリビュート1(MZ-700互換の色の割り付け)、アトリビュート2(PCGコードの残りとPCG表示許可など)があるのですが、これを連続した4アドレスに配置して、16bit×2データを取り出せば後の加工が楽になります。PCGも3プレーン分ありますので同様に並べて一度に取得します。CGROMのデータはPCGと同じ並びに置きますがPCGと同じアドレスではアクセスできないので別にアクセスします。とにかく、本来は別のメモリにあるものでも同じアドレスを指定してデータを取得するものはまとめられるというわけです。<BR>
+SDRAMに3回アクセスしてようやく表示できるデータが揃うのですが、VGA表示での1文字(8ドット)分の時間では全く間に合わないので、バッファを用意してラインメモリとして使用するようにしています。このため、本物ではキャラクタ・PCG・背景色がプライオリティ設定に基づいて選択されながら出力しているところが、あらかじめバッファにプライオリティ込みで演算済みのデータを用意してしまうため、単純にデータを送り出すだけになっています。</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD><B>└</B></TD>
+      <TD colspan="3">vencode.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD></TD>
+      <TD colspan="2">1chipMSX由来のコンポジットビデオエンコーダモジュールです。表示するドットの構成とエンコードアーキテクチャが合っていないので、解像度がかなり低くなっています。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">pll25.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD colspan="3">MegaWizardで作成したPLLモジュールです。21.47727MHzから25MHz(画面出力用)と85.9MHz(SDRAM用)を生成します。</TD>
+    </TR>
+    <TR>
+      <TD><B>├</B></TD>
+      <TD colspan="4">ckgen.vhd</TD>
+    </TR>
+    <TR>
+      <TD><B>│</B></TD>
+      <TD></TD>
+      <TD colspan="3">21.47727MHzから3.58MHzを生成します。</TD>
+    </TR>
+    <TR>
+      <TD><B>└</B></TD>
+      <TD colspan="4">pcg.vhd</TD>
+    </TR>
+    <TR>
+      <TD></TD>
+      <TD></TD>
+      <TD colspan="3">HAL研互換PCG機能をサポートするモジュールです。</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<HR>
+<TABLE width="100%">
+  <TBODY>
+    <TR>
+      <TD><A href="tutorial.htm"><IMG src="pics/01c.jpg" width="63" height="63" border="0"></A></TD>
+      <TD align="center"><A href="../index.htm"><IMG src="pics/01a.jpg" width="63" height="63" border="0"></A></TD>
+      <TD align="right"><A href="csource.htm"><IMG src="pics/01b.jpg" width="63" height="63" border="0"></A></TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P align="right">(C) Nibbles Lab. 2007</P>
+</BODY>
+</HTML>

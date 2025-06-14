@@ -1,0 +1,47 @@
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/CommonPacks/SynthCtrlPack.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/CommonPacks/AVRuCPackage.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/alu_avr.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/avr_core.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/AVR_Core_CompPack.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/bit_processor.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/io_adr_dec.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/io_reg_file.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/pm_fetch_dec.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/reg_file.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/dpram8k.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/dpram4k.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/rom.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/avrrom.vhd
+
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_ALU.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_MCode.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_Pack.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_Reg.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80s.vhd
+
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/ls367.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/psio.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/keymatrix.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/ps2kb.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/i8255.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/counter2.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/counter0.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/counter1.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/i8253.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/sdram.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/memsel.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/dpram2k.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/vencode.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/dpram05k.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/vgaout.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/ckgen.vhd
+set_global_assignment -name VHDL_FILE mz700_cd/VHDL/pcg.vhd
+
+set_global_assignment -name HEX_FILE mz700_cd/VHDL/test32.hex
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name QIP_FILE vgapll.qip
+set_global_assignment -name SYSTEMVERILOG_FILE mz700_calypso.sv
+set_global_assignment -name VHDL_FILE mz700.vhd

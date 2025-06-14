@@ -1,0 +1,160 @@
+
+mzctrl.elf:     file format elf32-avr
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         000000da  00000000  00000000  00000054  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .stab         0000042c  00000000  00000000  00000130  2**2
+                  CONTENTS, READONLY, DEBUGGING
+  2 .stabstr      00000084  00000000  00000000  0000055c  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  3 .debug_aranges 00000020  00000000  00000000  000005e0  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  4 .debug_pubnames 0000001b  00000000  00000000  00000600  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  5 .debug_info   000000a9  00000000  00000000  0000061b  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  6 .debug_abbrev 00000077  00000000  00000000  000006c4  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  7 .debug_line   00000116  00000000  00000000  0000073b  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  8 .debug_frame  00000020  00000000  00000000  00000851  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  9 .debug_str    00000083  00000000  00000000  00000871  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 10 .debug_loc    00000013  00000000  00000000  000008f4  2**0
+                  CONTENTS, READONLY, DEBUGGING
+Disassembly of section .text:
+
+00000000 <__vectors>:
+   0:	0c 94 30 00 	jmp	0x60	; 0x60 <__ctors_end>
+   4:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+   8:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+   c:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  10:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  14:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  18:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  1c:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  20:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  24:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  28:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  2c:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  30:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  34:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  38:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  3c:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  40:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  44:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  48:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  4c:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  50:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  54:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  58:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+  5c:	0c 94 50 00 	jmp	0xa0	; 0xa0 <__bad_interrupt>
+
+00000060 <__ctors_end>:
+  60:	11 24       	eor	r1, r1
+  62:	1f be       	out	0x3f, r1	; 63
+  64:	cf ef       	ldi	r28, 0xFF	; 255
+  66:	df e0       	ldi	r29, 0x0F	; 15
+  68:	de bf       	out	0x3e, r29	; 62
+  6a:	cd bf       	out	0x3d, r28	; 61
+
+0000006c <__do_copy_data>:
+  6c:	10 e0       	ldi	r17, 0x00	; 0
+  6e:	a0 e6       	ldi	r26, 0x60	; 96
+  70:	b0 e0       	ldi	r27, 0x00	; 0
+  72:	ea ed       	ldi	r30, 0xDA	; 218
+  74:	f0 e0       	ldi	r31, 0x00	; 0
+  76:	0f ef       	ldi	r16, 0xFF	; 255
+  78:	03 95       	inc	r16
+  7a:	0b bf       	out	0x3b, r16	; 59
+  7c:	04 c0       	rjmp	.+8      	; 0x86 <__do_copy_data+0x1a>
+  7e:	d8 95       	elpm
+  80:	0d 92       	st	X+, r0
+  82:	31 96       	adiw	r30, 0x01	; 1
+  84:	c8 f3       	brcs	.-14     	; 0x78 <__do_copy_data+0xc>
+  86:	a0 36       	cpi	r26, 0x60	; 96
+  88:	b1 07       	cpc	r27, r17
+  8a:	c9 f7       	brne	.-14     	; 0x7e <__do_copy_data+0x12>
+
+0000008c <__do_clear_bss>:
+  8c:	10 e0       	ldi	r17, 0x00	; 0
+  8e:	a0 e6       	ldi	r26, 0x60	; 96
+  90:	b0 e0       	ldi	r27, 0x00	; 0
+  92:	01 c0       	rjmp	.+2      	; 0x96 <.do_clear_bss_start>
+
+00000094 <.do_clear_bss_loop>:
+  94:	1d 92       	st	X+, r1
+
+00000096 <.do_clear_bss_start>:
+  96:	a0 36       	cpi	r26, 0x60	; 96
+  98:	b1 07       	cpc	r27, r17
+  9a:	e1 f7       	brne	.-8      	; 0x94 <.do_clear_bss_loop>
+  9c:	0c 94 52 00 	jmp	0xa4	; 0xa4 <main>
+
+000000a0 <__bad_interrupt>:
+  a0:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
+
+000000a4 <main>:
+#define epcs_rev _SFR_IO8(0x07)
+#define page	 _SFR_IO8(0x08)
+
+int main(void)
+{
+  a4:	15 b8       	out	0x05, r1	; 5
+	unsigned int p;
+	unsigned char c;
+	unsigned char * prog; 
+
+	// CS=L
+	epccs=0;
+
+	epcs=0x03;	//Read bytes command
+  a6:	83 e0       	ldi	r24, 0x03	; 3
+  a8:	86 b9       	out	0x06, r24	; 6
+	epccs=0;	// dummy
+  aa:	15 b8       	out	0x05, r1	; 5
+	epcs=0x04;
+  ac:	84 e0       	ldi	r24, 0x04	; 4
+  ae:	86 b9       	out	0x06, r24	; 6
+	epccs=0;	// dummy
+  b0:	15 b8       	out	0x05, r1	; 5
+	epccs=0;	// dummy
+  b2:	15 b8       	out	0x05, r1	; 5
+	epcs=0x00;
+  b4:	16 b8       	out	0x06, r1	; 6
+	epccs=0;	// dummy
+  b6:	15 b8       	out	0x05, r1	; 5
+	epccs=0;	// dummy
+  b8:	15 b8       	out	0x05, r1	; 5
+	epcs=0x00;
+  ba:	16 b8       	out	0x06, r1	; 6
+	epccs=0;	// dummy
+  bc:	15 b8       	out	0x05, r1	; 5
+	epccs=0;	// dummy
+  be:	15 b8       	out	0x05, r1	; 5
+	c=epcs;		// dummy
+  c0:	86 b1       	in	r24, 0x06	; 6
+  c2:	e0 e0       	ldi	r30, 0x00	; 0
+  c4:	f0 e8       	ldi	r31, 0x80	; 128
+	prog=(unsigned char *)0x8000;
+	for(p=0;p<0x4000;p++)
+		*(prog++)=epcs;
+  c6:	86 b1       	in	r24, 0x06	; 6
+  c8:	81 93       	st	Z+, r24
+  ca:	80 ec       	ldi	r24, 0xC0	; 192
+  cc:	e0 30       	cpi	r30, 0x00	; 0
+  ce:	f8 07       	cpc	r31, r24
+  d0:	d1 f7       	brne	.-12     	; 0xc6 <main+0x22>
+
+	// CS=H
+	epccs=1;
+  d2:	81 e0       	ldi	r24, 0x01	; 1
+  d4:	85 b9       	out	0x05, r24	; 5
+
+	// Memory change and restart
+	ctrl0=0;
+  d6:	10 b8       	out	0x00, r1	; 0
+  d8:	ff cf       	rjmp	.-2      	; 0xd8 <main+0x34>

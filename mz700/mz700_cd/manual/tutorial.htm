@@ -1,0 +1,316 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+<META http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<META name="GENERATOR" content="IBM WebSphere Studio Homepage Builder Version 6.5.2.0 for Windows">
+<META http-equiv="Content-Style-Type" content="text/css">
+<TITLE>MZ-700 on 1chipMSX ユーザーズマニュアル【使い方】</TITLE>
+</HEAD>
+<BODY>
+<P><FONT size="+2"><B>使い方</B></FONT></P>
+<P><A name="needed"><B><FONT size="+1">必要なもの</FONT></B></A></P>
+<P>　1chipMSXを使用するための環境が、ほぼそのまま必要です。</P>
+<TABLE border="1">
+  <TBODY>
+    <TR>
+      <TD>ディスプレイ</TD>
+      <TD>VGA対応モニタ/15kHz対応RGBモニタ/ビデオモニタ</TD>
+    </TR>
+    <TR>
+      <TD>キーボード</TD>
+      <TD>PS/2タイプ、日本語のみ</TD>
+    </TR>
+    <TR>
+      <TD>SD/MMCカード</TD>
+      <TD>2GBまで</TD>
+    </TR>
+    <TR>
+      <TD>ジョイスティック</TD>
+      <TD>アタリ仕様準拠、なくてもよい</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P>　USB端子は現状の1chipMSXと同様、何にも使われていません。またカートリッジスロットも未使用です。</P>
+<P><FONT size="+1"><B><A name="key">キー操作</A></B></FONT></P>
+<P>　基本的に、MZ-700のキーボードの配置を踏襲しています。MZ-700ではカッコや加算・乗算記号の位置が普通のキーボードと異なったり入れ替わっていたりするのでご注意ください。特殊キーや配置的に足らなくてファンクションキーを借りてるものは次の表のとおりとなります。</P>
+<TABLE border="1">
+  <TBODY>
+    <TR>
+      <TD align="center">MZ-700</TD>
+      <TD>日本語キーボード</TD>
+    </TR>
+    <TR>
+      <TD align="center">F1～F5</TD>
+      <TD align="center">F1～F5</TD>
+    </TR>
+    <TR>
+      <TD align="center">GRAPH</TD>
+      <TD align="center">半角/全角</TD>
+    </TR>
+    <TR>
+      <TD align="center">英数</TD>
+      <TD align="center">Tab</TD>
+    </TR>
+    <TR>
+      <TD align="center">CTRL</TD>
+      <TD align="center">CapsLock</TD>
+    </TR>
+    <TR>
+      <TD align="center">BREAK</TD>
+      <TD align="center">BackSpace</TD>
+    </TR>
+    <TR>
+      <TD align="center">＝</TD>
+      <TD align="center">F9,F11</TD>
+    </TR>
+    <TR>
+      <TD align="center">カナ</TD>
+      <TD align="center">F10,F12</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P>　次にバックグラウンドで動作しているサービス機能を使用するためのキー操作を説明します。「ALT+」とあるのは、ALTキーを押しながらアルファベットキーを押すことを意味しています。</P>
+<TABLE border="1">
+  <TBODY>
+    <TR>
+      <TD>ALT+A</TD>
+      <TD>サービスメニューを表示します。メニューを表示している間はMZ-700の動作は完全に停止しています。詳細は別項で説明します。</TD>
+    </TR>
+    <TR>
+      <TD>ALT+X</TD>
+      <TD>メニュー操作中の時、MZ-700に戻ります。</TD>
+    </TR>
+    <TR>
+      <TD>ALT+G</TD>
+      <TD>HAL研互換PCGの表示を有効にします。</TD>
+    </TR>
+    <TR>
+      <TD>ALT+C</TD>
+      <TD>HAL研互換PCGの表示を無効にします。</TD>
+    </TR>
+    <TR>
+      <TD>ALT+P</TD>
+      <TD>テープのイメージファイルを再生します。データの終わりに到達すると再生状態を終了します。テープ再生中はサービスメニューの表示ができません。</TD>
+    </TR>
+    <TR>
+      <TD>ALT+S</TD>
+      <TD>再生しているテープを停止します。</TD>
+    </TR>
+    <TR>
+      <TD>カーソル移動キー</TD>
+      <TD>メニューで項目やファイルを選択するのに使用します。</TD>
+    </TR>
+    <TR>
+      <TD>Enterキー</TD>
+      <TD>メニューや項目、ファイルの選択を決定します。</TD>
+    </TR>
+    <TR>
+      <TD>スペースキー</TD>
+      <TD>メニューの一部の項目で、設定を解除するのに使用します。</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P><A name="led"><FONT size="+1"><B>LED</B></FONT></A></P>
+<P>　標準の1chipMSXでナイトライダーと化しているLEDは、このMZ-700では各種インジケータとして使用されています。その内訳は次のとおりです。</P>
+<P><IMG src="pics/led.jpg" width="380" height="160" border="0"></P>
+<P><A name="sw"><B><FONT size="+1">DIPスイッチ</FONT></B></A></P>
+<P>　本体裏面のDIPスイッチは次のように使用されています。</P>
+<TABLE border="1">
+  <TBODY>
+    <TR>
+      <TD>　</TD>
+      <TD>OFF</TD>
+      <TD>ON</TD>
+      <TD>　</TD>
+    </TR>
+    <TR>
+      <TD align="center">1</TD>
+      <TD>15kHz</TD>
+      <TD>31kHz</TD>
+      <TD>ディスプレイ周波数モード切替(31kHz=VGAモード)</TD>
+    </TR>
+    <TR>
+      <TD align="center">2</TD>
+      <TD>ビデオ</TD>
+      <TD>RGB</TD>
+      <TD>出力形式切り替え</TD>
+    </TR>
+    <TR>
+      <TD align="center">3</TD>
+      <TD>　</TD>
+      <TD>　</TD>
+      <TD>予約</TD>
+    </TR>
+    <TR>
+      <TD align="center">4</TD>
+      <TD>　</TD>
+      <TD>　</TD>
+      <TD>予約</TD>
+    </TR>
+    <TR>
+      <TD align="center">5</TD>
+      <TD>　</TD>
+      <TD>　</TD>
+      <TD>予約だが、MSXと併用する場合はONを推奨</TD>
+    </TR>
+    <TR>
+      <TD align="center">6</TD>
+      <TD>　</TD>
+      <TD>　</TD>
+      <TD>予約</TD>
+    </TR>
+    <TR>
+      <TD align="center">7</TD>
+      <TD>　</TD>
+      <TD>　</TD>
+      <TD>予約</TD>
+    </TR>
+    <TR>
+      <TD align="center">8</TD>
+      <TD>　</TD>
+      <TD>　</TD>
+      <TD>予約</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P><A name="top"><B><FONT size="+1">トップメニュー</FONT></B></A></P>
+<P>　MZ-700稼働状態でALT+Aを押すと、画面が切り替わり上部にメニューが現れます。</P>
+<TABLE border="1">
+  <TBODY>
+    <TR>
+      <TD>FILE</TD>
+      <TD>デバイスへのイメージファイルの割り付けなどを行えます。</TD>
+    </TR>
+    <TR>
+      <TD>SETUP</TD>
+      <TD>MZ-700のROMやFPGAデータの入出力が行えます。</TD>
+    </TR>
+    <TR>
+      <TD>EXIT</TD>
+      <TD>メニューを終了します。ALT+Aを押した瞬間に戻ります。ALT+Xでも同様に戻れます。</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P><A name="file"><B><FONT size="+1">FILEメニュー</FONT></B></A></P>
+<P>　サブプロセッサが提供する仮想デバイスにファイルを割り付けます。</P>
+<TABLE border="1">
+  <TBODY>
+    <TR>
+      <TD nowrap>DIRECT LOAD</TD>
+      <TD>MZ-700のRAM空間に直接.mztファイルの内容を転送します。転送時のメモリマップ状態は考慮されません。またMZ-700の画面には何もメッセージは表示されません。ロードが終了したらMZ-700が再開されます。<BR>
+インフォメーションブロックのデータ(ファイル名・サイズ・配置アドレス・実行アドレス等)が10F0h番地以降にロードされており、ついでに1105h番地にジャンプ命令を書いておいてありますので、モニタから無条件に1105h番地に飛べばロードしたプログラムが実行できます。</TD>
+    </TR>
+    <TR>
+      <TD>$CMT</TD>
+      <TD rowspan="4">それぞれテープ、フロッピードライブ1、フロッピードライブ2、クイックディスクのデバイスを表しています。ここは起動直後「(NONE)」と書かれていますが、デバイスにエミュレータで使用されているイメージファイルを割り付けることで、MZ-700から使用することができるようになります。<BR>
+割り付けられるファイルは$CMTと$QDが.mztファイル、$FD1と$FD2が.d88ファイルです。<BR>
+すでに何か割り付けられているデバイスに新たに別のファイルを割り付けると上書きされます。取り外したいだけの時はスペースを押してください。いずれの操作が完了しても、MZ-700に戻ります。</TD>
+    </TR>
+    <TR>
+      <TD>$FD1</TD>
+    </TR>
+    <TR>
+      <TD>$FD2</TD>
+    </TR>
+    <TR>
+      <TD>$QD</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P><A name="setup"><B><FONT size="+1">SETUPメニュー</FONT></B></A></P>
+<P>　SETUPに関するサブメニューが上部に表示されます。</P>
+<TABLE border="1">
+  <TBODY>
+    <TR>
+      <TD>ROM</TD>
+      <TD>MZ-700の各種ROMデータを設定できます。</TD>
+    </TR>
+    <TR>
+      <TD>PLDLOAD</TD>
+      <TD>1chipMSX互換のPLDLOADコマンドを実行します。</TD>
+    </TR>
+    <TR>
+      <TD>PLDSAVE</TD>
+      <TD>1chipMSX互換のPLDSAVEコマンドを実行します。</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P><A name="rom"><B><FONT size="+1">ROMメニュー</FONT></B></A></P>
+<P>　設定したいROMを選択します。</P>
+<TABLE border="1">
+  <TBODY>
+    <TR>
+      <TD nowrap>MONITOR ROM(0000-0FFF)</TD>
+      <TD>モニタROMを書き換えます。標準の配布状態ではMZ-NEW MONITORが起動しますが、これを純正の1Z-009Aや海外版の1Z-013Aに書き換えるのに使用します。</TD>
+    </TR>
+    <TR>
+      <TD nowrap>SUB MONITOR ROM(E800-FFFF)</TD>
+      <TD>MZ-1500にあるSUBモニタ(9Z-502M)の領域を書き換えます。</TD>
+    </TR>
+    <TR>
+      <TD nowrap>QD BOOT/MON. ROM(E800-EFFF)</TD>
+      <TD>MZ-700用QD I/FのMZ-1E14に入っているROM(9Z-501M)の領域を書き換えます。</TD>
+    </TR>
+    <TR>
+      <TD nowrap>FD BOOT ROM(F000-FFFF)</TD>
+      <TD>MZ-700用DISK BASICのMZ-2Z009に付属するブートROMの領域を書き換えます。</TD>
+    </TR>
+    <TR>
+      <TD nowrap>CG ROM</TD>
+      <TD>CGROMエリアを書換えます。</TD>
+    </TR>
+    <TR>
+      <TD nowrap>CG ROM (REVERSE)</TD>
+      <TD>CGROMエリアを書換えます。MZ-800から吸い出した、パターンが左右反転しているデータを使用する時に使用します。</TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P><A name="pldload"><B><FONT size="+1">PLDLOAD</FONT></B></A></P>
+<P>　1chipMSXにあるpldload.comコマンドと同様の機能を提供します。実行後元のMZ-700の画面に戻りますので、電源を再投入すれば新しいロジックで起動します。</P>
+<P><A name="filer"><B><FONT size="+1">ファイル選択</FONT></B></A></P>
+<P>　デバイスまたはDIRECT LOADを選択すると、次にファイル選択画面に移ります。SD/MMCカードのルートディレクトリにあるファイルを一覧にして表示しますので、目的のファイルを選択してください。一画面に収まらない場合は次の画面が右にありますので移動すれば残りのファイルが現れます。サブディレクトリには対応していません。<BR>
+　ファイルに関してはエラーチェックはザルですので、間違えて種類の違うファイルを選ばないよう気をつけてください。</P>
+<P><A name="first"><B><FONT size="+1">とりあえず使ってみる</FONT></B></A></P>
+<P>　購入時の状態からMZ-700を動かせるようにするまでと、その後の簡単な使い方を説明します。</P>
+<OL>
+  <LI>まずは1chipMSXにキーボードとディスプレイを接続し、操作できる環境にしてください。
+  <LI>SDカードまたはMMCカードに、このディスクからmz700.pldというファイル、1chipMSX添付CD-ROMからPLDLOAD.COM、MSXDOS2.SYS、COMMAND2.COM、AUTOEXEC.BATというファイルをコピーしておいてください。また1chipMSXの底面にあるDIPスイッチの5番をONにしておきます。
+  <LI>カードをスロットに差し込んで1chipMSXの電源を入れます。
+  <LI>コマンドプロンプトが出たら、&quot;pldload mz700.pld&quot;と入力しEnterを押します。
+  <LI>画面に&quot;.&quot;がいくつか並んだあと、コマンドプロンプトに戻ります。これで電源を一度切り、また電源を入れるとMZ-700が起動します。
+</OL>
+<P>　これでいつでもMZ-700が使用できる状態になります。起動しているモニタ(簡単なコマンドが入力できるROMプログラム)は純正のものではなく互換のMZ-NEW
+MONITORを使用しています。アーカイブを添付していますのでその中にある説明文を読んでおいてください。</P>
+<P>　MZ-700として使用する際、プログラムのロードの方法は二種類あります。MZ-700のコマンドを使わず直接読み込ませる「DIRECT
+LOAD」と、テープI/Fを使用するものとです。まずはDIRECT LOADから。</P>
+<OL>
+  <LI>ALT+Aを押してメニューを表示させます。
+  <LI>FILEを選択していたらEnterを押します。
+  <LI>DIRECT LOADのところを選択している状態だと思いますので、そのままEnterを押します。
+  <LI>ファイル一覧が出ますので、ロードしたいファイルを選んでEnterを押します。
+  <LI>MZ-700の画面に戻るので、そこで1105番地にジャンプしてください。MZ-NEW MONITORなら「G1105」です。するとロードしたプログラムが起動します。
+</OL>
+<P>　DIRECT LOADでロードできるプログラムには制限があり、その時起動しているシステムでマシン語を直接手入力して動かしても支障ないものである必要があります。変な表現ですが、モニタならマシン語プログラムなどコマンドでロードできるものならなんでもOKですが、BASICからだと直接ロードしてもシステムがロードしたことを認識しないので使用することができません。<BR>
+　そこで、テープI/Fの利用です。BASICが起動しているとして、次のように操作します。</P>
+<OL>
+  <LI>ALT+Aを押してメニューを表示させます。
+  <LI>FILEを選択していたらEnterを押します。
+  <LI>DIRECT LOADのところを選択している状態だと思いますので、下にひとつ移動して$CMTを選びEnterを押します。
+  <LI>ファイル一覧が出ますので、ロードしたいファイルを選んでEnterを押します。
+  <LI>MZ-700の画面に戻るので、そこでLOADコマンドを実行してください。
+  <LI>ALT+Pを押します。インジケータが点灯し、しばらくするとFOUNDし、さらにロードしてプロンプトに戻ります。
+</OL>
+<P>　テープI/Fは、ALT+PでスタートしALT+Sで停止します。プログラムのロードが最後まで到達し終了したら自動的にALT+Sで停止したのと同じ状態になります。この場合ALP+Pで再開できません(先頭からまた再生します)。逆にMZ-700がリモート機能で一時停止した場合は、再開すると続きから再生します。これにより、多段ロードのファイルでも単純に連結しておくだけで対応できるようになっています。</P>
+<HR>
+<TABLE width="100%">
+  <TBODY>
+    <TR>
+      <TD><IMG src="pics/01c.jpg" width="63" height="63" border="0"></TD>
+      <TD align="center"><A href="../index.htm"><IMG src="pics/01a.jpg" width="63" height="63" border="0"></A></TD>
+      <TD align="right"><A href="struct.htm"><IMG src="pics/01b.jpg" width="63" height="63" border="0"></A></TD>
+    </TR>
+  </TBODY>
+</TABLE>
+<P align="right">(C) Nibbles Lab. 2007</P>
+</BODY>
+</HTML>
