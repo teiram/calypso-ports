@@ -167,10 +167,10 @@ reg [8:0]  reset = 9'h1ff;
 reg        init = 1'b1;
 always @(posedge clk,negedge init_n) begin
 	if(!init_n) begin
-		reset <= 8'hff;
+		reset <= 9'h1ff;
 		init <= 1'b1;
 	end else begin
-		if((t == STATE_LAST) && (reset != 0)) reset <= reset - 1'd1;
+		if((t == STATE_LAST) && (reset != 0)) reset <= reset - 9'd1;
 		init <= !(reset == 0);
 	end
 end
