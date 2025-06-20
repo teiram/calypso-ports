@@ -125,7 +125,7 @@ parameter CONF_STR = {
     "O2,Force C64 Mode,No,Yes;",
     "O45,Scanlines,Off,25%,50%,75%;",
     `SEP
-    "O1,Video Output,VIC-II,MOS 8563;",
+    "O1,Video Output,40 Col,80 Col;",
     "O3,Swap Joysticks,No,Yes;",
     `SEP
     "T0,Reset;",
@@ -319,6 +319,7 @@ assign LED[6] = ~c128_n;
 assign LED[7] = ~z80_n;
 wire freeze;
 wire cfg_force64 = status[2];
+wire mode40col = ~status[1] | cfg_force64;
 wire pure64;
 wire vdcVersion;
 wire cfg_azerty;
@@ -1084,7 +1085,7 @@ fpga64_sid_iec #(
     .turbo_mode(3'b000),
    .force64(cfg_force64),
    .pure64(1'b0),
-   .d4080_sel(~status[1]),
+   .d4080_sel(mode40col),
    .sys256k(1'b0),
 
    .vdcVersion(1'b0),
@@ -1755,19 +1756,19 @@ mist_video(
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
-    .R(status[1] ? vdcR : vicR),
-    .G(status[1] ? vdcG : vicG),
-    .B(status[1] ? vdcB : vicB),
-    .HSync(status[1] ? ~vdcHsync : ~vicHsync),
-    .VSync(status[1] ? ~vdcVsync : ~vicVsync),
-    .HBlank(status[1] ? 1'b0 : vicHBlank),
-    .VBlank(status[1] ? 1'b0 : vicVBlank),
+    .R(mode40col ? vicR : vdcR),
+    .G(mode40col ? vicG : vdcG),
+    .B(mode40col ? vicB : vdcB),
+    .HSync(mode40col ? ~vicHsync: ~vdcHsync),
+    .VSync(mode40col ? ~vicVsync: ~vdcVsync),
+    .HBlank(mode40col ? vicHBlank : 1'b0),
+    .VBlank(mode40col ? vicVBlank : 1'b0),
     .VGA_R(VGA_R),
     .VGA_G(VGA_G),
     .VGA_B(VGA_B),
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
-    .ce_divider(status[1] ? 3'd1 : 3'd0),
+    .ce_divider(mode40col ? 3'd0: 3'd1),
     .scandoubler_disable(scandoubler_disable),
     .no_csync(no_csync),
     .scanlines(status[5:4]),
