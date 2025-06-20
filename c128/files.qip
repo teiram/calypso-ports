@@ -1,0 +1,36 @@
+set_global_assignment -name QIP_FILE C128_MiSTer/rtl/sid/sid.qip
+set_global_assignment -name QIP_FILE C128_MiSTer/rtl/opl3/opl3.qip
+set_global_assignment -name QIP_FILE C128_MiSTer/rtl/iec_drive/iec_drive.qip
+set_global_assignment -name QIP_FILE C128_MiSTer/rtl/t65/t65.qip
+set_global_assignment -name QIP_FILE C128_MiSTer/rtl/t80/t80.qip
+set_global_assignment -name QIP_FILE C128_MiSTer/rtl/vdc856x/vdc.qip
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/cpu_6510.vhd
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/cpu_z80.vhd
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/mmu8722.vhd
+set_global_assignment -name VERILOG_FILE C128_MiSTer/rtl/mos6526_8520.v
+set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/rtcF83.sv
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/spram.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/cartridge.sv
+set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/reu.sv
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/c1530.vhd
+set_global_assignment -name VERILOG_FILE C128_MiSTer/rtl/c1351.v
+set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/video_switch.sv
+set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/video_sync.sv
+
+
+set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/video_vicIIe_jb.sv
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/fpga64_rgbcolor.vhd
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/fpga64_keyboard.vhd
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/fpga64_buslogic.vhd
+set_global_assignment -name VHDL_FILE C128_MiSTer/rtl/rgbicolor.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/osdinfo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/iec_io.sv
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE pll_video.qip
+set_global_assignment -name QIP_FILE pll_video_cfg.qip
+set_global_assignment -name QIP_FILE pll_vdc.qip
+set_global_assignment -name VERILOG_FILE sdram.v
+set_global_assignment -name SYSTEMVERILOG_FILE c128_calypso.sv
+set_global_assignment -name VHDL_FILE video_vicII_656x.vhd
+set_global_assignment -name VHDL_FILE fpga64_sid_iec.vhd

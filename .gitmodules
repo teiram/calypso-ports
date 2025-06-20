@@ -181,3 +181,9 @@
 [submodule "megadrive/fpgagen"]
 	path = megadrive/fpgagen
 	url = https://github.com/mist-devel/fpgagen.git
+[submodule "galaksija-uj/galaksija"]
+	path = galaksija-uj/galaksija
+	url = https://github.com/ZXMicroJack/galaksija.git
+[submodule "c128/C128_MiSTer"]
+	path = c128/C128_MiSTer
+	url = https://github.com/MiSTer-devel/C128_MiSTer.git
