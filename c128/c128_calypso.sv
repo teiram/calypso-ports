@@ -133,33 +133,17 @@ parameter CONF_STR = {
 };
 
 /////////////////  CLOCKS  ////////////////////////
-
-wire pll_sys_locked;
+wire pll_locked;
 wire clk_sys;
 wire clk64 /* synthesis keep */;
-wire clk48;
-wire clk64p;
 
 pll pll(
    .inclk0(CLK12M),
    .c0(clk64),
-   .c1(clk64p),
-   .c2(clk_sys),
-   .c3(clk48),
-   .locked(pll_sys_locked)
+   .c1(clk_sys),
+   .locked(pll_locked)
 );
 
-
-wire pll_vdc_locked;
-wire clk_vdc;
-
-pll_vdc pll_vdc(
-   .inclk0(CLK12M),
-   .c0(clk_vdc),
-   .locked(pll_vdc_locked)
-);
-
-wire pll_locked = pll_sys_locked & pll_vdc_locked;
 
 reg mode_change = 1'b0;
 reg mode_last;
@@ -218,7 +202,7 @@ wire scandoubler_disable;
 wire no_csync;
 wire ypbpr;
 
-localparam TOT_DISKS = 2;
+localparam TOT_DISKS = 1;
 
 wire [31:0] sd_lba[TOT_DISKS];
 wire   [5:0] sd_blk_cnt[TOT_DISKS];
@@ -331,7 +315,8 @@ assign LED[2] = load_drv;
 assign LED[3] = ioctl_wr;
 assign LED[4] = rom_loaded;
 assign LED[5] = load_rom;
-
+assign LED[6] = ~c128_n;
+assign LED[7] = ~z80_n;
 wire freeze;
 wire cfg_force64 = status[2];
 wire pure64;
@@ -1032,7 +1017,7 @@ sdram sdram(
    .sd_cas(SDRAM_nCAS),
    .sd_dqm({SDRAM_DQMH,SDRAM_DQML}),
 
-   .clk(clk64p),
+   .clk(clk64),
    .init(~pll_locked),
    .refresh(sdram_refresh),
    .addr(sdram_addr),
@@ -1089,7 +1074,7 @@ fpga64_sid_iec #(
 `endif
 ) fpga64 (
    .clk32(clk_sys),
-   .clk_vdc(clk_vdc),
+   .clk_vdc(clk_sys),
 
    .reset_n(reset_n),
    .pause(1'b0),
@@ -1099,17 +1084,13 @@ fpga64_sid_iec #(
     .turbo_mode(3'b000),
    .force64(cfg_force64),
    .pure64(1'b0),
-   .d4080_sel(status[1]),
+   .d4080_sel(~status[1]),
    .sys256k(1'b0),
 
    .vdcVersion(1'b0),
-`ifdef REDUCE_VDC_RAM
-   .vdc64k(0),
-`else
-   .vdc64k(status[88]|vdcVersion),
-`endif
-   .vdcInitRam(~status[24]),
-   .vdcPalette(status[92:89]),
+   .vdc64k(1'b0),
+   .vdcInitRam(1'b0),
+   .vdcPalette(2'b00),
 `ifdef VDC_XRAY
    .vdcDebug(status[127]),
 `else
@@ -1117,7 +1098,7 @@ fpga64_sid_iec #(
 `endif
 
    .go64(go64),
-   .ps2_key(key),
+   .ps2_key(ps2_key),
    .kbd_reset(~reset_n | reset_keys),
    .shift_mod(~status[60:59]),
    .azerty(1'b0),
@@ -1216,10 +1197,13 @@ fpga64_sid_iec #(
    .iec_data_o(c64_iec_data_o),
    .iec_clk_o(c64_iec_clk_o),
    .iec_srq_n_o(c64_iec_srq_n_o),
-   .iec_data_i(c64_iec_data_i),
-   .iec_clk_i(c64_iec_clk_i),
-   .iec_srq_n_i(c64_iec_srq_n_i),
-
+//   .iec_data_i(c64_iec_data_i),
+//   .iec_clk_i(c64_iec_clk_i),
+//   .iec_srq_n_i(c64_iec_srq_n_i),
+    .iec_srq_n_i(1'b1),
+    .iec_clk_i(1'b1),
+    .iec_data_i(1'b1),
+    
    .pb_i(pb_i),
    .pb_o(pb_o),
    .pa2_i(pa2_i),
@@ -1284,7 +1268,6 @@ wire       disk_ready;
 reg [1:0] drive_mounted = 0;
 always @(posedge clk_sys) begin
    if(img_mounted[0]) drive_mounted[0] <= |img_size;
-   if(img_mounted[1]) drive_mounted[1] <= |img_size;
 end
 
 function [1:0] map_drive_model(input [1:0] st);
@@ -1300,13 +1283,13 @@ wire        drive_rom_req;
 wire [18:0] drive_rom_addr;
 reg         drive_rom_wr;
 
-/*
-iec_drive iec_drive
+/* Doesn't fit :(
+iec_drive #(.DRIVES(1)) iec_drive
 (
    .clk(clk_sys),
    .reset({drive_reset | ((!status[56:55]) ? ~drive_mounted[1] : status[56]),
            drive_reset | ((!status[58:57]) ? ~drive_mounted[0] : status[58])}),
-   .drv_mode('{map_drive_model(status[84:83]), map_drive_model(status[86:85])}),
+   .drv_mode('{map_drive_model(status[84:83])}),
 
    .ce(drive_ce),
 
@@ -1768,7 +1751,7 @@ mist_video #(
     .OUT_COLOR_DEPTH(VGA_BITS),
     .BIG_OSD(BIG_OSD))
 mist_video(
-    .clk_sys(status[1] ? clk_vdc : clk_sys),
+    .clk_sys(clk_sys),
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
@@ -1784,7 +1767,7 @@ mist_video(
     .VGA_B(VGA_B),
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
-    .ce_divider(3'd0),
+    .ce_divider(status[1] ? 3'd1 : 3'd0),
     .scandoubler_disable(scandoubler_disable),
     .no_csync(no_csync),
     .scanlines(status[5:4]),

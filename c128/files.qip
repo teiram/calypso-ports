@@ -27,9 +27,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/osdinfo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE C128_MiSTer/rtl/iec_io.sv
 
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
-set_global_assignment -name QIP_FILE pll_video.qip
-set_global_assignment -name QIP_FILE pll_video_cfg.qip
-set_global_assignment -name QIP_FILE pll_vdc.qip
+set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name VERILOG_FILE sdram.v
 set_global_assignment -name SYSTEMVERILOG_FILE c128_calypso.sv
 set_global_assignment -name VHDL_FILE video_vicII_656x.vhd
