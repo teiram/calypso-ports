@@ -15,4 +15,5 @@ A C64.ROM file must be at the root of the SD Card. The ROM format is basic+kerna
 - 0.1. First version.
 - 0.2. Fixed disk support
 - 0.3. Replaced SID with rampa069 version
+- 0.4. Simplify clocks, fix TAP load, hpos/vpos 
 
