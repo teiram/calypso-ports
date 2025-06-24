@@ -195,6 +195,9 @@ constant CONF_STR : string :=
 	"P1O89,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;"&
 	"P1O2,Video standard,PAL,NTSC;"&
 	"P1OUV,VIC-II variant,656x,856x,early 856x;"&
+    "P1Oil,H-Pos,0,-1,-2,-3,-4,-5,-6,-7,8,7,6,5,4,3,2,1;"&
+    "P1Omp,V-Pos,0,-1,-2,-3,-4,-5,-6,-7,8,7,6,5,4,3,2,1;"&
+    SEP&
 	"P1OI,Tape sound,Off,On;"&
 	"P1OJ,Tape progress,Off,On;"&
 	"P1ODF,SID,6581 Mono,6581 Stereo,8580 Mono,8580 Stereo,Pseudo Stereo;"&
@@ -370,6 +373,21 @@ port
 );
 end component progressbar;
 
+component sync_shifter
+port(
+    clk: in std_logic;
+    ce_divider: in std_logic_vector(2 downto 0);
+    hs_in: in std_logic;
+    vs_in: in std_logic;
+    vblank: in std_logic;
+    hblank: in std_logic;
+    hoffset: in std_logic_vector(3 downto 0);
+    voffset: in std_logic_vector(3 downto 0);
+    hs_out: out std_logic;
+    vs_out: out std_logic
+);
+end component sync_shifter;
+
 	signal pll_locked_in : std_logic_vector(1 downto 0);
 	signal pll_locked : std_logic;
     signal pll_2_locked: std_logic;
@@ -531,7 +549,8 @@ end component progressbar;
 	signal st_ntsc             : std_logic;                    -- status(2)
 	signal st_normal_reset     : std_logic;                    -- status(1)
 	signal st_reset            : std_logic;                    -- status(0)
-
+    signal st_hpos             : std_logic_vector(3 downto 0); -- status(47 downto 44)
+    signal st_vpos             : std_logic_vector(3 downto 0); -- status(51 downto 44)
 	signal sd_lba         : std_logic_vector(31 downto 0);
 	signal sd_rd          : std_logic_vector(DRIVE_N-1 downto 0);
 	signal sd_wr          : std_logic_vector(DRIVE_N-1 downto 0);
@@ -613,6 +632,8 @@ end component progressbar;
 	signal vsync : std_logic;
 	signal hblank : std_logic;
 	signal vblank : std_logic;
+    signal chsync: std_logic;
+    signal cvsync: std_logic;
 
 	signal audio_data_l : std_logic_vector(17 downto 0);
 	signal audio_data_r : std_logic_vector(17 downto 0);
@@ -677,7 +698,7 @@ end component progressbar;
 	constant C64_MEM_START : std_logic_vector(23 downto 0) := X"000000"; -- normal C64 RAM
 	constant C64_ROM_START : std_logic_vector(23 downto 0) := X"0F0000"; -- kernal/basic ROM
 	constant CRT_MEM_START : std_logic_vector(23 downto 0) := X"200000"; -- cartridges
-	constant TAP_MEM_START : std_logic_vector(23 downto 0) := X"400000"; -- .tap files 
+	constant TAP_MEM_START : std_logic_vector(23 downto 0) := X"300000"; -- .tap files 
 	
 begin
 
@@ -762,7 +783,8 @@ begin
 		mouse_flags => mouse_flags,
 		mouse_strobe => mouse_strobe
 	);
-
+    st_vpos             <= status(51 downto 48);
+    st_hpos             <= status(47 downto 44);
 	st_drive(3)         <= status(43 downto 42);
 	st_drive(2)         <= status(41 downto 40);
 	st_drive(1)         <= status(39 downto 38);
@@ -1756,6 +1778,21 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 		pix => progress
 	);
 
+
+    resync: sync_shifter
+    port map(
+        clk => clk_c64,
+        ce_divider => "011",
+        hs_in => hsync,
+        vs_in => vsync,
+        vblank => vblank,
+        hblank => hblank,
+        hoffset => st_hpos,
+        voffset => st_vpos,
+        hs_out => chsync,
+        vs_out => cvsync
+    );
+    
 	vga_video : mist_video
 	generic map (
 		SD_HCNT_WIDTH => 10,
@@ -1779,8 +1816,8 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 		SPI_SS3     => SPI_SS3,
 		SPI_DI      => SPI_DI,
 
-		HSync       => not hsync,
-		VSync       => not vsync,
+		HSync       => not chsync,
+		VSync       => not cvsync,
 		HBlank      => hblank,
 		VBlank      => vblank,
 		R           => std_logic_vector(r) or (progress&progress&progress&progress&progress&progress&progress&progress),

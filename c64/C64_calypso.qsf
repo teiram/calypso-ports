@@ -360,9 +360,11 @@ set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 
 set_global_assignment -name TOP_LEVEL_ENTITY c64_calypso_top
-set_global_assignment -name QIP_FILE "c64/rtl/mist/mist-modules/mist.qip"
+set_global_assignment -name QIP_FILE "../common/mist-modules/mist.qip"
+set_global_assignment -name VERILOG_FILE ../common/sync_shifter.v
 set_global_assignment -name VERILOG_FILE build_id.v
 set_global_assignment -name QIP_FILE fpga64.qip
+
 set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
 set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
