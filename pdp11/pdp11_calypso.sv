@@ -63,7 +63,9 @@ module pdp11_calypso(
     output SDRAM_CKE,
 
     input UART_RX,
-    output UART_TX
+    output UART_TX,
+    
+    output [7:0] AUX
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -109,34 +111,29 @@ localparam bit USE_AUDIO_IN = 0;
 wire TAPE_SOUND=UART_RX;
 `endif
 
-localparam TOT_DISKS = 1'b1;
-
-assign LED[0] = ~ioctl_download; 
+localparam TOT_DISKS = 3;
 
 `include "build_id.v"
 parameter CONF_STR = {
     "PDP11;;",
-    "F1,COLBINROM,Load CART;",
+    "S0U,DSK,Mount RL Disk;",
+    "S1U,DSK,Mount RK Disk;",
+//    "S2U,DSK,Mount RH Disk;",
     `SEP
-    "S0U,DSK,Load Floppy 1;",
-    "S1U,DSK,Load Floppy 2;",
-    "S2U,DDP,Load Tape 1;",
-    "S3U,DDP,Load Tape 2;",
-    "O45,Scanlines,Off,25%,50%,75%;",
+    "O13,PDP11 Model,20,34,44,45,70,94;",
     `SEP
-    "O3,Swap Joysticks,No,Yes;",
-    "OC,Mode,Computer,Console;",
+    "O4,VT-Type,vt100,vt105;",
+    "O5,Cursor Type,Underline,Block,;",
+    "O6,Blinking cursor,No,Yes;",
+    "O79,Screen Off Timer,Disabled,60,120,240,600,1200,3600,7200;",
     `SEP
-    "OD,F18A Max Sprites,4,32;",
-    "OE,F18A Scanlines,Off,On;",
-    "-;",
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 /////////////////  CLOCKS  ////////////////////////
 
-wire clk50m;
+wire clk50m /* synthesis keep */;
 wire clk100m;
 wire pll_locked;
 
@@ -148,28 +145,23 @@ pll pll(
 );
 
 /////////////////  IO  ///////////////////////////
-
 wire [31:0] status;
 wire [1:0] buttons;
-
-wire [31:0] joy0, joy1;
 
 wire ioctl_download;
 wire [7:0] ioctl_index;
 wire ioctl_wr;
 wire [24:0] ioctl_addr;
 wire [7:0] ioctl_dout;
-wire scandoubler_disable;
-wire no_csync;
-wire ypbpr;
 
 wire [31:0] sd_lba[TOT_DISKS];
 wire [31:0] sd_lba_mux;
-reg [TOT_DISKS-1:0] sd_rd /* synthesis keep */;
+reg [TOT_DISKS-1:0] sd_rd;
 reg [TOT_DISKS-1:0] sd_wr;
-wire [TOT_DISKS-1:0] sd_ack /* synthesis keep */;
-wire sd_ack_mux;
-wire [8:0] sd_buff_addr /* synthesis keep */;
+wire [TOT_DISKS-1:0] sd_ack_x;
+wire [TOT_DISKS-1:0] sd_ack_conf;
+wire [TOT_DISKS-1:0] sd_conf;
+wire [8:0] sd_buff_addr;
 wire [7:0] sd_buff_dout;
 wire [7:0] sd_buff_din[TOT_DISKS];
 wire [7:0] sd_buff_din_mux;
@@ -179,20 +171,133 @@ wire [TOT_DISKS-1:0] img_mounted;
 wire img_readonly;
 
 wire [63:0] img_size;
-wire [31:0] img_ext;
+wire [23:0] img_ext;
 
-wire key_pressed;
-wire [7:0] key_code;
-wire key_strobe;
-wire key_extended;
+wire sdcard0_cs;
+wire sdcard0_sclk;
+wire sdcard0_mosi;
+wire sdcard0_miso;
+
+xsd_card vcard0(
+    .clk_sys(clk100m),
+    .clk_spi(clk100m),
+    .reset(reset),
+
+    .sdhc(1),
+
+    .sd_lba(sd_lba[0]),
+    .sd_rd(sd_rd[0]),
+    .sd_wr(sd_wr[0]),
+    .sd_ack(sd_ack_x[0]),
+    
+    .sd_buff_addr(sd_buff_addr),
+    .sd_buff_din(sd_buff_din[0]),
+    .sd_buff_dout(sd_buff_dout),
+    .sd_buff_wr(sd_buff_wr),
+
+    .sck(sdcard0_sclk),
+    .ss(sdcard0_cs),
+    .mosi(sdcard0_mosi),
+    .miso(sdcard0_miso)
+);
+
+wire sdcard1_cs;
+wire sdcard1_sclk;
+wire sdcard1_mosi;
+wire sdcard1_miso;
+
+xsd_card vcard1(
+    .clk_sys(clk100m),
+    .clk_spi(clk100m),
+    .reset(reset),
+
+    .sdhc(1),
+
+    .sd_lba(sd_lba[1]),
+    .sd_rd(sd_rd[1]),
+    .sd_wr(sd_wr[1]),
+    .sd_ack(sd_ack_x[1]),
+    
+    .sd_buff_addr(sd_buff_addr),
+    .sd_buff_din(sd_buff_din[1]),
+    .sd_buff_dout(sd_buff_dout),
+    .sd_buff_wr(sd_buff_wr),
+
+    .sck(sdcard1_sclk),
+    .ss(sdcard1_cs),
+    .mosi(sdcard1_mosi),
+    .miso(sdcard1_miso)
+);
+
+wire sdcard2_cs;
+wire sdcard2_sclk;
+wire sdcard2_mosi;
+wire sdcard2_miso;
+
+/* One more card prevents the core to boot
+xsd_card vcard2(
+    .clk_sys(clk100m),
+    .clk_spi(clk100m),
+    .reset(reset),
+
+    .sdhc(1),
+
+    .sd_lba(sd_lba[2]),
+    .sd_rd(sd_rd[2]),
+    .sd_wr(sd_wr[2]),
+    .sd_ack(sd_ack_x[2]),
+    
+    .sd_buff_addr(sd_buff_addr),
+    .sd_buff_din(sd_buff_din[2]),
+    .sd_buff_dout(sd_buff_dout),
+    .sd_buff_wr(sd_buff_wr),
+
+    .sck(sdcard2_sclk),
+    .ss(sdcard2_cs),
+    .mosi(sdcard2_mosi),
+    .miso(sdcard2_miso)
+);
+*/
+always @(posedge clk50m) begin
+    if (sd_rd[0] == 1'b1 || sd_wr[0] == 1'b1) begin
+        sd_lba_mux <= sd_lba[0];
+        sd_buff_din_mux <= sd_buff_din[0];
+    end
+    if (sd_rd[1] == 1'b1 || sd_wr[1] == 1'b1) begin
+        sd_lba_mux <= sd_lba[1];
+        sd_buff_din_mux <= sd_buff_din[1];
+    end
+    if (sd_rd[2] == 1'b1 || sd_wr[2] == 1'b1) begin
+        sd_lba_mux <= sd_lba[2];
+        sd_buff_din_mux <= sd_buff_din[2];
+    end
+end
+
+always @(posedge clk50m) begin
+    if (img_mounted[0]) begin
+        have_rl <= |img_size;
+    end
+    if (img_mounted[1]) begin
+        have_rk <= |img_size;
+    end
+    if (img_mounted[2]) begin
+        have_rh <= |img_size;
+    end
+end
+
+assign LED[0] = have_rl;
+assign LED[1] = have_rk;
+assign LED[2] = have_rh;
+assign LED[3] = |sd_rd;
+assign LED[4] = |sd_wr;
+
 wire ps2_kbd_clk;
 wire ps2_kbd_data;
-
-wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
     .SD_IMAGES(TOT_DISKS),
+    .PS2DIV(200),
     .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
 user_io(
     .clk_sys(clk50m),
@@ -204,33 +309,25 @@ user_io(
 
     .conf_str(CONF_STR),
     .status(status),
-    .scandoubler_disable(scandoubler_disable),
-    .ypbpr(ypbpr),
-    .no_csync(no_csync),
     .buttons(buttons),
 
-    .key_strobe(key_strobe),
-    .key_code(key_code),
-    .key_pressed(key_pressed),
-    .key_extended(key_extended),
     .ps2_kbd_clk(ps2_kbd_clk),
     .ps2_kbd_data(ps2_kbd_data),
     
-    .sd_sdhc(1),
+    .sd_sdhc(1'b1),
     .sd_lba(sd_lba_mux),
+    .sd_ack_conf(sd_ack_conf),
     .sd_rd(sd_rd),
     .sd_wr(sd_wr),
-    .sd_ack(sd_ack_mux),
+    .sd_conf(|sd_conf),
+    .sd_ack_x(sd_ack_x),
     .sd_buff_addr(sd_buff_addr),
     .sd_dout(sd_buff_dout),
     .sd_din(sd_buff_din_mux),
     .sd_dout_strobe(sd_buff_wr),
 
     .img_mounted(img_mounted),
-    .img_size(img_size),
-
-    .joystick_0(joy0),
-    .joystick_1(joy1)
+    .img_size(img_size)
 );
 
 
@@ -258,7 +355,6 @@ data_io data_io(
 /////////////////  RESET  /////////////////////////
 wire reset =  status[0] | buttons[1] | ioctl_download | ~pll_locked;
 
-
 ////////////////  Machine  ////////////////////////
 wire [13:0] audio;
 
@@ -269,7 +365,6 @@ wire hsync, vsync;
 wire vtreset;
 
 wire [21:0] addr;
-wire [21:0] addrq;
 wire [15:0] dati;
 wire [15:0] dato;
 wire control_dati;
@@ -287,12 +382,22 @@ wire rl_sclk;
 wire rl_miso;
 wire [3:0] rl_sddebug;
 
+assign sdcard0_cs = have_rl ? rl_cs : 1'b0;
+assign sdcard0_mosi = have_rl ? rl_mosi : 1'b0;
+assign sdcard0_sclk = have_rl ? rl_sclk : 1'b0;
+assign rl_miso = have_rl ? sdcard0_miso : 1'b0;
+
 logic have_rk;
 wire rk_cs;
 wire rk_mosi;
 wire rk_sclk;
 wire rk_miso;
 wire [3:0] rk_sddebug;
+
+assign sdcard1_cs = have_rk ? rk_cs : 1'b0;
+assign sdcard1_mosi = have_rk ? rk_mosi : 1'b0;
+assign sdcard1_sclk = have_rk ? rk_sclk : 1'b0;
+assign rk_miso = have_rk ? sdcard1_miso : 1'b0;
 
 logic have_rh;
 wire rh_cs;
@@ -301,25 +406,24 @@ wire rh_sclk;
 wire rh_miso;
 wire [3:0] rh_sddebug;
 
+assign sdcard2_cs = have_rh ? rh_cs : 1'b0;
+assign sdcard2_mosi = have_rk ? rh_mosi : 1'b0;
+assign sdcard2_sclk = have_rk ? rh_sclk : 1'b0;
+assign rh_miso = have_rh ? sdcard2_miso : 1'b0;
+
 wire cpureset;
 wire cpuclk;
 
 wire rxrx0;
 wire txtx0;
 
-//assign rxrx0 = UART_RX;
-assign UART_TX = txtx0;
-
 logic slowreset;
 logic [11:0] slowresetdelay;
 
-always @(posedge cpuclk) begin
-    if (ifetch == 1'b1) addrq <= addr;
-end
-
-always @(posedge clk100m) begin
+always @(posedge clk50m) begin
     if (reset == 1'b1) begin
         slowreset <= 1'b1;
+        vtreset <= 1'b1;
         slowresetdelay <= 12'd4095;
     end else begin
         if (slowresetdelay == 12'd0) begin
@@ -327,10 +431,37 @@ always @(posedge clk100m) begin
             vtreset <= 1'b0;
         end else begin
             slowreset <= 1'b1;
-            slowresetdelay <= slowresetdelay -12'd1;
+            slowresetdelay <= slowresetdelay - 12'd1;
         end 
     end
 end
+
+
+wire st_vttype = status[4];
+wire st_model = status[3:1];
+wire st_cursor_type = status[5];
+wire st_cursor_blink = status[6];
+wire st_screen_off = status[9:7];
+
+wire [7:0] model = 
+    st_model == 3'd0 ? 8'd20:
+    st_model == 3'd1 ? 8'd34:
+    st_model == 3'd2 ? 8'd44:
+    st_model == 3'd3 ? 8'd45:
+    st_model == 3'd4 ? 8'd70:
+    8'd94;
+
+wire [6:0] vttype = st_vttype ? 7'd100 : 7'd104;
+
+wire [12:0] vt_tout_seconds = 
+    st_screen_off == 3'd0 ? 13'd0:
+    st_screen_off == 3'd1 ? 13'd60:
+    st_screen_off == 3'd2 ? 13'd120:
+    st_screen_off == 3'd3 ? 13'd240:
+    st_screen_off == 3'd4 ? 13'd600:
+    st_screen_off == 3'd5 ? 13'd1200:
+    st_screen_off == 3'd6 ? 13'd3600:
+    13'd7200;
 
 unibus pdp11(
     .addr(addr),
@@ -352,6 +483,7 @@ unibus pdp11(
     .rl_sdcard_debug(rl_sddebug),
 
     .have_rk(have_rk),
+    .have_rk_num(1'b1),
     .rk_sdcard_cs(rk_cs),
     .rk_sdcard_mosi(rk_mosi),
     .rk_sdcard_sclk(rk_sclk),
@@ -376,7 +508,7 @@ unibus pdp11(
     .xu_miso(),
     .xu_debug_tx(),
     
-    .modelcode(8'd44),
+    .modelcode(model),
     
     .reset(cpureset),
     .clk50mhz(clk50m),
@@ -407,7 +539,8 @@ sdram sdram(
     .dram_cke(SDRAM_CKE),
     .dram_clk(SDRAM_CLK),
     
-    .reset(reset),
+    .reset(~pll_locked),
+    .ext_reset(slowreset),
     .cpureset(cpureset),
     .cpuclk(cpuclk),
     .c0(clk100m)
@@ -426,10 +559,13 @@ vt10x vt10x(
     .rx(txtx0),
     .tx(rxrx0),
 
-//    .ps2k_c(ps2_kbd_clk),
-//    .ps2k_d(ps2_kbd_data),
-        
-    .vttype(7'd100),
+    .ps2k_c(ps2_kbd_clk),
+    .ps2k_d(ps2_kbd_data),
+
+    .vttype(vttype),
+    .vga_cursor_block(st_cursor_type),
+    .vga_cursor_blink(st_cursor_blink),
+    .have_act_seconds(vt_tout_seconds),
         
     .cpuclk(cpuclk),
     .clk50mhz(clk50m),
@@ -474,8 +610,8 @@ mist_video(
     .VGA_HS(VGA_HS),
     .ce_divider(3'd2),
     .scandoubler_disable(1'b1),
-    .no_csync(no_csync),
-    .ypbpr(ypbpr)
+    .no_csync(1'b0),
+    .ypbpr(1'b0)
 );
 
 
