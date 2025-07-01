@@ -1,0 +1,6 @@
+CORE_ID=pdp11
+PROJECT_NAME=pdp11
+VERSION=0.1
+BITSTREAM_FILE=output_files/pdp11.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules

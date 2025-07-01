@@ -234,7 +234,6 @@ wire sdcard2_sclk;
 wire sdcard2_mosi;
 wire sdcard2_miso;
 
-// One more card prevents the core to boot
 xsd_card vcard2(
     .clk_sys(clk100m),
     .clk_spi(clk100m),
@@ -407,8 +406,8 @@ wire rh_miso;
 wire [3:0] rh_sddebug;
 
 assign sdcard2_cs = have_rh ? rh_cs : 1'b0;
-assign sdcard2_mosi = have_rk ? rh_mosi : 1'b0;
-assign sdcard2_sclk = have_rk ? rh_sclk : 1'b0;
+assign sdcard2_mosi = have_rh ? rh_mosi : 1'b0;
+assign sdcard2_sclk = have_rh ? rh_sclk : 1'b0;
 assign rh_miso = have_rh ? sdcard2_miso : 1'b0;
 
 wire cpureset;
@@ -451,7 +450,7 @@ wire [7:0] model =
     st_model == 3'd4 ? 8'd70:
     8'd94;
 
-wire [6:0] vttype = st_vttype ? 7'd100 : 7'd105;
+wire [6:0] vttype = st_vttype ? 7'd105 : 7'd100;
 
 wire [12:0] vt_tout_seconds = 
     st_screen_off == 3'd0 ? 13'd0:
