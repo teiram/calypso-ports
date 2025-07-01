@@ -22,3 +22,6 @@ set_output_delay -clock [get_clocks {pll|altpll_component|auto_generated|pll1|cl
 set_output_delay -clock [get_clocks {pll|altpll_component|auto_generated|pll1|clk[0]}] -min -5 [get_ports {VGA_*}]
 set_multicycle_path -to [get_ports {VGA_*}] -setup 3
 set_multicycle_path -to [get_ports {VGA_*}] -hold 2
+
+set_false_path -to [get_ports {LED[*]}]
+set_false_path -to [get_ports {AUX[*]}]

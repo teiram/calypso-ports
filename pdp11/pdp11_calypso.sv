@@ -118,7 +118,7 @@ parameter CONF_STR = {
     "PDP11;;",
     "S0U,DSK,Mount RL Disk;",
     "S1U,DSK,Mount RK Disk;",
-//    "S2U,DSK,Mount RH Disk;",
+    "S2U,DSK,Mount RH Disk;",
     `SEP
     "O13,PDP11 Model,20,34,44,45,70,94;",
     `SEP
@@ -234,7 +234,7 @@ wire sdcard2_sclk;
 wire sdcard2_mosi;
 wire sdcard2_miso;
 
-/* One more card prevents the core to boot
+// One more card prevents the core to boot
 xsd_card vcard2(
     .clk_sys(clk100m),
     .clk_spi(clk100m),
@@ -257,7 +257,7 @@ xsd_card vcard2(
     .mosi(sdcard2_mosi),
     .miso(sdcard2_miso)
 );
-*/
+
 always @(posedge clk50m) begin
     if (sd_rd[0] == 1'b1 || sd_wr[0] == 1'b1) begin
         sd_lba_mux <= sd_lba[0];
@@ -417,8 +417,8 @@ wire cpuclk;
 wire rxrx0;
 wire txtx0;
 
-logic slowreset;
-logic [11:0] slowresetdelay;
+logic slowreset = 1'b1;
+logic [11:0] slowresetdelay = 12'd4095;
 
 always @(posedge clk50m) begin
     if (reset == 1'b1) begin
@@ -451,7 +451,7 @@ wire [7:0] model =
     st_model == 3'd4 ? 8'd70:
     8'd94;
 
-wire [6:0] vttype = st_vttype ? 7'd100 : 7'd104;
+wire [6:0] vttype = st_vttype ? 7'd100 : 7'd105;
 
 wire [12:0] vt_tout_seconds = 
     st_screen_off == 3'd0 ? 13'd0:
