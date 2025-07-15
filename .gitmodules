@@ -187,3 +187,9 @@
 [submodule "c128/C128_MiSTer"]
 	path = c128/C128_MiSTer
 	url = https://github.com/MiSTer-devel/C128_MiSTer.git
+[submodule "x65/x65_Altera"]
+	path = x65/x65_Altera
+	url = https://github.com/teiram/x65_Altera
+[submodule "apple2e/apple2efpga"]
+	path = apple2e/apple2efpga
+	url = https://github.com/teiram/apple2efpga
