@@ -1,0 +1,6 @@
+CORE_ID=apple2e
+PROJECT_NAME=apple2e
+VERSION=0.1
+BITSTREAM_FILE=output_files/apple2e.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules

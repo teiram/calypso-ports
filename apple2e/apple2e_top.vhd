@@ -154,7 +154,7 @@ architecture datapath of apple2e_top is
    "R32,Save CFFA settings;"&
    "T7,Reset;"&
    "T0,Cold reset;"&
-   "V,"&BUILD_VERSION&BUILD_DATE;
+   "V,"&BUILD_VERSION&"-"&BUILD_DATE;
 
   component mist_sd_card
     port (
