@@ -193,3 +193,6 @@
 [submodule "apple2e/apple2efpga"]
 	path = apple2e/apple2efpga
 	url = https://github.com/teiram/apple2efpga
+[submodule "pet2001/PET2001_MiSTer"]
+	path = pet2001/PET2001_MiSTer
+	url = https://github.com/MiSTer-devel/PET2001_MiSTer.git
