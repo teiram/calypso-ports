@@ -199,3 +199,6 @@
 [submodule "tsconf/TSConf_MiST"]
 	path = tsconf/TSConf_MiST
 	url = https://github.com/teiram/TSConf_MiST
+[submodule "vector-06c/Vector-06C_poseidon-ep4cgx150"]
+	path = vector-06c/Vector-06C_poseidon-ep4cgx150
+	url = https://github.com/teiram/Vector-06C_poseidon-ep4cgx150
