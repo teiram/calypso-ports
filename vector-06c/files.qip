@@ -6,16 +6,17 @@ set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/k580vv55.
 set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/k580vm80a.v
 set_global_assignment -name SYSTEMVERILOG_FILE Vector-06C_poseidon-ep4cgx150/wd1793.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Vector-06C_poseidon-ep4cgx150/ym2149.sv
-set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/mist_io.v
+#set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/mist_io.v
 set_global_assignment -name SYSTEMVERILOG_FILE Vector-06C_poseidon-ep4cgx150/keyboard.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Vector-06C_poseidon-ep4cgx150/hq2x.sv
 set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/osd.v
-set_global_assignment -name SYSTEMVERILOG_FILE Vector-06C_poseidon-ep4cgx150/video_mixer.sv
-set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/scandoubler.v
-set_global_assignment -name SYSTEMVERILOG_FILE Vector-06C_poseidon-ep4cgx150/video.sv
+#set_global_assignment -name SYSTEMVERILOG_FILE Vector-06C_poseidon-ep4cgx150/video_mixer.sv
+#set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/scandoubler.v
 set_global_assignment -name QIP_FILE Vector-06C_poseidon-ep4cgx150/T80/T80.qip
-set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/mist-modules/i2s.v
+#set_global_assignment -name VERILOG_FILE Vector-06C_poseidon-ep4cgx150/mist-modules/i2s.v
 
 set_global_assignment -name SYSTEMVERILOG_FILE calypso_vector06c.sv
+set_global_assignment -name SYSTEMVERILOG_FILE video.sv
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
 set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name VERILOG_FILE sram.v

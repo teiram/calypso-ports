@@ -113,7 +113,7 @@ localparam CONF_STR =
     "VECTOR06;;",
     "F1,ROMCOMC00EDD;",
     "S0,FDD,Mount Floppy;",
-    "O12,Scandoubler Fx,None,25%,50%,75%;",
+    "O12,Scanlines,None,25%,50%,75%;",
     "O4,CPU Speed,3MHz,6MHz;",
     "O5,CPU Type,i8080,Z80;",
     "O7,Reset Palette,Yes,No;",
@@ -125,34 +125,98 @@ localparam CONF_STR =
 
 ///////////////   MIST ARM I/O   /////////////////
 assign LED[0] = ~(ioctl_download | ioctl_erasing);
+assign LED[1] = ioctl_download;
+assign LED[2] = ioctl_erasing;
 
-wire        scandoubler_disable;
-wire        ypbpr;
-wire        ps2_kbd_clk, ps2_kbd_data;
+wire scandoubler_disable;
+wire ypbpr;
+wire no_csync;
+wire ps2_kbd_clk, ps2_kbd_data;
 
 wire [31:0] status;
-wire  [1:0] buttons;
-wire  [7:0] joyA;
-wire  [7:0] joyB;
+wire [1:0] buttons;
+wire [7:0] joyA;
+wire [7:0] joyB;
 
-wire        ioctl_wr;
+wire ioctl_wr;
 wire [24:0] ioctl_addr;
-wire  [7:0] ioctl_data;
-wire        ioctl_download;
-wire        ioctl_erasing;
-wire  [7:0] ioctl_index;
+wire [7:0] ioctl_data;
+wire ioctl_download;
+wire ioctl_erasing;
+wire [7:0] ioctl_index;
 
 wire [31:0] sd_lba;
-wire        sd_rd;
-wire        sd_wr;
-wire        sd_ack;
-wire  [8:0] sd_buff_addr;
-wire  [7:0] sd_buff_dout;
-wire  [7:0] sd_buff_din;
-wire        sd_buff_wr;
-wire        img_mounted;
+wire sd_rd;
+wire sd_wr;
+wire sd_ack;
+wire [8:0] sd_buff_addr;
+wire [7:0] sd_buff_dout;
+wire [7:0] sd_buff_din;
+wire sd_buff_wr;
+wire img_mounted;
 wire [31:0] img_size;
 
+user_io #(
+    .STRLEN($size(CONF_STR)>>3),
+    .SD_IMAGES(1),
+    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
+user_io(
+    .clk_sys(clk_sys),
+    .clk_sd(clk_sys),
+    .SPI_SS_IO(CONF_DATA0),
+    .SPI_CLK(SPI_SCK),
+    .SPI_MOSI(SPI_DI),
+    .SPI_MISO(SPI_DO),
+
+    .conf_str(CONF_STR),
+    .status(status),
+    .scandoubler_disable(scandoubler_disable),
+    .no_csync(no_csync),
+    .ypbpr(ypbpr),
+    .buttons(buttons),
+
+    .sd_sdhc(1),
+    .sd_lba(sd_lba),
+    .sd_rd(sd_rd),
+    .sd_wr(sd_wr),
+    .sd_ack(sd_ack),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_dout(sd_buff_dout),
+    .sd_din(sd_buff_din),
+    .sd_dout_strobe(sd_buff_wr),
+
+    .img_mounted(img_mounted),
+    .img_size(img_size),
+
+    .ps2_kbd_clk(ps2_kbd_clk),
+    .ps2_kbd_data(ps2_kbd_data),
+    
+    .joystick_0(joyA),
+    .joystick_1(joyB)
+);
+
+
+data_io data_io(
+    .clk_sys(clk_sys),
+    .SPI_SCK(SPI_SCK),
+    .SPI_SS2(SPI_SS2),
+
+`ifdef NO_DIRECT_UPLOAD
+    .SPI_SS4(1'b1),
+`else
+    .SPI_SS4(SPI_SS4),
+`endif
+
+    .SPI_DI(SPI_DI),
+    .SPI_DO(SPI_DO),
+    
+    .ioctl_download(ioctl_download),
+    .ioctl_index(ioctl_index),
+    .ioctl_wr(ioctl_wr),
+    .ioctl_addr(ioctl_addr),
+    .ioctl_dout(ioctl_data)
+);
+/*
 mist_io #(.STRLEN($size(CONF_STR)>>3)) mist_io 
 (
     .*,
@@ -175,7 +239,7 @@ mist_io #(.STRLEN($size(CONF_STR)>>3)) mist_io
     .ps2_mouse_clk(),
     .ps2_mouse_data()
 );
-
+*/
 
 ////////////////////   CLOCKS   ///////////////////
 wire locked;
@@ -236,21 +300,21 @@ always @(posedge clk_sys) begin
     int reset_hold = 0;
     int init_reset = 90000000;
 
-    if(ioctl_erasing | ioctl_download) begin
+    if (ioctl_erasing | ioctl_download) begin
         reset_flg <= 1;
-        reset     <= 1;
-        if(ioctl_download) rom_enable <= ~((ioctl_index[4:0]==1) && (ioctl_index[7:6]<3));
+        reset <= 1;
+        if (ioctl_download) rom_enable <= ~((ioctl_index[4:0]==1) && (ioctl_index[7:6]<3));
     end else begin
         if(reset_flg) begin
             reset_flg  <= 0;
-            cpu_type   <= status[5];
-            reset      <= 1;
+            cpu_type <= status[5];
+            reset <= 1;
             reset_hold <= 1000;
-        end else if(reset_hold) reset_hold <= reset_hold - 1;
+        end else if (reset_hold) reset_hold <= reset_hold - 1;
         else {cold_reset,reset} <= 0;
 
         // initial reset
-        if(init_reset) begin
+        if (init_reset) begin
             init_reset <= init_reset - 1;
             reset_flg  <= 1;
             rom_enable <= 1;
@@ -261,7 +325,6 @@ always @(posedge clk_sys) begin
         if(status[6] | buttons[1] | reset_key[0] | (fdd_busy & rom_enable)) begin
             rom_enable <= ~reset_key[2]; // disable boot rom if Alt is held.
             reset_flg  <= 1;
-
             cold_reset <= status[6];
         end
     end
@@ -303,16 +366,16 @@ reg ppi1_sel, joy_sel, vox_sel, pit_sel, pal_sel, psg_sel, edsk_sel, fdd_sel;
 
 reg [7:0] io_data;
 always_comb begin
-    ppi1_sel =0;
-    joy_sel  =0;
-    vox_sel  =0;
-    pit_sel  =0;
-    pal_sel  =0;
-    edsk_sel =0;
-    psg_sel  =0;
-    fdd_sel  =0;
-    io_data  =255;
-    casex(addr[7:0])
+    ppi1_sel = 0;
+    joy_sel = 0;
+    vox_sel = 0;
+    pit_sel = 0;
+    pal_sel = 0;
+    edsk_sel = 0;
+    psg_sel = 0;
+    fdd_sel = 0;
+    io_data = 255;
+    casex (addr[7:0])
         8'b000000XX: begin ppi1_sel =1; io_data = ppi1_o;  end
         8'b0000010X: begin joy_sel  =1; io_data = 0;       end 
         8'b00000110: begin              io_data = joyP_o;  end
@@ -325,7 +388,7 @@ always_comb begin
         8'b0001010X: begin psg_sel  =1; io_data = psg_o;   end
         8'b000110XX: begin fdd_sel  =fdd_ready; if(fdd_ready) io_data = fdd_o; end
         8'b000111XX: begin fdd_sel  =fdd_ready;            end
-            default: ;
+        default: ;
     endcase
 end
 
@@ -342,29 +405,28 @@ wire io_rd = io_read  & cpu_rd;
 wire io_wr = io_write & ~cpu_wr_n;
 
 wire [15:0] addr_i80;
-wire  [7:0] cpu_o_i80;
-wire        cpu_inte_i80;
-wire        cpu_sync_i80;
-wire        cpu_rd_i80;
-wire        cpu_wr_n_i80;
-reg         cpu_int_i80;
+wire [7:0] cpu_o_i80;
+wire cpu_inte_i80;
+wire cpu_sync_i80;
+wire cpu_rd_i80;
+wire cpu_wr_n_i80;
+reg cpu_int_i80;
 
-k580vm80a cpu_i80
-(
-   .pin_clk(clk_sys),
-   .pin_f1(ce_f1),
-   .pin_f2(ce_f2),
-   .pin_reset(reset | cpu_type),
-   .pin_a(addr_i80),
-   .pin_dout(cpu_o_i80),
-   .pin_din(cpu_i),
-   .pin_hold(0),
-   .pin_ready(cpu_ready),
-   .pin_int(cpu_int_i80),
-   .pin_inte(cpu_inte_i80),
-   .pin_sync(cpu_sync_i80),
-   .pin_dbin(cpu_rd_i80),
-   .pin_wr_n(cpu_wr_n_i80)
+k580vm80a cpu_i80(
+    .pin_clk(clk_sys),
+    .pin_f1(ce_f1),
+    .pin_f2(ce_f2),
+    .pin_reset(reset | cpu_type),
+    .pin_a(addr_i80),
+    .pin_dout(cpu_o_i80),
+    .pin_din(cpu_i),
+    .pin_hold(0),
+    .pin_ready(cpu_ready),
+    .pin_int(cpu_int_i80),
+    .pin_inte(cpu_inte_i80),
+    .pin_sync(cpu_sync_i80),
+    .pin_dbin(cpu_rd_i80),
+    .pin_wr_n(cpu_wr_n_i80)
 );
 
 wire [15:0] addr_z80;
@@ -375,8 +437,7 @@ wire        cpu_rd_z80;
 wire        cpu_wr_n_z80;
 reg         cpu_int_z80;
 
-T8080se cpu_z80
-(
+T8080se cpu_z80(
     .CLK(clk_sys),
     .CLKEN(ce_f1),
     .RESET_n(~reset & cpu_type),
@@ -395,31 +456,101 @@ T8080se cpu_z80
 
 ////////////////////   MEM   ////////////////////
 wire  [7:0] ram_o;
-sram sram
-( 
-    .*,
+wire [24:0] io_mapped_addr = 
+    ioctl_index == 8'h00 ? {5'd0, 4'h8, ioctl_addr[15:0]} : //BOOT ROM  ($80000)
+    ioctl_index == 8'h01 ? ioctl_addr + 'h100 :             //ROM file  ($00100)
+    ioctl_index == 8'h41 ? ioctl_addr + 'h100 :             //COM file  ($00100)
+    ioctl_index == 8'h81 ? ioctl_addr :                     //C00 file  ($00000)
+    ioctl_index == 8'hc1 ? {5'd0, 4'h1, ioctl_addr[15:0]} : //EDD file  ($10000)
+    {5'd1, ioctl_addr[19:0]};                               //FDD file ($100000)
+
+sram sram(
+    .SDRAM_DQ(SDRAM_DQ),
+    .SDRAM_A(SDRAM_A),
+    .SDRAM_DQML(SDRAM_DQML),
+    .SDRAM_DQMH(SDRAM_DQMH),
+    .SDRAM_BA(SDRAM_BA),
+    .SDRAM_nCS(SDRAM_nCS),
+    .SDRAM_nWE(SDRAM_nWE),
+    .SDRAM_nRAS(SDRAM_nRAS),
+    .SDRAM_nCAS(SDRAM_nCAS),
+    .SDRAM_CKE(SDRAM_CKE),
+
     .init(!locked),
     .clk_sdram(clk_sys),
+    
     .dout(ram_o),
-    .din( (ioctl_download | ioctl_erasing) ? ioctl_data : cpu_o),
-    .addr((ioctl_download | ioctl_erasing) ? ioctl_addr : {read_rom, ed_page, addr}),
-    .we(  (ioctl_download | ioctl_erasing) ? ioctl_wr   : ~cpu_wr_n & ~io_write),
-    .rd(  (ioctl_download | ioctl_erasing) ? 1'b0       : cpu_rd),
+    .din(ioctl_download ? ioctl_data : ioctl_erasing ? 8'd0 : cpu_o),
+    .addr(ioctl_download ? io_mapped_addr : ioctl_erasing ? erase_addr : {read_rom, ed_page, addr}),
+    .we(ioctl_download ? ioctl_wr : ioctl_erasing ? erase_wr : ~cpu_wr_n & ~io_write),
+    .rd((ioctl_download | ioctl_erasing) ? 1'b0 : cpu_rd),
     .ready()
 );
 
 reg  [15:0] rom_size = 0;
-wire read_rom = rom_enable && (addr<rom_size) && !ed_page && ram_read;
+wire read_rom = rom_enable && (addr < rom_size) && !ed_page && ram_read;
 always @(posedge clk_sys) begin
     reg old_download;
 
     old_download <= ioctl_download;
-    if(~ioctl_download & old_download & !ioctl_index) rom_size <= ioctl_addr[15:0] + 1'b1;
+    if(~ioctl_download & old_download & !ioctl_index) rom_size <= io_mapped_addr[15:0] + 1'b1;
 end
 
 wire [7:0] rom_o;
-bios rom(.address(addr[10:0]), .clock(clk_sys), .q(rom_o));
+bios rom(
+    .address(addr[10:0]),
+    .clock(clk_sys),
+    .q(rom_o)
+);
 
+// ERASE LOGIC
+reg erase_wr;
+wire [22:0] erase_addr;
+reg  [22:0] erase_mask;
+
+always @(posedge clk_sys) begin
+    reg old_force = 0;
+    reg [3:0] erase_clk_div;
+    reg [22:0] end_addr;
+    reg erase_trigger= 0;
+
+    if (ioctl_download) begin
+        old_force <= 0;
+        ioctl_erasing <= 0;
+        erase_trigger <= (ioctl_index == 1);
+        erase_wr <= 0;
+    end else begin
+        erase_wr <= 0;
+        old_force <= cold_reset;
+        // start erasing
+        if (erase_trigger) begin
+            //Erases RAM from the last address filled by the download till $100
+            erase_trigger <= 0;
+            erase_mask    <= 'hFFFF;
+            end_addr      <= 'h00FF;
+            erase_addr <= io_mapped_addr & 'hFFFF;
+            erase_clk_div <= 1;
+            ioctl_erasing <= 1;
+        end else if ((cold_reset & ~old_force)) begin
+            //Erases all the RAM, from 0 to 4FFFF
+            erase_trigger <= 0;
+            erase_addr    <= 'h7FFFFF;
+            erase_mask    <= 'h7FFFFF;
+            end_addr      <= 'h04FFFF;
+            erase_clk_div <= 1;
+            ioctl_erasing <= 1;
+        end else if (ioctl_erasing) begin
+            erase_clk_div <= erase_clk_div + 1'd1;
+            if (!erase_clk_div) begin
+                if (erase_addr == end_addr) ioctl_erasing <= 0;
+                else begin
+                    erase_wr <= 1;
+                    erase_addr <= (erase_addr + 1'd1) & erase_mask;
+                end
+            end
+        end
+    end
+end
 
 /////////////////  E-DISK 256KB  ///////////////////
 reg  [2:0] ed_page;
@@ -434,8 +565,8 @@ always @(posedge clk_sys) begin
         else if(~old_we & edsk_we) ed_reg <= cpu_o;
 end
 
-wire ed_win   = addr[15] & ((addr[13] ^ addr[14]) | (ed_reg[7] & addr[13] & addr[14]) | (ed_reg[6] & ~addr[13] & ~addr[14]));
-wire ed_ram   = ed_reg[5] & ed_win   & (ram_read | ~write_n);
+wire ed_win = addr[15] & ((addr[13] ^ addr[14]) | (ed_reg[7] & addr[13] & addr[14]) | (ed_reg[6] & ~addr[13] & ~addr[14]));
+wire ed_ram = ed_reg[5] & ed_win   & (ram_read | ~write_n);
 wire ed_stack = ed_reg[4] & io_stack & (ram_read | ~write_n);
 
 always_comb begin
@@ -444,7 +575,7 @@ always_comb begin
         6'b1X01XX, 6'b01XX01: ed_page = 2;
         6'b1X10XX, 6'b01XX10: ed_page = 3;
         6'b1X11XX, 6'b01XX11: ed_page = 4;
-                     default: ed_page = 0;
+        default: ed_page = 0;
     endcase
 end
 
@@ -508,21 +639,28 @@ wd1793 #(1) fdd
 
 ////////////////////   VIDEO   ////////////////////
 wire retrace;
-wire [5:0] R;
-wire [5:0] G;
-wire [5:0] B;
+wire [2:0] R;
+wire [2:0] G;
+wire [2:0] B;
+wire hsync;
+wire vsync;
+wire hblank;
+wire vblank;
 
-assign VGA_R = R[5:2];
-assign VGA_G = G[5:2];
-assign VGA_B = B[5:2];
-
-video video
-(
-    .*,
-    .VGA_R(R),
-    .VGA_G(G),
-    .VGA_B(B),
+video video(
     .reset(reset & ~status[7]),
+    .clk_sys(clk_sys),
+    .ce_12mp(ce_12mp),
+    .ce_12mn(ce_12mn),
+
+    .R(R),
+    .G(G),
+    .B(B),
+    .hsync(hsync),
+    .vsync(vsync),
+    .hblank(hblank),
+    .vblank(vblank),
+    
     .addr(addr),
     .din(cpu_o),
     .we(~cpu_wr_n && ~io_write && !ed_page),
@@ -531,7 +669,6 @@ video video
     .io_we(pal_sel & io_wr),
     .border(ppi1_b[3:0]),
     .mode512(ppi1_b[4]),
-    .scale(status[2:1]),
     .retrace(retrace)
 );
 
@@ -560,8 +697,7 @@ wire [7:0] kbd_o;
 wire [2:0] kbd_shift;
 wire [2:0] reset_key;
 
-keyboard kbd
-(
+keyboard kbd(
     .clk(clk_sys), 
     .reset(cold_reset),
     .ps2_clk(ps2_kbd_clk),
@@ -579,8 +715,7 @@ wire [7:0] ppi1_a;
 wire [7:0] ppi1_b;
 wire [7:0] ppi1_c;
 
-k580vv55 ppi1
-(
+k580vv55 ppi1(
     .clk_sys(clk_sys),
     .reset(0),
     .addr(~addr[1:0]),
@@ -602,8 +737,8 @@ wire [7:0] joyPU_o = {joyPU[3], joyPU[0], joyPU[2], joyPU[1], joyPU[4], joyPU[5]
 wire [7:0] joyA_o  = ~{joyA[5], joyA[4], 2'b00, joyA[2], joyA[3], joyA[1], joyA[0]};
 wire [7:0] joyB_o  = ~{joyB[5], joyB[4], 2'b00, joyB[2], joyB[3], joyB[1], joyB[0]};
 
-reg  [7:0] joy_port;
-wire       joy_we = io_wr & joy_sel;
+reg [7:0] joy_port;
+wire joy_we = io_wr & joy_sel;
 
 always @(posedge clk_sys) begin
     reg old_we;
@@ -635,8 +770,7 @@ wire [2:0] pit_out;
 wire [2:0] pit_active;
 wire [2:0] pit_snd = pit_out & pit_active;
 
-k580vi53 pit
-(
+k580vi53 pit(
     .reset(reset),
     .clk_sys(clk_sys),
     .clk_timer({clk_pit,clk_pit,clk_pit}),
@@ -658,8 +792,7 @@ wire [7:0] psg_ch_b;
 wire [7:0] psg_ch_c;
 wire [5:0] psg_active;
 
-ym2149 ym2149
-(
+ym2149 ym2149(
     .CLK(clk_sys),
     .CE(ce_psg),
     .RESET(reset),
@@ -707,6 +840,37 @@ i2s i2s (
     .sdata(I2S_DATA),
     .left_chan(SOUND_L),
     .right_chan(SOUND_R)
+);
+
+mist_video #(
+    .COLOR_DEPTH(3),
+    .SD_HCNT_WIDTH(11),
+    .USE_BLANKS(1'b1),
+    .OSD_COLOR(3'b100),
+    .OUT_COLOR_DEPTH(VGA_BITS),
+    .BIG_OSD(BIG_OSD))
+mist_video(
+    .clk_sys(clk_sys),
+    .SPI_SCK(SPI_SCK),
+    .SPI_SS3(SPI_SS3),
+    .SPI_DI(SPI_DI),
+    .R(R),
+    .G(G),
+    .B(B),
+    .HBlank(hblank),
+    .VBlank(vblank),
+    .HSync(hsync),
+    .VSync(vsync),
+    .VGA_R(VGA_R),
+    .VGA_G(VGA_G),
+    .VGA_B(VGA_B),
+    .VGA_VS(VGA_VS),
+    .VGA_HS(VGA_HS),
+    .ce_divider(3'd7),
+    .scandoubler_disable(scandoubler_disable),
+    .no_csync(no_csync),
+    .scanlines(status[2:1]),
+    .ypbpr(ypbpr)
 );
 
 endmodule
