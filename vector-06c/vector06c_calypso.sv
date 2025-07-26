@@ -110,14 +110,17 @@ wire TAPE_SOUND=UART_RX;
 `include "build_id.v"
 localparam CONF_STR =
 {
-    "VECTOR06;;",
+    "VECTOR06C;;",
     "F1,ROMCOMC00EDD;",
     "S0,FDD,Mount Floppy;",
+    "O3,Tape Sound,Yes,No;",
+    `SEP
     "O12,Scanlines,None,25%,50%,75%;",
+    "O7,Reset Palette,Yes,No;",
+    `SEP
     "O4,CPU Speed,3MHz,6MHz;",
     "O5,CPU Type,i8080,Z80;",
-    "O3,Tape Sound,Yes,No;",
-    "O7,Reset Palette,Yes,No;",
+    `SEP
     "T6,Cold Reboot;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
@@ -438,6 +441,7 @@ wire [24:0] io_mapped_addr =
     ioctl_index == 8'h41 ? ioctl_addr + 'h100 :             //COM file  ($00100)
     ioctl_index == 8'h81 ? ioctl_addr :                     //C00 file  ($00000)
     ioctl_index == 8'hc1 ? {5'd0, 4'h1, ioctl_addr[15:0]} : //EDD file  ($10000)
+    ioctl_index == 8'h02 ? {5'd2, ioctl_addr[19:0]} :       //TAPE file ($200000)
     {5'd1, ioctl_addr[19:0]};                               //FDD file ($100000)
 
 sram sram(

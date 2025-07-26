@@ -1,0 +1,6 @@
+CORE_ID=vector06c
+PROJECT_NAME=vector06c
+VERSION=0.1
+BITSTREAM_FILE=output_files/vector06c.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
