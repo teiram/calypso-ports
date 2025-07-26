@@ -148,20 +148,23 @@ wire ioctl_download;
 wire ioctl_erasing;
 wire [7:0] ioctl_index;
 
-wire [31:0] sd_lba;
-wire sd_rd;
-wire sd_wr;
-wire sd_ack;
+wire [31:0] sd_lba[2];
+wire [31:0] sd_lba_mux;
+wire [1:0] sd_rd;
+wire [1:0] sd_wr;
+wire [1:0] sd_ack;
+wire sd_ack_mux;
 wire [8:0] sd_buff_addr;
 wire [7:0] sd_buff_dout;
-wire [7:0] sd_buff_din;
+wire [7:0] sd_buff_din[2];
+wire [7:0] sd_buff_din_mux;
 wire sd_buff_wr;
-wire img_mounted;
+wire [1:0] img_mounted;
 wire [31:0] img_size;
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
-    .SD_IMAGES(1),
+    .SD_IMAGES(2),
     .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
 user_io(
     .clk_sys(clk_sys),
@@ -179,13 +182,13 @@ user_io(
     .buttons(buttons),
 
     .sd_sdhc(1),
-    .sd_lba(sd_lba),
+    .sd_lba(sd_lba_mux),
     .sd_rd(sd_rd),
     .sd_wr(sd_wr),
-    .sd_ack(sd_ack),
+    .sd_ack(sd_ack_mux),
     .sd_buff_addr(sd_buff_addr),
     .sd_dout(sd_buff_dout),
-    .sd_din(sd_buff_din),
+    .sd_din(sd_buff_din_mux),
     .sd_dout_strobe(sd_buff_wr),
 
     .img_mounted(img_mounted),
@@ -197,6 +200,19 @@ user_io(
     .joystick_0(joyA),
     .joystick_1(joyB)
 );
+
+always @(posedge clk_sys) begin
+    if (sd_rd[0] || sd_wr[0]) begin
+        sd_lba_mux <= sd_lba[0];
+        sd_buff_din_mux<= sd_buff_din[0];
+        sd_ack[0]      <= sd_ack_mux; 
+    end
+    if (sd_rd[1] || sd_wr[1]) begin
+        sd_lba_mux     <= sd_lba[1];
+        sd_buff_din_mux<= sd_buff_din[1];
+        sd_ack[1]      <= sd_ack_mux; 
+    end
+end
 
 
 data_io data_io(
@@ -561,11 +577,14 @@ end
 
 
 /////////////////////   FDD   /////////////////////
-wire  [7:0] fdd_o;
+wire  [7:0] fdd_o, fdd_o1, fdd_o2;
 reg         fdd_drive;
 reg         fdd_ready;
 reg         fdd_side;
-wire        fdd_busy;
+wire        fdd_busy, fdd1_busy, fdd2_busy;
+
+assign fdd_o = ce_f1 ? fdd_o1 : fdd_o2;
+assign fdd_busy = fdd1_busy | fdd2_busy;
 
 always @(posedge clk_sys) begin
     reg old_mounted, old_wr;
@@ -578,7 +597,7 @@ always @(posedge clk_sys) begin
     if(~old_wr & io_wr & fdd_sel & addr[2]) {fdd_side, fdd_drive} <= {~cpu_o[2], cpu_o[0]};
 end
 
-wd1793 #(1) fdd(
+wd1793 #(1) fdd1(
     .clk_sys(clk_sys),
     .ce(ce_f1),
     .reset(reset),
@@ -587,17 +606,17 @@ wd1793 #(1) fdd(
     .wr(io_wr),
     .addr(~addr[1:0]),
     .din(cpu_o),
-    .dout(fdd_o),
+    .dout(fdd_o1),
 
     .img_mounted(img_mounted),
     .img_size(img_size),
-    .sd_lba(sd_lba),
-    .sd_rd(sd_rd),
-    .sd_wr(sd_wr),
-    .sd_ack(sd_ack),
+    .sd_lba(sd_lba[0]),
+    .sd_rd(sd_rd[0]),
+    .sd_wr(sd_wr[0]),
+    .sd_ack(sd_ack[0]),
     .sd_buff_addr(sd_buff_addr),
     .sd_buff_dout(sd_buff_dout),
-    .sd_buff_din(sd_buff_din),
+    .sd_buff_din(sd_buff_din[0]),
     .sd_buff_wr(sd_buff_wr),
 
     .wp(0),
@@ -606,7 +625,7 @@ wd1793 #(1) fdd(
     .layout(0),
     .side(fdd_side),
     .ready(!fdd_drive & fdd_ready),
-    .prepare(fdd_busy),
+    .prepare(fdd1_busy),
 
     .input_active(0),
     .input_addr(0),
@@ -615,6 +634,42 @@ wd1793 #(1) fdd(
     .buff_din(0)
 );
 
+wd1793 #(1) fdd2(
+    .clk_sys(clk_sys),
+    .ce(ce_f2),
+    .reset(reset),
+    .io_en(fdd_sel & ~addr[2]),
+    .rd(io_rd),
+    .wr(io_wr),
+    .addr(~addr[1:0]),
+    .din(cpu_o),
+    .dout(fdd_o2),
+
+    .img_mounted(img_mounted),
+    .img_size(img_size),
+    .sd_lba(sd_lba[1]),
+    .sd_rd(sd_rd[1]),
+    .sd_wr(sd_wr[1]),
+    .sd_ack(sd_ack[1]),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_buff_dout(sd_buff_dout),
+    .sd_buff_din(sd_buff_din[1]),
+    .sd_buff_wr(sd_buff_wr),
+
+    .wp(0),
+
+    .size_code(3),
+    .layout(0),
+    .side(fdd_side),
+    .ready(fdd_drive & fdd_ready),
+    .prepare(fdd2_busy),
+
+    .input_active(0),
+    .input_addr(0),
+    .input_data(0),
+    .input_wr(0),
+    .buff_din(0)
+);
 
 ////////////////////   VIDEO   ////////////////////
 wire retrace;

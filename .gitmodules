@@ -202,3 +202,6 @@
 [submodule "vector-06c/Vector-06C_poseidon-ep4cgx150"]
 	path = vector-06c/Vector-06C_poseidon-ep4cgx150
 	url = https://github.com/teiram/Vector-06C_poseidon-ep4cgx150
+[submodule "game-and-watch/GnW_MiSTer"]
+	path = game-and-watch/GnW_MiSTer
+	url = https://github.com/teiram/GnW_MiSTer
