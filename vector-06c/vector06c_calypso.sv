@@ -116,11 +116,11 @@ localparam CONF_STR =
     "O12,Scanlines,None,25%,50%,75%;",
     "O4,CPU Speed,3MHz,6MHz;",
     "O5,CPU Type,i8080,Z80;",
+    "O3,Tape Sound,Yes,No;",
     "O7,Reset Palette,Yes,No;",
     "T6,Cold Reboot;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
-
 
 
 ///////////////   MIST ARM I/O   /////////////////
@@ -216,30 +216,6 @@ data_io data_io(
     .ioctl_addr(ioctl_addr),
     .ioctl_dout(ioctl_data)
 );
-/*
-mist_io #(.STRLEN($size(CONF_STR)>>3)) mist_io 
-(
-    .*,
-
-    .conf_str(CONF_STR),
-    .sd_conf(0),
-    .sd_sdhc(1),
-
-    .joystick_0(joyA),
-    .joystick_1(joyB),
-
-    .ioctl_force_erase(cold_reset),
-    .ioctl_dout(ioctl_data),
-
-    // unused
-    .joystick_analog_0(),
-    .joystick_analog_1(),
-    .sd_ack_conf(),
-    .switches(),
-    .ps2_mouse_clk(),
-    .ps2_mouse_data()
-);
-*/
 
 ////////////////////   CLOCKS   ///////////////////
 wire locked;
@@ -598,8 +574,7 @@ always @(posedge clk_sys) begin
     if(~old_wr & io_wr & fdd_sel & addr[2]) {fdd_side, fdd_drive} <= {~cpu_o[2], cpu_o[0]};
 end
 
-wd1793 #(1) fdd
-(
+wd1793 #(1) fdd(
     .clk_sys(clk_sys),
     .ce(ce_f1),
     .reset(reset),
@@ -697,6 +672,8 @@ wire [7:0] kbd_o;
 wire [2:0] kbd_shift;
 wire [2:0] reset_key;
 
+assign LED[7:5] = reset_key;
+
 keyboard kbd(
     .clk(clk_sys), 
     .reset(cold_reset),
@@ -725,7 +702,7 @@ k580vv55 ppi1(
     .opa(ppi1_a),
     .ipb(~kbd_o),
     .opb(ppi1_b),
-    .ipc({~kbd_shift,tapein,4'b1111}),
+    .ipc({~kbd_shift, tapein, 4'b1111}),
     .opc(ppi1_c)
 );
 
@@ -763,7 +740,7 @@ end
 
 
 ////////////////////   SOUND   ////////////////////
-wire       tapein = 0;
+wire       tapein = TAPE_SOUND;
 
 wire [7:0] pit_o;
 wire [2:0] pit_out;
@@ -784,7 +761,7 @@ k580vi53 pit(
     .sound_active(pit_active)
 );
 
-wire [1:0] legacy_audio = 2'd0 + ppi1_c[0] + pit_snd[0] + pit_snd[1] + pit_snd[2];
+wire [1:0] legacy_audio = 2'd0 + ppi1_c[0] + pit_snd[0] + pit_snd[1] + pit_snd[2] + status[3] ? 1'b0 : TAPE_SOUND;
 
 wire [7:0] psg_o;
 wire [7:0] psg_ch_a;
@@ -827,7 +804,7 @@ end
 wire init_reset = 1;
 wire [15:0] SOUND_L;  // 16-bit wide wire for left audio channel
 wire [15:0] SOUND_R;  // 16-bit wide wire for right audio channel
-
+ 
 assign SOUND_L = {psg_active ? {1'b0, psg_ch_a, 1'b0} + {2'b00, psg_ch_b} + {1'b0, legacy_audio, 7'd0} : {1'b0, legacy_audio, 8'd0} + {1'b0, covox, 1'b0}, 5'd0};
 assign SOUND_R = {psg_active ? {1'b0, psg_ch_c, 1'b0} + {2'b00, psg_ch_b} + {1'b0, legacy_audio, 7'd0} : {1'b0, legacy_audio, 8'd0} + {1'b0, covox, 1'b0}, 5'd0};
 
