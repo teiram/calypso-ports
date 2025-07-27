@@ -45,6 +45,11 @@ module video
     input we,
     input io_we,
 
+    // SDRAM bus
+    output reg [24:0] vram_addr,
+    input [31:0] vram_data,
+    output vram_rd,
+    
     // Misc signals
     input [7:0] scroll,
     input [3:0] border,
@@ -54,15 +59,16 @@ module video
 
 assign retrace = vsync;
 
-reg  [9:0] hc;
-reg  [8:0] vc;
+reg  [9:0] hc /* synthesis keep */;
+reg  [8:0] vc /* synthesis keep */;
 wire [8:0] vcr = vc + ~roll;
 reg  [7:0] roll;
 
 reg        viden, dot;
 reg  [7:0] idx0, idx1, idx2, idx3;
-wire[31:0] vram_o;
+//wire[31:0] vram_o;
 
+/*
 dpram vram
 (
 	.clock(clk_sys),
@@ -72,6 +78,7 @@ dpram vram
 	.rdaddress({hc[8:4], ~vcr[7:0]}),
 	.q(vram_o)
 );
+*/
 
 reg mode512_lock;
 
@@ -105,15 +112,20 @@ always @(posedge clk_sys) begin
 			hblank <= 0;
 			if(vc == 295) vblank <= 0;
 		end
+        if (hc[2:0] == 3'd0) begin
+            vram_rd <= 1'b1;
+            vram_addr <= {hc[8:4], ~vcr[7:0]};
+        end
 	end
 
 	if(ce_12mn) begin
+        vram_rd <= 1'b0;
 		if(hc[0]) begin
 			idx0 <= {idx0[6:0], border_d[4]};
 			idx1 <= {idx1[6:0], border_d[5]};
 			idx2 <= {idx2[6:0], border_d[6]};
 			idx3 <= {idx3[6:0], border_d[7]};
-			if((hc[3:1] == 2) & ~hc[9] & ~vc[8]) {idx0, idx1, idx2, idx3} <= vram_o;
+			if((hc[3:1] == 2) & ~hc[9] & ~vc[8]) {idx0, idx1, idx2, idx3} <= vram_data;
 
 			border_d <= {border_d[3:0], border};
 		end

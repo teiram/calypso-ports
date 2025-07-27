@@ -238,18 +238,17 @@ data_io data_io(
 
 ////////////////////   CLOCKS   ///////////////////
 wire locked;
-pll pll
-(
+pll pll(
     .inclk0(CLK12M),
     .locked(locked),
     .c0(clk_sys)
 );
 
-wire clk_sys;      // 96MHz
+wire clk_sys /* synthesis keep */;      // 96MHz
 
-reg  ce_f1, ce_f2; // 3MHz/6MHz
-reg  ce_12mp;
-reg  ce_12mn;
+reg  ce_f1 /* synthesis keep */, ce_f2 /* synthesis keep */; // 3MHz/6MHz
+reg  ce_12mp /* synthesis keep */;
+reg  ce_12mn /* synthesis keep */;
 reg  ce_psg;       // 1.75MHz
 reg  clk_pit;      // 1.5MHz
 
@@ -335,7 +334,7 @@ wire  [7:0] cpu_o    = cpu_type ? cpu_o_z80    : cpu_o_i80;
 wire        cpu_sync = cpu_type ? cpu_sync_z80 : cpu_sync_i80;
 wire        cpu_rd   = cpu_type ? cpu_rd_z80   : cpu_rd_i80;
 wire        cpu_wr_n = cpu_type ? cpu_wr_n_z80 : cpu_wr_n_i80;
-reg         cpu_ready;
+reg         cpu_ready /* synthesis keep */;
 
 reg         cpu_type = 0;
 
@@ -450,7 +449,6 @@ T8080se cpu_z80(
 
 
 ////////////////////   MEM   ////////////////////
-wire  [7:0] ram_o;
 wire [24:0] io_mapped_addr = 
     ioctl_index == 8'h00 ? {5'd0, 4'h8, ioctl_addr[15:0]} : //BOOT ROM  ($80000)
     ioctl_index == 8'h01 ? ioctl_addr + 'h100 :             //ROM file  ($00100)
@@ -459,6 +457,23 @@ wire [24:0] io_mapped_addr =
     ioctl_index == 8'hc1 ? {5'd0, 4'h1, ioctl_addr[15:0]} : //EDD file  ($10000)
     ioctl_index == 8'h02 ? {5'd2, ioctl_addr[19:0]} :       //TAPE file ($200000)
     {5'd1, ioctl_addr[19:0]};                               //FDD file ($100000)
+wire [24:0] vram_addr /* synthesis keep */;
+wire vram_rd /* synthesis keep */;
+
+wire [24:0] sdram_addr /* synthesis keep */= 
+    ioctl_download ? io_mapped_addr :
+    ioctl_erasing ? erase_addr :
+    vram_rd ? vram_addr :
+    {read_rom, ed_page, addr};
+
+wire mode32 = vram_rd ? 1'b1 : 1'b0;
+
+wire [7:0] sdram_din /* synthesis keep */ = ioctl_download ? ioctl_data : ioctl_erasing ? 8'd0 : cpu_o;
+
+wire [31:0] sdram_dout /* synthesis keep */;
+wire  [7:0] ram_o = sdram_dout[7:0];
+wire sdram_rd = (ioctl_download | ioctl_erasing) ? 1'b0 : cpu_rd;
+wire sdram_we = ioctl_download ? ioctl_wr : ioctl_erasing ? erase_wr : ~cpu_wr_n & ~io_write;
 
 sram sram(
     .SDRAM_DQ(SDRAM_DQ),
@@ -474,12 +489,13 @@ sram sram(
 
     .init(!locked),
     .clk_sdram(clk_sys),
+    .mode32(mode32),
     
-    .dout(ram_o),
-    .din(ioctl_download ? ioctl_data : ioctl_erasing ? 8'd0 : cpu_o),
-    .addr(ioctl_download ? io_mapped_addr : ioctl_erasing ? erase_addr : {read_rom, ed_page, addr}),
-    .we(ioctl_download ? ioctl_wr : ioctl_erasing ? erase_wr : ~cpu_wr_n & ~io_write),
-    .rd((ioctl_download | ioctl_erasing) ? 1'b0 : cpu_rd),
+    .dout(sdram_dout),
+    .din(sdram_din),
+    .addr(sdram_addr),
+    .we(sdram_we),
+    .rd(sdram_rd),
     .ready()
 );
 
@@ -697,7 +713,11 @@ video video(
     
     .addr(addr),
     .din(cpu_o),
-    .we(~cpu_wr_n && ~io_write && !ed_page),
+    .we(~cpu_wr_n && ~io_write && ~ed_page),
+    
+    .vram_addr(vram_addr),
+    .vram_data(sdram_dout),
+    .vram_rd(vram_rd),
     
     .scroll(ppi1_a),
     .io_we(pal_sel & io_wr),

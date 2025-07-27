@@ -1,9 +1,10 @@
 //
 // sram.v
 //
-// Static RAM controller implementation using SDRAM MT48LC16M16A2
+// Static RAM controller implementation using SDRAM W9864G6JT
 // 
 // Copyright (c) 2015 Sorgelig
+// Copyright (c) 2025 M. Teira, adapted to Winbond W9864G6JT and 32 bit reads
 //
 // Some parts of SDRAM code used from project: 
 // http://hamsterworks.co.nz/mediawiki/index.php/Simple_SDRAM_Controller
@@ -24,29 +25,29 @@
 
 module sram (
 
-	// interface to the MT48LC16M16 chip
-	inout  reg [15:0] SDRAM_DQ,    // 16 bit bidirectional data bus
-	output reg [12:0] SDRAM_A,     // 13 bit multiplexed address bus
-	output reg        SDRAM_DQML,  // two byte masks
-	output reg        SDRAM_DQMH,  // 
-	output reg  [1:0] SDRAM_BA,    // two banks
-	output            SDRAM_nCS,   // a single chip select
-	output            SDRAM_nWE,   // write enable
-	output            SDRAM_nRAS,  // row address select
-	output            SDRAM_nCAS,  // columns address select
-	output            SDRAM_CKE,   // clock enable
+    // interface to the W9864G6JT chip
+    inout reg [15:0] SDRAM_DQ,
+    output reg [12:0] SDRAM_A,
+    output reg SDRAM_DQML,
+    output reg SDRAM_DQMH,
+    output reg  [1:0] SDRAM_BA,
+    output SDRAM_nCS,
+    output SDRAM_nWE,
+    output SDRAM_nRAS,
+    output SDRAM_nCAS,
+    output SDRAM_CKE,
 
-	// cpu/chipset interface
-	input             init,        // reset to initialize RAM
-	input             clk_sdram,		
-	
-	input      [24:0] addr,        // 25 bit address
+    // cpu/chipset interface
+    input init,                 // reset to initialize RAM
+    input clk_sdram,
+    input mode32,               // 0-> 8 bit data, 1-> 32 bit data
+    input [24:0] addr,          // 25 bit address
 
-	output reg  [7:0] dout,	       // data output to cpu
-	input       [7:0] din,         // data input from cpu
-	input             we,          // cpu requests write
-	input             rd,          // cpu requests read
-	output reg        ready
+    output reg [31:0] dout,     // data output to cpu
+    input [7:0] din,            // data input from cpu
+    input we,                   // cpu requests write
+    input rd,                   // cpu requests read
+    output reg ready
 );
 
 assign SDRAM_nCS  = command[3];
@@ -57,7 +58,7 @@ assign SDRAM_CKE  = cke;
 
 
 // no burst configured
-localparam BURST_LENGTH   = 3'b000; // 000=1, 001=2, 010=4, 011=8
+localparam BURST_LENGTH   = 3'b001; // 000=1, 001=2, 010=4, 011=8
 localparam ACCESS_TYPE    = 1'b0;   // 0=sequential, 1=interleaved
 localparam CAS_LATENCY    = 3'd3;   // 2 for < 100MHz, 3 for >100MHz
 localparam OP_MODE        = 2'b00;  // only 00 (standard operation) allowed
@@ -103,27 +104,32 @@ reg [4:0] state = STATE_STARTUP;
 reg [3:0] command = CMD_INHIBIT;
 reg       cke = 0;
 
-parameter data_ready_delay_high = CAS_LATENCY+1;
+parameter data_ready_delay_high = CAS_LATENCY + 2; //Room for two reads
 reg [data_ready_delay_high:0] data_ready_delay;
 
 always @(posedge clk_sdram) begin
-	reg old_we, old_rd, new_we, new_rd;
+    reg old_we, old_rd, new_we, new_rd;
 
-	reg  [7:0] new_data;
-	reg [24:0] save_addr;
-	reg        save_we;
-	reg        save_addr0;
-	reg        avail;
+    reg [7:0] new_data;
+    reg [24:0] save_addr;
+    reg save_we;
+    reg save_addr0;
+    reg avail;
 
-	command <= CMD_NOP;
+    command <= CMD_NOP;
 
-	startup_refresh_count  <= startup_refresh_count+1'b1;
+    startup_refresh_count  <= startup_refresh_count + 1'b1;
 
-   if(data_ready_delay[0]) begin
-		dout  <= save_addr0 ? SDRAM_DQ[15:8] : SDRAM_DQ[7:0];
-		avail <= 1;
-		ready <= 1;
-   end
+    if (data_ready_delay[1]) begin
+        dout[7:0] <= mode32 == 1'b1 ? SDRAM_DQ[7:0] : save_addr0 ? SDRAM_DQ[15:8] : SDRAM_DQ[7:0];
+        dout[15:8] <= mode32 == 1'b1 ? SDRAM_DQ[15:8] : 8'd0;
+    end else if (data_ready_delay[0]) begin
+        dout[23:16] <= mode32 == 1'b1 ? SDRAM_DQ[7:0] : 8'd0;
+        dout[31:24] <= mode32 == 1'b1 ? SDRAM_DQ[15:8] : 8'd0;
+        avail <= 1;
+        ready <= 1;
+    end
+    
 
    data_ready_delay <= {1'b0, data_ready_delay[data_ready_delay_high:1]};
 
@@ -248,7 +254,7 @@ always @(posedge clk_sdram) begin
 			data_ready_delay[data_ready_delay_high] <= 1;
 			save_addr0  <= save_addr[0];
 		end
-
+        
 		//------------------------------------------------------------------
 		// -- Processing the write transaction
 		//-------------------------------------------------------------------
