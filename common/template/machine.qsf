@@ -2,6 +2,7 @@ set_global_assignment -name FAMILY "Cyclone 10 LP"
 set_global_assignment -name DEVICE 10CL025YU256C8G
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 22.1STD.2
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "21:26:42  OCTOBER 20, 2024"
+set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.2 Lite Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -63,7 +64,7 @@ set_location_assignment PIN_P2 -to VGA_B[1]
 set_location_assignment PIN_P1 -to VGA_B[0]
 set_location_assignment PIN_L16 -to VGA_HS
 set_location_assignment PIN_L15 -to VGA_VS
-set_location_assignment PIN_P11 -to EAR
+set_location_assignment PIN_P11 -to AUDIO_IN
 set_location_assignment PIN_D16 -to I2S_LRCK
 set_location_assignment PIN_D15 -to I2S_BCK
 set_location_assignment PIN_C15 -to I2S_DATA
@@ -113,14 +114,14 @@ set_location_assignment PIN_F8 -to SDRAM_CKE
 set_location_assignment PIN_B13 -to SDRAM_DQML
 set_location_assignment PIN_D12 -to SDRAM_DQMH
 
-set_location_assignment PIN_T12 -to AUX_0
-set_location_assignment PIN_R11 -to AUX_1
-set_location_assignment PIN_R12 -to AUX_2
-set_location_assignment PIN_P14 -to AUX_3
-set_location_assignment PIN_J14 -to AUX_4
-set_location_assignment PIN_L2 -to AUX_5
-set_location_assignment PIN_F13 -to UART_RX
-set_location_assignment PIN_F16 -to UART_TX
+set_location_assignment PIN_T12 -to AUX[0]
+set_location_assignment PIN_R11 -to AUX[1]
+set_location_assignment PIN_R12 -to AUX[2]
+set_location_assignment PIN_P14 -to AUX[3]
+set_location_assignment PIN_J14 -to AUX[4]
+set_location_assignment PIN_L2 -to AUX[5]
+set_location_assignment PIN_F13 -to AUX[6]
+set_location_assignment PIN_F16 -to AUX[7]
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[0]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[1]
@@ -194,45 +195,44 @@ set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[13]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[14]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[15]
 
-set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SDRAM_CLK
 set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SPI_SCK
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[2]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[3]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[4]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[5]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[6]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[7]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[8]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[9]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[10]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_A[11]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[2]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[3]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[4]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[5]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[6]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[7]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[8]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[9]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[10]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[11]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[12]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[13]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[14]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQ[15]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_BA[0]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_BA[1]
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQML
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_DQMH
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_nRAS
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_nCAS
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_nWE
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_nCS
-set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_CKE
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[0]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[1]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[2]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[3]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[4]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[5]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[6]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[7]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[8]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[9]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[10]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[11]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[0]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[1]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[2]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[3]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[4]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[5]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[6]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[7]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[8]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[9]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[10]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[11]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[12]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[13]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[14]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQ[15]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_BA[0]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_BA[1]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQML
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_DQMH
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nRAS
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nCAS
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nWE
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nCS
+set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_CKE
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_CLK
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to VGA_R[3]
@@ -266,91 +266,14 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[1]
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[0]
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 
-set_global_assignment -name TOP_LEVEL_ENTITY minimig_calypso_top
+set_global_assignment -name TOP_LEVEL_ENTITY machine_calypso
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:build_id.tcl"
+set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
+set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
+set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
 
-
-
-set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.2 Lite Edition"
-set_global_assignment -name VERILOG_FILE i2s.v
-set_global_assignment -name VERILOG_FILE sdram_ctrl.v
-set_global_assignment -name VERILOG_FILE amiga_clk.v
-set_global_assignment -name SYSTEMVERILOG_FILE "minimig-mist/rtl/mist/video_mixer.sv"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/rga_decode.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/debug.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/minimig.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/minimig_syscontrol.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/minimig_m68k_bridge.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/minimig_bankmapper.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_spritedma.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_refresh.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_diskdma.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_copper.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_blitter.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_blitter_minterm.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_blitter_fill.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_blitter_barrelshifter.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_blitter_adrgen.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_bitplanedma.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_beamcounter.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/agnus_audiodma.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/amiga_keyboard.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/ciaa.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/ciaa_ps2keyboard.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/ciaa_ps2keyboard_map.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/ciab.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/cia_timerd.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/cia_timerb.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/cia_timera.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/cia_int.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/gayle.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/gayle_fifo.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/gary.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/amber.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/userio.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/userio_ps2mouse.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/userio_osd.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/userio_osd_spi.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_uart.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_intcontroller.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_floppy.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_floppy_fifo.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_audio.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_audio_volume.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_audio_sigmadelta.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_audio_mixer.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/paula_audio_channel.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/cart.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_sprites.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_sprites_shifter.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_spritepriority.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_playfields.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_hamgenerator.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_colortable.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_colortable_ram_mf.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_collision.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_bitplanes.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/minimig/denise_bitplane_shifter.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/mist/user_io.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/io/i_sync.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/fifo/sync_fifo.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/sdram/tpram_be_512x16.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/sdram/tpram_128x32.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/sdram/dpram_256x32.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/sdram/dpram_be_1024x16.v"
-set_global_assignment -name VERILOG_FILE "minimig-mist/rtl/sdram/cpu_cache_new.v"
-set_global_assignment -name VHDL_FILE "minimig-mist/rtl/tg68k/TG68KdotC_Kernel.vhd"
-set_global_assignment -name VHDL_FILE "minimig-mist/rtl/tg68k/TG68K_Pack.vhd"
-set_global_assignment -name VHDL_FILE "minimig-mist/rtl/tg68k/TG68K_ALU.vhd"
-set_global_assignment -name VHDL_FILE TG68K.vhd
-set_global_assignment -name SDC_FILE minimig_calypso.sdc
-set_global_assignment -name VERILOG_FILE minimig_sram_bridge.v
-set_global_assignment -name VERILOG_FILE minimig_calypso_top.v
-set_global_assignment -name QIP_FILE amiga_clk_altera.qip
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
+set_global_assignment -name QIP_FILE files.qip
 
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
