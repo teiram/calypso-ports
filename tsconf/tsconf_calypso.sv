@@ -60,8 +60,10 @@ module tsconf_calypso(
     output SDRAM_nCS,
     output [1:0] SDRAM_BA,
     output SDRAM_CLK,
-    output SDRAM_CKE
-
+    output SDRAM_CKE,
+    
+    input UART_RX,
+    output UART_TX
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -366,7 +368,7 @@ tsconf tsconf
     .TAPE_IN(TAPE_SOUND),
     .TAPE_OUT(tape_out),
     .MIDI_OUT(midi_out),
-    .UART_RX(TAPE_SOUND),
+    .UART_RX(UART_RX),
     .UART_TX(uart_out),
 
     .CFG_OUT0(st_out0),
@@ -413,7 +415,7 @@ always @(posedge clk_sys) begin
     end
 end
 
-//assign UART_TX = uart_tx;
+assign UART_TX = uart_tx;
 
 
 //////////////////   VIDEO   ///////////////////

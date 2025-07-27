@@ -120,8 +120,11 @@ set_location_assignment PIN_R12 -to AUX[2]
 set_location_assignment PIN_P14 -to AUX[3]
 set_location_assignment PIN_J14 -to AUX[4]
 set_location_assignment PIN_L2 -to AUX[5]
-set_location_assignment PIN_F13 -to AUX[6]
-set_location_assignment PIN_F16 -to AUX[7]
+
+#set_location_assignment PIN_F13 -to AUX[6]
+#set_location_assignment PIN_F16 -to AUX[7]
+set_location_assignment PIN_F13 -to UART_RX
+set_location_assignment PIN_F16 -to UART_TX
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[0]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[1]
