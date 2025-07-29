@@ -97,8 +97,10 @@ entity fpga64_sid_iec is
 		freeze_key  : out std_logic;
 
 		-- joystick interface
-		joyA        : in  unsigned(6 downto 0);
-		joyB        : in  unsigned(6 downto 0);
+        ctrl1       : in  unsigned(6 downto 0);
+        ctrl2       : in  unsigned(6 downto 0);
+        ctrl1_fire_o: out std_logic;
+        ctrl2_fire_o: out std_logic; 
 		potA_x      : in  std_logic_vector(7 downto 0);
 		potA_y      : in  std_logic_vector(7 downto 0);
 		potB_x      : in  std_logic_vector(7 downto 0);
@@ -842,8 +844,8 @@ div1m: process(clk32)				-- this process divides 32 MHz to 1MHz (for the SID)
 			theScanCode => theScanCode,
 			newScanCode => newScanCode,
 
-			joyA => (not joyA(4 downto 0)),
-			joyB => (not joyB(4 downto 0)),
+			ctrl1 => (not ctrl1(4 downto 0)),
+			ctrl2 => (not ctrl2(4 downto 0)),
 			pai => unsigned(cia1_pao),
 			pbi => unsigned(cia1_pbo),
 			std_logic_vector(pao) => cia1_pai,
@@ -859,6 +861,8 @@ div1m: process(clk32)				-- this process divides 32 MHz to 1MHz (for the SID)
 
 			backwardsReadingEnabled => '1'
 		);
+    ctrl1_fire_o <= cia1_pbo(4);
+    ctrl2_fire_o <= cia1_pao(4);
 
 -- -----------------------------------------------------------------------
 -- Reset button

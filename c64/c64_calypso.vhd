@@ -187,6 +187,7 @@ constant CONF_STR : string :=
 	MT1541&
 	"F2,CRTPRGTAPREU,Load;"& --2
 	"F3,ROM,Load;"& --3
+	"F4pIDX,IDX,Open;"& --2
 	SEP&
 	"TH,Play/Stop TAP;"&
 	SEP&
@@ -205,6 +206,7 @@ constant CONF_STR : string :=
 	"P1ONP,Midi,Off,Sequential Inc.,Passport/Sentech,DATEL/SIEL/JMS/C-LAB,Namesoft;"&
 	"P2O3,Joysticks,Normal,Swapped;"&
 	"P2OST,Mouse,Off,Port 1,Port 2;"&
+	"P2OW,Mouse Type,1351,Neos;"&
 	ST1541&
 	"P2OG,Disk Write,Enable,Disable;"&
 	"P2OQR,Userport,4-player IF,UART,UP9600;"&
@@ -238,6 +240,7 @@ constant FILE_BOOT : std_logic_vector(7 downto 0) := x"00";      -- ROM files se
 constant FILE_CRT  : std_logic_vector(7 downto 0) := x"02";
 constant FILE_PRG  : std_logic_vector(7 downto 0) := x"42";
 constant FILE_TAP  : std_logic_vector(7 downto 0) := x"82";
+constant FILE_IDX  : std_logic_vector(7 downto 0) := x"04";
 constant FILE_REU  : std_logic_vector(7 downto 0) := x"C2";
 constant FILE_ROM  : std_logic_vector(7 downto 0) := x"03";
 
@@ -388,6 +391,12 @@ port(
 );
 end component sync_shifter;
 
+	-- sdram layout 
+	constant C64_MEM_START : std_logic_vector(23 downto 0) := X"000000"; -- normal C64 RAM
+	constant C64_ROM_START : std_logic_vector(23 downto 0) := X"0F0000"; -- kernal/basic ROM
+	constant CRT_MEM_START : std_logic_vector(23 downto 0) := X"200000"; -- cartridges
+	constant TAP_MEM_START : std_logic_vector(23 downto 0) := X"300000"; -- .tap files 
+    
 	signal pll_locked_in : std_logic_vector(1 downto 0);
 	signal pll_locked : std_logic;
     signal pll_2_locked: std_logic;
@@ -521,6 +530,8 @@ end component sync_shifter;
 	signal potB_x   : std_logic_vector(7 downto 0);
 	signal potB_y   : std_logic_vector(7 downto 0);
 	signal reset_key : std_logic;
+	signal joyA_fire_o : std_logic;
+	signal joyB_fire_o : std_logic;
 
 	signal conf_str_addr : std_logic_vector(9 downto 0);
 	signal conf_str_char : std_logic_vector(7 downto 0);
@@ -530,6 +541,7 @@ end component sync_shifter;
 	-- status(7) and status(12) are not used
 	type st_drive_t is array(0 to 3) of std_logic_vector(1 downto 0);
 	signal st_drive            : st_drive_t;                   -- status(43/42-41/40-39/38-37/36);
+	signal st_mouse_neos       : std_logic;                    -- status(32)
 	signal st_vic_variant      : std_logic_vector(1 downto 0); -- status(31 downto 30)
 	signal st_mouse_port       : std_logic_vector(1 downto 0); -- status(29 downto 28)
 	signal st_user_port        : std_logic_vector(1 downto 0); -- status(27 downto 26)
@@ -574,13 +586,22 @@ end component sync_shifter;
 	signal ps2_dat : std_logic;
 	signal mouse1_en    : std_logic;
 	signal mouse2_en    : std_logic;
+	signal mouse_neos   : std_logic;
 	signal mouse_x      : signed( 8 downto 0);
+	signal mouse_x_l    : signed( 8 downto 0);
 	signal mouse_x_pos  : signed(10 downto 0);
 	signal mouse_y      : signed( 8 downto 0);
+	signal mouse_y_l    : signed( 8 downto 0);
 	signal mouse_y_pos  : signed(10 downto 0);
 	signal mouse_flags  : std_logic_vector(7 downto 0);
 	signal mouse_btns   : std_logic_vector(1 downto 0);
 	signal mouse_strobe : std_logic;
+
+	signal neos_timeout : unsigned(14 downto 0);
+	signal neos_state   : std_logic_vector(1 downto 0);
+	signal neos_data    : std_logic_vector(3 downto 0);
+	signal neos_clk     : std_logic;
+	signal neos_clk_d   : std_logic;
 
 	signal c64_iec_atn_i  : std_logic;
 	signal c64_iec_atn_o  : std_logic;
@@ -648,8 +669,8 @@ end component sync_shifter;
 	
 	signal tap_mem_ce     : std_logic;
 	signal tap_mem_ce_res : std_logic;
-	signal tap_play_addr  : std_logic_vector(23 downto 0);
-	signal tap_last_addr  : std_logic_vector(23 downto 0);
+	signal tap_play_addr  : std_logic_vector(23 downto 0) := TAP_MEM_START;
+	signal tap_last_addr  : std_logic_vector(23 downto 0) := TAP_MEM_START;
 	signal tap_reset      : std_logic;
 	signal tap_wrreq      : std_logic;
 	signal tap_wrfull     : std_logic;
@@ -694,11 +715,7 @@ end component sync_shifter;
 	signal reu_ram_di       : std_logic_vector( 7 downto 0);
 	signal reu_ram_do       : std_logic_vector( 7 downto 0);
 
-	-- sdram layout 
-	constant C64_MEM_START : std_logic_vector(23 downto 0) := X"000000"; -- normal C64 RAM
-	constant C64_ROM_START : std_logic_vector(23 downto 0) := X"0F0000"; -- kernal/basic ROM
-	constant CRT_MEM_START : std_logic_vector(23 downto 0) := X"200000"; -- cartridges
-	constant TAP_MEM_START : std_logic_vector(23 downto 0) := X"300000"; -- .tap files 
+
 	
 begin
 
@@ -789,6 +806,7 @@ begin
 	st_drive(2)         <= status(41 downto 40);
 	st_drive(1)         <= status(39 downto 38);
 	st_drive(0)         <= status(37 downto 36);
+	st_mouse_neos       <= status(32);
 	st_vic_variant      <= status(31 downto 30);
 	st_mouse_port       <= status(29 downto 28);
 	st_user_port        <= status(27 downto 26);
@@ -897,19 +915,6 @@ begin
 		TX      => midi_tx
 	);
 
-	mouse1_en <= '1' when st_mouse_port = "01" else '0';
-	mouse2_en <= '1' when st_mouse_port = "10" else '0';
-
-	-- rearrange joystick contacta for c64
-	joyA_int <= joyA(6 downto 5) & (joyA(4) or (mouse1_en and mouse_btns(0))) & joyA(0) & joyA(1) & joyA(2) & (joyA(3) or (mouse1_en and mouse_btns(1)));
-	joyB_int <= joyB(6 downto 5) & (joyB(4) or (mouse2_en and mouse_btns(0))) & joyB(0) & joyB(1) & joyB(2) & (joyB(3) or (mouse2_en and mouse_btns(1)));
-	joyC_c64 <= joyC(6 downto 4) & joyC(0) & joyC(1) & joyC(2) & joyC(3);
-	joyD_c64 <= joyD(6 downto 4) & joyD(0) & joyD(1) & joyD(2) & joyD(3);
-
-	-- swap joysticks if requested
-	joyA_c64 <= joyB_int when st_swap_joystick='1' else joyA_int;
-	joyB_c64 <= joyA_int when st_swap_joystick='1' else joyB_int;
-
 	process(clk_c64)
 	begin
 		if rising_edge(clk_c64) then
@@ -1006,7 +1011,7 @@ begin
 					end if;
 				end if;
 
-				if ioctl_index = FILE_TAP then
+				if ioctl_index = FILE_TAP or ioctl_index = FILE_IDX then
 					if ioctl_addr = 0 then
 						ioctl_load_addr <= TAP_MEM_START;
 						ioctl_ram_data <= ioctl_data;
@@ -1435,8 +1440,10 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 		IOE => IOE,									
 		IOF => IOF,
 		ba => c64_ba,
-		joyA => unsigned(joyA_c64),
-		joyB => unsigned(joyB_c64),
+		ctrl1 => unsigned(joyA_c64),
+		ctrl2 => unsigned(joyB_c64),
+		ctrl1_fire_o => joyA_fire_o,
+		ctrl2_fire_o => joyB_fire_o,
 		potA_x => potA_x,
 		potA_y => potA_y,
 		potB_x => potB_x,
@@ -1478,16 +1485,40 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 		reset_key => reset_key
 	);
 
+	mouse1_en <= '1' when st_mouse_port = "01" else '0';
+	mouse2_en <= '1' when st_mouse_port = "10" else '0';
+
 	-- paddle pins - mouse or GS controller
-	potA_x <= '0' & std_logic_vector(mouse_x_pos)(6 downto 1) & '0' when mouse1_en = '1'
+	potA_x <= '1' & std_logic_vector(mouse_x_pos)(6 downto 1) & '0' when mouse1_en = '1' and st_mouse_neos = '0'
+	          else (others => mouse_btns(1)) when mouse1_en = '1' and st_mouse_neos = '1'
 	          else x"00" when joyA_c64(5) = '1' else x"FF";
-	potA_y <= '0' & std_logic_vector(mouse_y_pos)(6 downto 1) & '0' when mouse1_en = '1'
+	potA_y <= '1' & std_logic_vector(mouse_y_pos)(6 downto 1) & '0' when mouse1_en = '1' and st_mouse_neos = '0'
 	          else x"00" when joyA_c64(6) = '1' else x"FF";
-	potB_x <= '0' & std_logic_vector(mouse_x_pos)(6 downto 1) & '0' when mouse2_en = '1'
+	potB_x <= '1' & std_logic_vector(mouse_x_pos)(6 downto 1) & '0' when mouse2_en = '1' and st_mouse_neos = '0'
+	          else (others => mouse_btns(1)) when mouse2_en = '1' and st_mouse_neos = '1'
 	          else x"00" when joyB_c64(5) = '1' else x"FF";
-	potB_y <= '0' & std_logic_vector(mouse_y_pos)(6 downto 1) & '0' when mouse2_en = '1'
+	potB_y <= '1' & std_logic_vector(mouse_y_pos)(6 downto 1) & '0' when mouse2_en = '1'
 	          else x"00" when joyB_c64(6) = '1' else x"FF";
 
+	-- swap joysticks if requested
+	joyA_int <= joyA(6 downto 0) when st_swap_joystick = '0' else joyB(6 downto 0);
+	joyB_int <= joyB(6 downto 0) when st_swap_joystick = '0' else joyA(6 downto 0);
+
+	-- rearrange joystick contacts for c64
+	joyA_c64(6 downto 5) <= joyA_int(6 downto 5);
+	joyA_c64(4 downto 0) <= mouse_btns(0) & "000" & mouse_btns(1) when mouse1_en = '1' and st_mouse_neos = '0' else -- 1351
+	                        mouse_btns(0) & neos_data when mouse1_en = '1' else -- neos
+	                        joyA_int(4) & joyA_int(0) & joyA_int(1) & joyA_int(2) & joyA_int(3);
+	joyB_c64(6 downto 5) <= joyB_int(6 downto 5);
+	joyB_c64(4 downto 0) <= mouse_btns(0) & "000" & mouse_btns(1) when mouse2_en = '1' and st_mouse_neos = '0' else -- 1351
+	                        mouse_btns(0) & neos_data when mouse2_en = '1' else -- neos
+	                        joyB_int(4) & joyB_int(0) & joyB_int(1) & joyB_int(2) & joyB_int(3);
+
+	joyC_c64 <= joyC(6 downto 4) & joyC(0) & joyC(1) & joyC(2) & joyC(3);
+	joyD_c64 <= joyD(6 downto 4) & joyD(0) & joyD(1) & joyD(2) & joyD(3);
+
+ 
+              
 	process(clk_c64, reset_n)
 		variable mov_x: signed(6 downto 0);
 		variable mov_y: signed(6 downto 0);
@@ -1503,6 +1534,45 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 				mouse_x_pos <= mouse_x_pos + mov_x;
 				mouse_y_pos <= mouse_y_pos + mov_y;
 				mouse_btns <= mouse_flags(1 downto 0);
+			end if;
+		end if;
+	end process;
+
+	-- neos mouse states
+	neos_clk <= joyA_fire_o when mouse1_en = '1' else joyB_fire_o;
+
+	process(clk_c64, reset_n)
+	begin
+		if reset_n = '0' then
+			neos_state <= "00";
+			neos_timeout <= (others => '0');
+			mouse_x_l <= (others => '1');
+			mouse_y_l <= (others => '1');
+		elsif rising_edge(clk_c64) then
+			if mouse_strobe = '1' then
+				mouse_x_l <= mouse_x-1;
+				mouse_y_l <= not mouse_y;
+			end if;
+			neos_clk_d <= neos_clk;
+			neos_timeout <= neos_timeout + 1;
+			if neos_clk_d /= neos_clk then
+				neos_timeout <= (others => '0');
+				if neos_state /= 0 or neos_clk = '1' then
+					neos_state <= neos_state + 1;
+					case neos_state is
+						when "00" => neos_data <= std_logic_vector(mouse_x_l(4 downto 1));
+						when "01" => neos_data <= std_logic_vector(mouse_y_l(8 downto 5));
+						when "10" => neos_data <= std_logic_vector(mouse_y_l(4 downto 1));
+						             mouse_x_l <= (others => '1');
+						             mouse_y_l <= (others => '1');
+						when others => null;
+					end case;
+				else
+					neos_data <= std_logic_vector(mouse_x_l(8 downto 5));
+				end if;
+			end if;
+			if neos_timeout = 32767 then
+				neos_state <= "00";
 			end if;
 		end if;
 	end process;
@@ -1703,14 +1773,12 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 	process(clk_c64, reset_n)
 	begin
 		if reset_n = '0' then
-			tap_play_addr <= TAP_MEM_START;
-			tap_last_addr <= TAP_MEM_START;			
-			tap_reset <= '1';
+			tap_reset <= '0';
 			tap_mem_ce <= '0';
 			tap_mem_ce_res <= '0';
 		elsif rising_edge(clk_c64) then
 			tap_reset <= '0';
-			if ioctl_download = '1' and ioctl_index = FILE_TAP then				
+			if ioctl_download = '1' and (ioctl_index = FILE_TAP or ioctl_index = FILE_IDX) then
 				tap_play_addr <= TAP_MEM_START;
 				tap_last_addr <= ioctl_load_addr;
 				tap_reset <= '1';
@@ -1756,6 +1824,7 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 		cass_sense => cass_sense,
 		cass_run => cass_run,
 		osd_play_stop_toggle => st_tap_play_btn or tap_playstop_key,
+        osd_play_stop_reset => not reset_n,
 		ear_input => ear_input
 	);
 

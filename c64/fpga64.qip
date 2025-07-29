@@ -12,7 +12,7 @@ set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl cp
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl reu.vhd]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c64/rtl cartridge.v]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl c64_midi.vhd]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c64/rtl acia.v]
+set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c64/rtl gen_uart.v]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl rom_c64_chargen.vhd]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl io_ps2_keyboard.vhd]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64/rtl gen_ram.vhd]
