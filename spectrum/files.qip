@@ -1,0 +1,28 @@
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE  ../common/T80/T80.qip
+
+set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/fdc1772/floppy.v
+set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/fdc1772/fdc1772.v
+set_global_assignment -name SYSTEMVERILOG_FILE ZX_Spectrum-128K_MIST/turbosound.sv
+set_global_assignment -name VHDL_FILE ZX_Spectrum-128K_MIST/vol_table_array.vhd
+set_global_assignment -name VHDL_FILE ZX_Spectrum-128K_MIST/YM2149.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE ZX_Spectrum-128K_MIST/tape.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ZX_Spectrum-128K_MIST/keyboard.sv
+set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/mouse.v
+set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/vram.v
+set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/divmmc.v
+set_global_assignment -name SYSTEMVERILOG_FILE ZX_Spectrum-128K_MIST/u765.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ZX_Spectrum-128K_MIST/snap_loader.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ZX_Spectrum-128K_MIST/ula.sv
+set_global_assignment -name VHDL_FILE ZX_Spectrum-128K_MIST/tzxplayer.vhd
+set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/gs.v
+set_global_assignment -name VHDL_FILE ZX_Spectrum-128K_MIST/sp0256_al2_decoded.vhd
+set_global_assignment -name VHDL_FILE ZX_Spectrum-128K_MIST/sp0256.vhd
+set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/sigma_delta_dac.v
+set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/unouart.v
+
+set_global_assignment -name QIP_FILE  pll.qip
+set_global_assignment -name SYSTEMVERILOG_FILE zxspectrum_calypso.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
+set_global_assignment -name SDC_FILE zxspectrum.sdc
+

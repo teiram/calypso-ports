@@ -202,3 +202,12 @@
 [submodule "vector-06c/Vector-06C_poseidon-ep4cgx150"]
 	path = vector-06c/Vector-06C_poseidon-ep4cgx150
 	url = https://github.com/teiram/Vector-06C_poseidon-ep4cgx150
+[submodule "zxuno/ZxUno_DeMiSTify"]
+	path = zxuno/ZxUno_DeMiSTify
+	url = https://github.com/DeMistified/ZxUno_DeMiSTify
+[submodule "zxuno/ZXUno_Altera"]
+	path = zxuno/ZXUno_Altera
+	url = https://github.com/benitoss/ZXUno_Altera
+[submodule "spectrum-new/ZX_Spectrum-128K_MIST"]
+	path = spectrum-new/ZX_Spectrum-128K_MIST
+	url = https://github.com/gyurco/ZX_Spectrum-128K_MIST
