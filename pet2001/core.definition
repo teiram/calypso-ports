@@ -1,0 +1,6 @@
+CORE_ID=pet2001
+PROJECT_NAME=pet2001
+VERSION=0.1
+BITSTREAM_FILE=output_files/pet2001.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
