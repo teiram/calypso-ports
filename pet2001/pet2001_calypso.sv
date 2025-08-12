@@ -60,7 +60,9 @@ module pet2001_calypso(
     output SDRAM_nCS,
     output [1:0] SDRAM_BA,
     output SDRAM_CLK,
-    output SDRAM_CKE
+    output SDRAM_CKE,
+    
+    output [7:0] AUX
 
 );
 
@@ -516,7 +518,8 @@ wire [1:0] drive_led;
 // We need to transfer sd_blk_cnt / 2 512 byte blocks per hps_io transfer
 
 reg drive_mounted = 0;
-wire [5:0] sd_blk_cnt[1];
+wire [5:0] sd_blk_cnt[1] /* synthesis keep */;
+reg [4:0] blkcnt;
 reg sd_ieee_ack = 1'b0;
 reg [4:0] blk;
 wire sd_ieee_rd /* synthesis keep */;
@@ -524,6 +527,11 @@ wire sd_ieee_wr;
 
 wire [31:0] sd_ieee_lba[1] /* synthesis keep */;
 wire [12:0] sd_ieee_buff_addr /* synthesis keep */ = {blk[3:0], sd_buff_addr[8:0]} - {3'd0, sd_ieee_lba[0][0], 8'd0};
+wire sd_ieee_buff_wr /* synthesis keep */= sd_ieee_lba[0][0] == 1'b0 ? sd_buff_wr :
+    blk == 5'd0 ? sd_buff_wr & sd_buff_addr[8] :
+    blk == blkcnt - 5'd1 ? sd_buff_wr & ~sd_buff_addr[8] :
+    sd_buff_wr;
+    
 reg [31:0] sd_blk_lba /* synthesis keep */;
 assign sd_lba[0] = sd_blk_lba;
 wire drive_type = status[7];
@@ -533,7 +541,7 @@ assign LED[3] = sd_rd;
 assign LED[4] = sd_ieee_rd;
 assign LED[5] = sd_ack;
 assign LED[6] = sd_ieee_ack;
-assign LED[7] = sd_ieee_lba[0][0];
+assign LED[7] = sd_blk_cnt[0][0];
 
 localparam STATE_IDLE = 3'd0;
 localparam STATE_START = 3'd1;
@@ -543,7 +551,6 @@ localparam STATE_NEXT = 3'd4;
 localparam STATE_DONE = 3'd5;
 
 always @(posedge clk_sys) begin 
-    reg [4:0] blkcnt;
     reg [1:0] operation;
     reg [2:0] state = STATE_IDLE;
     reg sd_ieee_rd_last;
@@ -571,7 +578,7 @@ always @(posedge clk_sys) begin
             STATE_IDLE: begin
                 if ((~sd_ieee_rd_last & sd_ieee_rd) | (~sd_ieee_wr_last & sd_ieee_wr)) begin
                     blk <= 5'd0;
-                    blkcnt <= sd_blk_cnt[0][5:1]; //IEEE blocks of 256 bytes with hps_io, MiST of 512 bytes
+                    blkcnt <= sd_blk_cnt[0][5:1] + sd_ieee_lba[0][0]; //IEEE blocks of 256 bytes with hps_io, MiST of 512 bytes
                     sd_blk_lba <= {1'b0, sd_ieee_lba[0][31:1]}; //Block address divided by two (due to the block size difference)
                     sd_ieee_ack <= 1'b0;
                     sd_rd <= sd_ieee_rd;
@@ -621,7 +628,7 @@ ieee_drive #(
 ) ieee_drive(
     .CLK(56_000_000),
     .clk_sys(clk_sys),
-    .reset(drive_reset | ~drive_mounted),
+    .reset(drive_reset),
     .pause(1'b0),
 
     .led(LED[1]),
@@ -643,13 +650,24 @@ ieee_drive #(
     .sd_buff_addr(sd_ieee_buff_addr),
     .sd_buff_dout(sd_buff_dout),
     .sd_buff_din(sd_buff_din),
-    .sd_buff_wr(sd_buff_wr),
+    .sd_buff_wr(sd_ieee_buff_wr),
 
     .rom_wr(0),
     .rom_sel(0),
     .rom_addr(0),
     .rom_data(0)
 );
+// CPU out
+assign AUX[0] = ieee_bus_dc.dav; //Host data valid
+assign AUX[1] = ieee_bus_dc.atn; //Host attention
+assign AUX[2] = ieee_bus_dc.nrfd; //Host not ready for data
+assign AUX[3] = ieee_bus_dc.ndac; //Host no data ack
+
+// IEEE drive out
+assign AUX[4] = ieee_bus_te.dav; //Drive data valid
+assign AUX[5] = ieee_bus_te.atn; //Drive attention
+assign AUX[6] = ieee_bus_te.nrfd; //Drive not ready for data
+assign AUX[7] = ieee_bus_te.ndac; //Drive no data ack
 
 //////////////////////////////////////////////////////////////////////
 // PS/2 to PET keyboard interface
