@@ -697,6 +697,7 @@ end component sync_shifter;
 	signal uart_rxD         : std_logic_vector(3 downto 0);
 	signal uart_rx_filtered : std_logic;
 
+    signal audio_in_d       : std_logic_vector(1 downto 0);
 	-- DMA/REU
 	signal reu_enable       : std_logic;
 	signal reu_rommask      : std_logic_vector( 4 downto 0);
@@ -1102,6 +1103,14 @@ begin
 			if uart_rxD = "1111" then uart_rx_filtered <= '1'; end if;
 		end if;
 	end process;
+
+    -- Audio IN synchronizer
+    process(clk_c64)
+    begin
+        if rising_edge(clk_c64) then
+            audio_in_d <= audio_in_d(0) & AUDIO_IN;
+        end if;
+    end process;
 
 	-- PLL Reconfig
 	process(clk32, pll_locked)
@@ -1618,7 +1627,7 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 		end if;
 	end process;
 
-	ear_input <= AUDIO_IN when USE_AUDIO_IN else uart_rxD(1) when st_user_port = "00" and st_midi = "000" else '1';
+	ear_input <= audio_in_d(1) when USE_AUDIO_IN else uart_rxD(1) when st_user_port = "00" and st_midi = "000" else '1';
 	midi_rx <= MIDI_IN when USE_MIDI_PINS else uart_rxD(1) when st_midi /= "000" else '1';
 
 	-- generate TOD clock from stable 32 MHz
