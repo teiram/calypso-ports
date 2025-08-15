@@ -309,8 +309,9 @@ set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 set_global_assignment -name TOP_LEVEL_ENTITY c16_calypso_top
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
+set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
 
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:c16/build_id.tcl"
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
 set_global_assignment -name QIP_FILE c16_calypso.qip
 set_global_assignment -name QIP_FILE pll_c16.qip
 set_global_assignment -name QIP_FILE pll_c1541.qip
@@ -323,4 +324,5 @@ set_global_assignment -name QIP_FILE pll_reconfig.qip
 
 set_global_assignment -name ENABLE_DRC_SETTINGS OFF
 set_global_assignment -name FLOW_ENABLE_POWER_ANALYZER OFF
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

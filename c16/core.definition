@@ -1,4 +1,4 @@
 CORE_ID=C16
 PROJECT_NAME=c16_calypso
-VERSION=0.1
+VERSION=0.2
 BITSTREAM_FILE=output_files/c16_calypso.rbf

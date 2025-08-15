@@ -157,8 +157,6 @@ assign SDRAM2_nRAS = 1;
 assign SDRAM2_nWE = 1;
 `endif
 
-`include "build_id.v"
-
 // -------------------------------------------------------------------------
 // ------------------------------ user_io ----------------------------------
 // -------------------------------------------------------------------------
@@ -175,14 +173,17 @@ parameter CONF_STR = {
         "C16;PRGTAP;",
         "S0U,D64,Mount Disk;",
         "F3,ROM,Load Kernal;",
+        `SEP
         "T6,Play/Stop tape;",
         "O7,Tape sound,Off,On;",
         "O12,Scanlines,Off,25%,50%,75%;",
         "O3,Joysticks,Normal,Swapped;",
+        `SEP
         "O4,Memory,64k,16k;",
         "O89,SID,Off,6581,8580;",
+        `SEP
         "T5,Reset;",
-        "V",`BUILD_DATE
+        "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 localparam ROM_MEM_START = 25'h10000;
