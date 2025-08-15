@@ -17,4 +17,5 @@ A C64.ROM file must be at the root of the SD Card. The ROM format is basic+kerna
 - 0.3. Replaced SID with rampa069 version
 - 0.4. Simplify clocks, fix TAP load, hpos/vpos 
 - 0.5. Sync with upstream (IDX file support, Neos mouse,...)
+- 0.6. Sync audio in with system clock (seems to fix tape loads)
 
