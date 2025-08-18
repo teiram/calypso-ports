@@ -1,4 +1,3 @@
-
 set_global_assignment -name FAMILY "Cyclone 10 LP"
 set_global_assignment -name DEVICE 10CL025YU256C8G
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 22.1STD.2
@@ -65,7 +64,7 @@ set_location_assignment PIN_P2 -to VGA_B[1]
 set_location_assignment PIN_P1 -to VGA_B[0]
 set_location_assignment PIN_L16 -to VGA_HS
 set_location_assignment PIN_L15 -to VGA_VS
-set_location_assignment PIN_P11 -to EAR
+set_location_assignment PIN_P11 -to AUDIO_IN
 set_location_assignment PIN_D16 -to I2S_LRCK
 set_location_assignment PIN_D15 -to I2S_BCK
 set_location_assignment PIN_C15 -to I2S_DATA
@@ -115,14 +114,14 @@ set_location_assignment PIN_F8 -to SDRAM_CKE
 set_location_assignment PIN_B13 -to SDRAM_DQML
 set_location_assignment PIN_D12 -to SDRAM_DQMH
 
-set_location_assignment PIN_T12 -to AUX_0
-set_location_assignment PIN_R11 -to AUX_1
-set_location_assignment PIN_R12 -to AUX_2
-set_location_assignment PIN_P14 -to AUX_3
-set_location_assignment PIN_J14 -to AUX_4
-set_location_assignment PIN_L2 -to AUX_5
-set_location_assignment PIN_F13 -to AUX_6
-set_location_assignment PIN_F16 -to AUX_7
+set_location_assignment PIN_T12 -to AUX[0]
+set_location_assignment PIN_R11 -to AUX[1]
+set_location_assignment PIN_R12 -to AUX[2]
+set_location_assignment PIN_P14 -to AUX[3]
+set_location_assignment PIN_J14 -to AUX[4]
+set_location_assignment PIN_L2 -to AUX[5]
+set_location_assignment PIN_F13 -to AUX[6]
+set_location_assignment PIN_F16 -to AUX[7]
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[0]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[1]
@@ -196,7 +195,6 @@ set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[13]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[14]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[15]
 
-set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SDRAM_CLK
 set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SPI_SCK
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[0]
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_A[1]
@@ -235,7 +233,7 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nCAS
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nWE
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_nCS
 set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_CKE
-set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SDRAM_CLK
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to SDRAM_CLK
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to VGA_R[3]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to VGA_R[2]
@@ -268,41 +266,15 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[1]
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_B[0]
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 
+set_global_assignment -name TOP_LEVEL_ENTITY galaxian_calypso
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:build_id.tcl"
-set_global_assignment -name TOP_LEVEL_ENTITY galaxian_calypso
+set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
+set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
+
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../common/build_id.tcl"
+set_global_assignment -name QIP_FILE files.qip
 
 
-set_global_assignment -name SYSTEMVERILOG_FILE galaxian_calypso.sv
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/galaxian.vhd" -hdl_version VHDL_2008
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_video.vhd" -hdl_version VHDL_2008
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_stars.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_sound_vco.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_sound_b.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_sound_a.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_missile.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_logic.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_ld_pls.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_inport.vhd" -hdl_version VHDL_2008
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_hv_count.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_col_pal.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_bram.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_adec.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/sine_package.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_pack.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/spram.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/dpram.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/kb_synth.vhd"
-set_global_assignment -name SYSTEMVERILOG_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ym2149.sv"
-set_global_assignment -name QIP_FILE ../Mist_FPGA/common/mist/mist.qip
-set_global_assignment -name QIP_FILE ../Mist_FPGA/common/CPU/T80/T80.qip
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/kingbaloon/kbe3-6.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/kingbaloon/kbe2-5.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/kingbaloon/kbe1-4.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/GAL_HIT.vhd"
-set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/GAL_FIR.vhd"
-
-set_global_assignment -name QIP_FILE pll.qip
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

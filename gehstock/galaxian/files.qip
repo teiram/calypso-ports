@@ -1,0 +1,31 @@
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/galaxian.vhd" -hdl_version VHDL_2008
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_video.vhd" -hdl_version VHDL_2008
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_stars.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_sound_vco.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_sound_b.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_sound_a.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_missile.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_logic.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_ld_pls.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_inport.vhd" -hdl_version VHDL_2008
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_hv_count.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_col_pal.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_bram.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_adec.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/sine_package.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/mc_pack.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/spram.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/dpram.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/kb_synth.vhd"
+set_global_assignment -name SYSTEMVERILOG_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ym2149.sv"
+
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/kingbaloon/kbe3-6.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/kingbaloon/kbe2-5.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/kingbaloon/kbe1-4.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/GAL_HIT.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Namco Galaxian Hardware/Z80 Based/Galaxian_MiST/rtl/ROM/GAL_FIR.vhd"
+
+set_global_assignment -name QIP_FILE ../../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../../common/T80/T80.qip
+set_global_assignment -name SYSTEMVERILOG_FILE galaxian_calypso.sv
+set_global_assignment -name QIP_FILE pll.qip
