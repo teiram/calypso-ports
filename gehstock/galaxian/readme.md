@@ -6,4 +6,5 @@ Core Id: Galaxian
 You need to create ARC files with the ROM parts of the machine you want to run
 
 # Changelog
+- 0.2. Rotation using mist_dual_video, add sound
 - 0.1. First release. 
