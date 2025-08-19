@@ -1,0 +1,20 @@
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/pooyan.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/gen_video.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/gen_ram.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/rom/pooyan_sprite_grphx2.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/rom/pooyan_sprite_grphx1.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/rom/pooyan_sprite_color_lut.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/rom/pooyan_sound_prog.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/rom/pooyan_palette.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/rom/pooyan_char_grphx2.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/rom/pooyan_char_grphx1.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/rom/pooyan_char_color_lut.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Pooyan/rtl/pooyan_sound_board.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/common/Sound/ym2149/vol_table_array.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/common/Sound/ym2149/YM2149.vhd"
+
+set_global_assignment -name QIP_FILE ../../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../../common/T80/T80.qip
+set_global_assignment -name SYSTEMVERILOG_FILE pooyan_calypso.sv
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name QIP_FILE pll_aud.qip

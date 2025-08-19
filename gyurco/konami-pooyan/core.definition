@@ -1,0 +1,6 @@
+CORE_ID=pooyan
+PROJECT_NAME=pooyan
+VERSION=0.1
+BITSTREAM_FILE=output_files/pooyan.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../Mist_FPGA ../../common/T80 ../../common/mist-modules
