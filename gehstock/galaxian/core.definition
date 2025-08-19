@@ -1,6 +1,6 @@
 CORE_ID=galaxian
-PROJECT_NAME=Galaxian
+PROJECT_NAME=galaxian
 VERSION=0.2
-BITSTREAM_FILE=output_files/Galaxian.rbf
+BITSTREAM_FILE=output_files/galaxian.rbf
 EXTRA_BINARIES=readme.md
-EXTRA_SUBMODULES=../Mist_FPGA
+EXTRA_SUBMODULES=../Mist_FPGA ../../common/T80 ../../common/mist-modules
