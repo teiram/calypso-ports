@@ -257,7 +257,7 @@ xsd_card vcard2(
     .miso(sdcard2_miso)
 );
 
-always @(posedge clk50m) begin
+always @(posedge clk100m) begin
     if (sd_rd[0] == 1'b1 || sd_wr[0] == 1'b1) begin
         sd_lba_mux <= sd_lba[0];
         sd_buff_din_mux <= sd_buff_din[0];
@@ -381,10 +381,10 @@ wire rl_sclk;
 wire rl_miso;
 wire [3:0] rl_sddebug;
 
-assign sdcard0_cs = have_rl ? rl_cs : 1'b0;
-assign sdcard0_mosi = have_rl ? rl_mosi : 1'b0;
-assign sdcard0_sclk = have_rl ? rl_sclk : 1'b0;
-assign rl_miso = have_rl ? sdcard0_miso : 1'b0;
+assign sdcard0_cs = have_rl ? rl_cs : 1'b1;
+assign sdcard0_mosi = have_rl ? rl_mosi : 1'b1;
+assign sdcard0_sclk = have_rl ? rl_sclk : 1'b1;
+assign rl_miso = have_rl ? sdcard0_miso : 1'b1;
 
 logic have_rk;
 wire rk_cs;
@@ -393,10 +393,10 @@ wire rk_sclk;
 wire rk_miso;
 wire [3:0] rk_sddebug;
 
-assign sdcard1_cs = have_rk ? rk_cs : 1'b0;
-assign sdcard1_mosi = have_rk ? rk_mosi : 1'b0;
-assign sdcard1_sclk = have_rk ? rk_sclk : 1'b0;
-assign rk_miso = have_rk ? sdcard1_miso : 1'b0;
+assign sdcard1_cs = have_rk ? rk_cs : 1'b1;
+assign sdcard1_mosi = have_rk ? rk_mosi : 1'b1;
+assign sdcard1_sclk = have_rk ? rk_sclk : 1'b1;
+assign rk_miso = have_rk ? sdcard1_miso : 1'b1;
 
 logic have_rh;
 wire rh_cs;
@@ -405,10 +405,10 @@ wire rh_sclk;
 wire rh_miso;
 wire [3:0] rh_sddebug;
 
-assign sdcard2_cs = have_rh ? rh_cs : 1'b0;
-assign sdcard2_mosi = have_rh ? rh_mosi : 1'b0;
-assign sdcard2_sclk = have_rh ? rh_sclk : 1'b0;
-assign rh_miso = have_rh ? sdcard2_miso : 1'b0;
+assign sdcard2_cs = have_rh ? rh_cs : 1'b1;
+assign sdcard2_mosi = have_rh ? rh_mosi : 1'b1;
+assign sdcard2_sclk = have_rh ? rh_sclk : 1'b1;
+assign rh_miso = have_rh ? sdcard2_miso : 1'b1;
 
 wire cpureset;
 wire cpuclk;
