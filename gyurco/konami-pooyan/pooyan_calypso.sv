@@ -113,7 +113,6 @@ assign LED[0] = ~ioctl_downl;
 
 localparam CONF_STR = {
     "POOYAN;;",
-    "F0,ROM,Load ROM;",
     "O2,Rotate Controls,Off,On;",
     "OGH,Orientation,Vertical,Clockwise,Anticlockwise;",
     "OI,Rotation filter,Off,On;",
