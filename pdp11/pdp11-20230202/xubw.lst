@@ -1,0 +1,2421 @@
+       1                                         .title xubw - xu esp32 wireless network adapter frontend microcode
+       2                                
+       3                                ;--
+       4                                ;-- Copyright (c) 2008-2023 Sytse van Slooten
+       5                                ;--
+       6                                ;-- Permission is hereby granted to any person obtaining a copy of these VHDL source files and
+       7                                ;-- other language source files and associated documentation files ("the materials") to use
+       8                                ;-- these materials solely for personal, non-commercial purposes.
+       9                                ;-- You are also granted permission to make changes to the materials, on the condition that this
+      10                                ;-- copyright notice is retained unchanged.
+      11                                ;--
+      12                                ;-- The materials are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY;
+      13                                ;-- without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+      14                                ;--
+      15                                ;
+      16                                ;
+      17                                ;
+      18 000000                         lc       =.
+      19 000000 000167  000774                   jmp t49
+      20                                ;
+      21                                ; some constants
+      22                                ;
+      23 002756                         maxpay   = 1518.
+      24 000014                         hdrlen   = 12.
+      25                                ;
+      26                                ; general purpose register definitions
+      27                                ;
+      28 000000                         r0       = %0
+      29 000001                         r1       = %1
+      30 000002                         r2       = %2
+      31 000003                         r3       = %3
+      32 000004                         r4       = %4
+      33 000005                         r5       = %5
+      34 000006                         r6       = %6
+      35 000007                         r7       = %7
+      36 000006                         sp       = %6
+      37 000007                         pc       = %7
+      38                                ;
+      39                                ; macros
+      40                                ;
+      41                                         .macro xubfc
+      42                                         tst @#177000
+      43                                         .endm
+      44                                ;
+      45                                         .macro xubf f,t,l
+      46                                         mov f,@#177000
+      47                                         mov l,@#177004
+      48                                         mov t,@#177002
+      49                                         .endm
+      50                                ;
+      51                                         .macro xubm u,u18,x,l
+      52                                         jsr    pc,xubm
+      53                                         .word  u
+      54                                         .word  u18
+      55                                         .word  x
+      56                                         .word  l
+      57                                         .endm
+      58                                ;
+      59                                         .macro xasciz w
+      60                                         jsr    pc,xasciz
+      61                                         .asciz /w/
+      62                                         .even
+      63                                         .endm
+      64                                ;
+      65                                         .macro xascil w
+      66                                         jsr    pc,xasciz
+      67                                         .ascii /w/
+      68                                         .asciz <15><12>
+      69                                         .even
+      70                                         .endm
+      71                                ;
+      72                                         .macro xascnl
+      73                                         jsr    pc,xasciz
+      74                                         .asciz <15><12>
+      75                                         .even
+      76                                         .endm
+      77                                ;
+      78                                         .macro xbhx w,l
+      79                                         jsr    pc,xbhx
+      80                                         .word  w
+      81                                         .word  l
+      82                                         .endm
+      83                                ;
+      84                                         .macro xwhx w,l
+      85                                         jsr    pc,xwhx
+      86                                         .word  w
+      87                                         .word  l
+      88                                         .endm
+      89                                ;
+      90                                ; start of code
+      91                                ;
+      92 001000                                  .=lc+1000
+      93                                t49:
+      94 001000 012737  000340  177776           mov    #340,@#177776          ; set psw prio to 7 - block interrupts
+      95 001006 012706  001000                   mov    #1000,sp               ; setup stack
+      96 001012 005067  011322                   clr    dogtick                ; clear watchdog count
+      97 001016 012737  012246  000100           mov    #dog,@#100             ; setup vector for watchdog
+      98 001024 012737  000340  000102           mov    #340,@#102             ; psw for watchdog vector
+      99 001032 012737  000100  177546           mov    #100,@#177546          ; enable clock interrupt
+     100                                ;
+     101                                ; init ourselves
+     102                                ;
+     103 001040 004767  011030                   jsr    pc,init                ; setup variable values
+     104 001044 004767  011162                   jsr    pc,waitabit            ; delay loop
+     105                                         xascil <Hello, world: xu-cpu [t49] deuna esp32 microcode>
+       1 001050 004767  010334                   jsr    pc,xasciz
+       2 001054    110     145     154           .ascii /Hello, world: xu-cpu [t49] deuna esp32 microcode/
+         001057    154     157     054  
+         001062    040     167     157  
+         001065    162     154     144  
+         001070    072     040     170  
+         001073    165     055     143  
+         001076    160     165     040  
+         001101    133     164     064  
+         001104    071     135     040  
+         001107    144     145     165  
+         001112    156     141     040  
+         001115    145     163     160  
+         001120    063     062     040  
+         001123    155     151     143  
+         001126    162     157     143  
+         001131    157     144     145  
+       3 001134    015     012     000           .asciz <15><12>
+       4 001137    000                           .even
+     106                                ;
+     107 001140 005037  177776                   clr    @#177776               ; clear psw - this enables the watchdog interrupts
+     108                                ;
+     109                                ;         mov    #400,@#174510          ; pcsr0 - usci would make sense, but 2.11bsd doesn't play well with it. dni is better.
+     110 001144 012737  004000  174510           mov    #4000,@#174510         ; pcsr0 - dni
+     111 001152 012737  000002  174512           mov    #2,@#174512            ; pcsr1 - state=ready
+     112 001160 000400                           br     10$
+     113                                ;
+     114                                ; main service loop - receive packets if we're running
+     115                                ;
+     116                                10$:
+     117 001162 005067  011152                   clr    dogtick                ; need to do this every 10 seconds, or watchdog will cause reboot
+     118                                
+     119                                         xubfc                         ; is the esp ready for spi
+       1 001166 005737  177000                   tst @#177000
+     120 001172 100520                           bmi    30$                    ; no, jump past everything to do with payload
+     121 001174 012700  002772                   mov    #hdrlen+maxpay,r0      ; get length for spi transaction
+     122 001200 005767  011124                   tst    running                ; running?
+     123 001204 001005                           bne    12$                    ; branch if yes
+     124 001206 012700  000014                   mov    #hdrlen,r0             ; short spi transaction if not running
+     125 001212 005767  006626                   tst    dbia                   ; do we have the bia already?
+     126 001216 001106                           bne    30$                    ; yes - then make sure we don't miss the start command
+     127                                12$:
+     128 001220 012767  120240  014654           mov    #120240,tfmgk          ; make sure magik is set
+     129 001226 105267  014652                   incb   tffrq                  ; bump frame counter
+     130                                         xubf   #tfbuf,#rfbuf,r0       ; do spi trx
+       1 001232 012737  016102  177000           mov #tfbuf,@#177000
+       2 001240 010037  177004                   mov r0,@#177004
+       3 001244 012737  013110  177002           mov #rfbuf,@#177002
+     131 001252 005067  014630                   clr    tfpllh                 ; signal transmit buffer is available
+     132                                ;
+     133 001256 005767  011632                   tst    rfpllh                 ; is the length nonzero?
+     134 001262 001400                           beq    15$                    ; branch is it is zero, skip printing
+     135                                ;         xasciz <esp32 rec : >
+     136                                ;         xbhx   rfbuf,22               ; dump buffer
+     137                                ;         xascil
+     138                                ;
+     139                                15$:
+     140 001264 012700  010054                   mov    #dlaa,r0               ; copy rfmac to dlaa and dbia if that's still zero
+     141 001270 012701  013116                   mov    #rfmac,r1
+     142 001274 012120                           mov    (r1)+,(r0)+
+     143 001276 012120                           mov    (r1)+,(r0)+
+     144 001300 012120                           mov    (r1)+,(r0)+
+     145 001302 005767  006536                   tst    dbia
+     146 001306 001005                           bne    18$
+     147 001310 012700  010052                   mov    #dbia+6,r0
+     148 001314 014140                           mov    -(r1),-(r0)
+     149 001316 014140                           mov    -(r1),-(r0)
+     150 001320 014140                           mov    -(r1),-(r0)
+     151                                18$:
+     152 001322 005767  011002                   tst    running                ; in running state?
+     153 001326 001442                           beq    30$                    ; no - jump
+     154                                ;
+     155                                ; process packet received from the esp32
+     156                                ;
+     157 001330 122767  000252  011552           cmpb   #252,rfmgk1            ; check magik1
+     158 001336 001036                           bne    30$                    ; not ok, skip processing
+     159 001340 122767  000125  011543           cmpb   #125,rfmgk2            ; check magik2
+     160 001346 001032                           bne    30$                    ; not ok, skip processing
+     161 001350 005767  011540                   tst    rfpllh                 ; is the receive length nonzero?
+     162 001354 001412                           beq    20$                    ; it is zero - no payload received, skip
+     163                                ;
+     164 001356 004767  005340                   jsr    pc,pktin               ; process input packets
+     165 001362 005067  011526                   clr    rfpllh
+     166 001366 005767  011100                   tst    recvdw                 ; did we do any work receiving?
+     167 001372 001403                           beq    20$                    ; no - jump
+     168 001374 052737  020000  174510           bis    #20000,@#174510        ; set rxi
+     169                                20$:
+     170 001402 005767  010730                   tst    pdmdct                 ; check poll demand counter
+     171 001406 001412                           beq    30$
+     172 001410 005367  010722                   dec    pdmdct                 ; count this run
+     173 001414 004767  004336                   jsr    pc,xmitpl              ; poll xmit ring
+     174 001420 005767  011050                   tst    xmitdw
+     175 001424 001403                           beq    30$
+     176 001426 052737  010000  174510           bis    #10000,@#174510        ; txi
+     177                                ;
+     178                                ; check for command from host
+     179                                ;
+     180                                30$:
+     181 001434 004767  000154                   jsr    pc,pcsrsrv             ; check pcsr register for command from host
+     182 001440 013700  174512                   mov    @#174512,r0            ; get status from register
+     183 001444 042700  177760                   bic    #177760,r0             ;
+     184 001450 005700                           tst    r0                     ; 0 - reset, which is not ok, but the host should act on it, not us
+     185 001452 001017                           bne    32$
+     186                                         xascil <pcsr in reset state>
+       1 001454 004767  007730                   jsr    pc,xasciz
+       2 001460    160     143     163           .ascii /pcsr in reset state/
+         001463    162     040     151  
+         001466    156     040     162  
+         001471    145     163     145  
+         001474    164     040     163  
+         001477    164     141     164  
+         001502    145                  
+       3 001503    015     012     000           .asciz <15><12>
+       4                                         .even
+     187 001506 000167  177450                   jmp    10$                    ; yes - jump
+     188                                32$:
+     189 001512 022700  000002                   cmp    #2,r0                  ; 2 - ready ie ok, but not running as in not yet had start command
+     190 001516 001002                           bne    33$
+     191 001520 000167  177436                   jmp    10$                    ; yes - jump
+     192                                33$:
+     193 001524 022700  000003                   cmp    #3,r0                  ; 3 - running
+     194 001530 001002                           bne    34$
+     195 001532 000167  177424                   jmp    10$                    ; yes - jump
+     196                                34$:
+     197                                         xasciz <pcsr1 value wrong : >
+       1 001536 004767  007646                   jsr    pc,xasciz
+       2 001542    160     143     163           .asciz /pcsr1 value wrong : /
+         001545    162     061     040  
+         001550    166     141     154  
+         001553    165     145     040  
+         001556    167     162     157  
+         001561    156     147     040  
+         001564    072     040     000  
+       3 001567    000                           .even
+     198                                         xwhx   174510,10
+       1 001570 004767  007762                   jsr    pc,xwhx
+       2 001574 174510                           .word  174510
+       3 001576 000010                           .word  10
+     199                                         xascil
+       1 001600 004767  007604                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 001604    015     012     000           .asciz <15><12>
+       4 001607    000                           .even
+     200 001610 000167  177346                   jmp    10$                    ; FIXME, come up with something slightly more sensible
+     201                                ;
+     202                                ; pcsrsrv - service commands issued through the pcsr registers
+     203                                ;
+     204                                pcsrsrv:
+     205 001614 013701  174510                   mov    @#174510,r1            ; #20 bit flags if a new command is in the register
+     206                                ;
+     207                                ; check if the reset bit is set in pcsr0
+     208                                ;
+     209 001620 032701  000040                   bit    #40,r1                 ; rset bit set?
+     210 001624 001417                           beq    psv100                 ; no
+     211 001626 105037  174510                   clrb   @#174510               ; reset rset bit - only a byte write to the low byte does this :-)
+     212                                         xascil <reset by bit 40>
+       1 001632 004767  007552                   jsr    pc,xasciz
+       2 001636    162     145     163           .ascii /reset by bit 40/
+         001641    145     164     040  
+         001644    142     171     040  
+         001647    142     151     164  
+         001652    040     064     060  
+       3 001655    015     012     000           .asciz <15><12>
+       4                                         .even
+     213 001660 000167  177114                   jmp    t49                    ; not a reboot, but fairly close
+     214                                ;
+     215                                ; check if the #20 bit is set - this is a bit in an unused bit field of the original deuna, that xu uses to detect that pcsr0 was written into
+     216                                ;
+     217                                psv100:
+     218 001664 032701  000020                   bit    #20,r1                 ; cmd written bit set?
+     219 001670 001002                           bne    psv110                 ; yes
+     220 001672 000167  000026                   jmp    psv900                 ; no
+     221                                psv110:
+     222 001676 105037  174510                   clrb   @#174510               ; reset flag bit - only a byte write to the low byte does this :-)
+     223 001702 042701  177760                   bic    #177760,r1             ; mask off p0cmd bit field from pcsr0
+     224 001706 010167  010422                   mov    r1,p0cmd               ; store it
+     225 001712 006301                           asl    r1
+     226 001714 062701  002466                   add    #ptab,r1               ; add code to base of jump table
+     227 001720 011101                           mov    (r1),r1
+     228 001722 004711                           jsr    pc,(r1)                ; call the service routine
+     229                                psv900:
+     230 001724 000207                           rts pc                        ; done
+     231                                ;
+     232                                ; nop : the real nop, command code 0
+     233                                ;
+     234                                crnop:
+     235                                         xasciz <pcsr0 noop : >
+       1 001726 004767  007456                   jsr    pc,xasciz
+       2 001732    160     143     163           .asciz /pcsr0 noop : /
+         001735    162     060     040  
+         001740    156     157     157  
+         001743    160     040     072  
+         001746    040     000          
+       3                                         .even
+     236                                         xwhx   174510,2
+       1 001750 004767  007602                   jsr    pc,xwhx
+       2 001754 174510                           .word  174510
+       3 001756 000002                           .word  2
+     237                                         xascil
+       1 001760 004767  007424                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 001764    015     012     000           .asciz <15><12>
+       4 001767    000                           .even
+     238                                         ; ? manual says no-op, and dni bit not set
+     239 001770 052737  004000  174510           bis    #4000,@#174510
+     240 001776 000207                           rts    pc
+     241                                ;
+     242                                ; nop : other command codes
+     243                                ;
+     244                                conop:
+     245                                         xasciz <pcsr0 noopx: >
+       1 002000 004767  007404                   jsr    pc,xasciz
+       2 002004    160     143     163           .asciz /pcsr0 noopx: /
+         002007    162     060     040  
+         002012    156     157     157  
+         002015    160     170     072  
+         002020    040     000          
+       3                                         .even
+     246                                         xwhx   174510,2
+       1 002022 004767  007530                   jsr    pc,xwhx
+       2 002026 174510                           .word  174510
+       3 002030 000002                           .word  2
+     247                                         xascil
+       1 002032 004767  007352                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 002036    015     012     000           .asciz <15><12>
+       4 002041    000                           .even
+     248 002042 052737  004000  174510           bis    #4000,@#174510
+     249 002050 000207                           rts    pc
+     250                                
+     251                                ;
+     252                                ; cmd 1
+     253                                ;
+     254                                c0001:
+     255                                ;         xasciz <pcsr0 cmd1 get pcbb : >
+     256                                ;         xwhx   174510,10
+     257                                ;         xascil
+     258 002052 013767  174514  010416           mov    @#174514,pcbbl
+     259 002060 013767  174516  010412           mov    @#174516,pcbbh
+     260 002066 052737  004000  174510           bis    #4000,@#174510            ; dni
+     261 002074 000207                           rts    pc
+     262                                ;
+     263                                ; cmd 2
+     264                                ;
+     265                                c0010:                                 ; get cmd
+     266                                ;         xasciz <pcsr0 cmd2 get cmd: >
+     267                                ;         xwhx   174510,10
+     268                                ;         xascil
+     269                                
+     270 002076 013767  174514  000012           mov    @#174514,10$
+     271 002104 013767  174516  000006           mov    @#174516,11$
+     272 002112 004767  005764                   jsr    pc,xubm
+     273 002116 000000                  10$:     .word  0
+     274 002120 000000                  11$:     .word  0
+     275 002122 012502                           .word  pcbb
+     276 002124 000010                           .word  10
+     277                                         xasciz <pcbb  cmd2 : >
+       1 002126 004767  007256                   jsr    pc,xasciz
+       2 002132    160     143     142           .asciz /pcbb  cmd2 : /
+         002135    142     040     040  
+         002140    143     155     144  
+         002143    062     040     072  
+         002146    040     000          
+       3                                         .even
+     278                                         xwhx   pcbb,10
+       1 002150 004767  007402                   jsr    pc,xwhx
+       2 002154 012502                           .word  pcbb
+       3 002156 000010                           .word  10
+     279                                         xascil
+       1 002160 004767  007224                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 002164    015     012     000           .asciz <15><12>
+       4 002167    000                           .even
+     280 002170 116700  010306                   movb   pcbb,r0
+     281 002174 122700  000026                   cmpb   #26,r0
+     282 002200 002405                           blt    90$
+     283 002202 006300                           asl    r0
+     284 002204 062700  002526                   add    #fctbl,r0
+     285 002210 011000                           mov    (r0),r0
+     286 002212 004710                           jsr    pc,(r0)
+     287                                90$:
+     288 002214 000207                           rts    pc
+     289                                ;
+     290                                ; cmd 3 - self-test
+     291                                ;
+     292                                c0011:                                 ; self-test
+     293 002216 052737  004000  174510           bis    #4000,@#174510            ; dni
+     294 002224 000207                           rts    pc
+     295                                ;
+     296                                ; cmd 4 - start
+     297                                ;
+     298                                c0100:                                 ; start
+     299                                         xasciz <pcsr0 START : >
+       1 002226 004767  007156                   jsr    pc,xasciz
+       2 002232    160     143     163           .asciz /pcsr0 START : /
+         002235    162     060     040  
+         002240    123     124     101  
+         002243    122     124     040  
+         002246    072     040     000  
+       3 002251    000                           .even
+     300                                         xwhx   174510,10
+       1 002252 004767  007300                   jsr    pc,xwhx
+       2 002256 174510                           .word  174510
+       3 002260 000010                           .word  10
+     301                                         xascil
+       1 002262 004767  007122                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 002266    015     012     000           .asciz <15><12>
+       4 002271    000                           .even
+     302 002272 012737  000003  174512           mov    #3,@#174512            ; set state to running, clear error bits if any
+     303 002300 005767  010024                   tst    running
+     304 002304 001022                           bne    90$                    ; was already running, skip resetting rings to start
+     305 002306 012767  000001  010014           mov    #1,running             ; set state
+     306                                ;
+     307 002314 016767  010024  010064           mov    tdrbh,xcurrh              ; clear xcurr - manual 4-9
+     308 002322 016767  010020  010060           mov    tdrbl,xcurrl
+     309                                ;
+     310 002330 016767  010024  010040           mov    rdrbh,rcurrh              ; clear rcurr - manual 4-9
+     311 002336 016767  010020  010034           mov    rdrbl,rcurrl
+     312                                ;
+     313 002344 052737  004000  174510           bis    #4000,@#174510         ; dni
+     314                                90$:
+     315 002352 000207                           rts    pc
+     316                                ;
+     317                                ; cmd 5 - boot
+     318                                ;
+     319                                c0101:                                 ; boot
+     320 002354 052737  004000  174510           bis    #4000,@#174510         ; dni
+     321 002362 000207                           rts    pc
+     322                                ;
+     323                                ; cmd 8 - polling demand
+     324                                ;
+     325                                c1000:                                 ; pdmd
+     326                                ;         xasciz <pcsr0 PDMD : >
+     327                                ;         xwhx   174510,10
+     328                                ;         xascil
+     329                                ;         jsr    pc,xmitpl              ; poll xmit ring
+     330                                ;         tst    xmitdw
+     331                                ;         beq    10$
+     332                                ;         bis    #10000,@#174510        ; txi --- FIXME, might not even be needed to set txi
+     333                                ;         jsr pc,waitabit
+     334 002364 012767  000062  007744           mov    #50., pdmdct
+     335                                10$:
+     336 002372 052737  004000  174510           bis    #4000,@#174510         ; dni
+     337 002400 000207                           rts    pc
+     338                                ;
+     339                                ; cmd 15 : stop
+     340                                ;
+     341                                c1111:                                 ; stop
+     342                                         xasciz <pcsr0 STOP : >
+       1 002402 004767  007002                   jsr    pc,xasciz
+       2 002406    160     143     163           .asciz /pcsr0 STOP : /
+         002411    162     060     040  
+         002414    123     124     117  
+         002417    120     040     072  
+         002422    040     000          
+       3                                         .even
+     343                                         xwhx   174510,10
+       1 002424 004767  007126                   jsr    pc,xwhx
+       2 002430 174510                           .word  174510
+       3 002432 000010                           .word  10
+     344                                         xascil
+       1 002434 004767  006750                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 002440    015     012     000           .asciz <15><12>
+       4 002443    000                           .even
+     345 002444 005067  007660                   clr    running                ; set state
+     346 002450 012737  000002  174512           mov    #2,@#174512            ; set state
+     347 002456 052737  004000  174510           bis    #4000,@#174510         ; dni
+     348 002464 000207                           rts    pc
+     349                                ;
+     350                                ; command branch table
+     351                                ;
+     352                                ptab:
+     353 002466 001726                           .word  crnop                     ; 0
+     354 002470 002052                           .word  c0001                     ; 1
+     355 002472 002076                           .word  c0010                     ; 2
+     356 002474 002216                           .word  c0011                     ; 3
+     357 002476 002226                           .word  c0100                     ; 4
+     358 002500 002354                           .word  c0101                     ; 5
+     359 002502 002000                           .word  conop                     ; 6
+     360 002504 002000                           .word  conop                     ; 7
+     361 002506 002364                           .word  c1000                     ; 10
+     362 002510 002000                           .word  conop                     ; 11
+     363 002512 002000                           .word  conop                     ; 12
+     364 002514 002000                           .word  conop                     ; 13
+     365 002516 002000                           .word  conop                     ; 14
+     366 002520 002000                           .word  conop                     ; 15
+     367 002522 002000                           .word  conop                     ; 16
+     368 002524 002402                           .word  c1111                     ; 17
+     369                                ;
+     370                                ; function branch table
+     371                                ;
+     372 002526 002606                  fctbl:   .word  fc0
+     373 002530 002640                           .word  fc1
+     374 002532 002702                           .word  fc2
+     375 002534 003166                           .word  fc3
+     376 002536 003232                           .word  fc4
+     377 002540 003400                           .word  fc5
+     378 002542 003546                           .word  fc6
+     379 002544 003670                           .word  fc7
+     380 002546 004320                           .word  fc10
+     381 002550 004506                           .word  fc11
+     382 002552 005102                           .word  fc12
+     383 002554 005146                           .word  fc13
+     384 002556 005224                           .word  fc14
+     385 002560 005326                           .word  fc15
+     386 002562 005452                           .word  fc16
+     387 002564 005470                           .word  fc17
+     388 002566 005506                           .word  fc20
+     389 002570 005560                           .word  fc21
+     390 002572 005632                           .word  fc22
+     391 002574 005650                           .word  fc23
+     392 002576 005666                           .word  fc24
+     393 002600 005704                           .word  fc25
+     394 002602 005722                           .word  fc26
+     395 002604 005740                           .word  fc27
+     396                                ;
+     397                                ; fc0 - no-op
+     398                                ;
+     399                                fc0:
+     400                                         xascil <fc0 - noop>
+       1 002606 004767  006576                   jsr    pc,xasciz
+       2 002612    146     143     060           .ascii /fc0 - noop/
+         002615    040     055     040  
+         002620    156     157     157  
+         002623    160                  
+       3 002624    015     012     000           .asciz <15><12>
+       4 002627    000                           .even
+     401 002630 052737  004000  174510           bis    #4000,@#174510            ; dni
+     402 002636 000207                           rts    pc
+     403                                ;
+     404                                ; fc1
+     405                                ;
+     406                                fc1:
+     407                                         xasciz <fc1 - load and start>
+       1 002640 004767  006544                   jsr    pc,xasciz
+       2 002644    146     143     061           .asciz /fc1 - load and start/
+         002647    040     055     040  
+         002652    154     157     141  
+         002655    144     040     141  
+         002660    156     144     040  
+         002663    163     164     141  
+         002666    162     164     000  
+       3 002671    000                           .even
+     408 002672 052737  040000  174510           bis    #40000,@#174510           ; pcei - this function is not implemented
+     409 002700 000207                           rts    pc
+     410                                ;
+     411                                ; fc2
+     412                                ;
+     413                                fc2:
+     414                                         xasciz <fc2 - read default physical address >
+       1 002702 004767  006502                   jsr    pc,xasciz
+       2 002706    146     143     062           .asciz /fc2 - read default physical address /
+         002711    040     055     040  
+         002714    162     145     141  
+         002717    144     040     144  
+         002722    145     146     141  
+         002725    165     154     164  
+         002730    040     160     150  
+         002733    171     163     151  
+         002736    143     141     154  
+         002741    040     141     144  
+         002744    144     162     145  
+         002747    163     163     040  
+         002752    000                  
+       3 002753    000                           .even
+     415 002754 004767  005172                   jsr    pc,getpcbb
+     416                                ;
+     417                                ; the bia is in crazy-chip format
+     418                                ;
+     419                                         xbhx   dbia+4,1
+       1 002760 004767  006474                   jsr    pc,xbhx
+       2 002764 010050                           .word  dbia+4
+       3 002766 000001                           .word  1
+     420                                         xasciz <:>
+       1 002770 004767  006414                   jsr    pc,xasciz
+       2 002774    072     000                   .asciz /:/
+       3                                         .even
+     421                                         xbhx   dbia+5,1
+       1 002776 004767  006456                   jsr    pc,xbhx
+       2 003002 010051                           .word  dbia+5
+       3 003004 000001                           .word  1
+     422                                         xasciz <:>
+       1 003006 004767  006376                   jsr    pc,xasciz
+       2 003012    072     000                   .asciz /:/
+       3                                         .even
+     423                                         xbhx   dbia+2,1
+       1 003014 004767  006440                   jsr    pc,xbhx
+       2 003020 010046                           .word  dbia+2
+       3 003022 000001                           .word  1
+     424                                         xasciz <:>
+       1 003024 004767  006360                   jsr    pc,xasciz
+       2 003030    072     000                   .asciz /:/
+       3                                         .even
+     425                                         xbhx   dbia+3,1
+       1 003032 004767  006422                   jsr    pc,xbhx
+       2 003036 010047                           .word  dbia+3
+       3 003040 000001                           .word  1
+     426                                         xasciz <:>
+       1 003042 004767  006342                   jsr    pc,xasciz
+       2 003046    072     000                   .asciz /:/
+       3                                         .even
+     427                                         xbhx   dbia+0,1
+       1 003050 004767  006404                   jsr    pc,xbhx
+       2 003054 010044                           .word  dbia+0
+       3 003056 000001                           .word  1
+     428                                         xasciz <:>
+       1 003060 004767  006324                   jsr    pc,xasciz
+       2 003064    072     000                   .asciz /:/
+       3                                         .even
+     429                                         xbhx   dbia+1,1
+       1 003066 004767  006366                   jsr    pc,xbhx
+       2 003072 010045                           .word  dbia+1
+       3 003074 000001                           .word  1
+     430                                         xascnl
+       1 003076 004767  006306                   jsr    pc,xasciz
+       2 003102    015     012     000           .asciz <15><12>
+       3 003105    000                           .even
+     431                                
+     432 003106 116767  004736  007370           movb   dbia+4,pcbb+2
+     433 003114 116767  004731  007363           movb   dbia+5,pcbb+3
+     434 003122 116767  004720  007356           movb   dbia+2,pcbb+4
+     435 003130 116767  004713  007351           movb   dbia+3,pcbb+5
+     436 003136 116767  004702  007344           movb   dbia+0,pcbb+6
+     437 003144 116767  004675  007337           movb   dbia+1,pcbb+7
+     438                                
+     439 003152 004767  005034                   jsr    pc,putpcbb
+     440 003156 052737  004000  174510           bis    #4000,@#174510            ; dni
+     441 003164 000207                           rts    pc
+     442                                ;
+     443                                ; fc3
+     444                                ;
+     445                                fc3:
+     446                                         xascil <fc3 - no op function>
+       1 003166 004767  006216                   jsr    pc,xasciz
+       2 003172    146     143     063           .ascii /fc3 - no op function/
+         003175    040     055     040  
+         003200    156     157     040  
+         003203    157     160     040  
+         003206    146     165     156  
+         003211    143     164     151  
+         003214    157     156          
+       3 003216    015     012     000           .asciz <15><12>
+       4 003221    000                           .even
+     447 003222 052737  004000  174510           bis    #4000,@#174510            ; dni, ach welja
+     448 003230 000207                           rts    pc
+     449                                ;
+     450                                ; fc4
+     451                                ;
+     452                                fc4:
+     453                                         xasciz <fc4 - read physical address >
+       1 003232 004767  006152                   jsr    pc,xasciz
+       2 003236    146     143     064           .asciz /fc4 - read physical address /
+         003241    040     055     040  
+         003244    162     145     141  
+         003247    144     040     160  
+         003252    150     171     163  
+         003255    151     143     141  
+         003260    154     040     141  
+         003263    144     144     162  
+         003266    145     163     163  
+         003271    040     000          
+       3 003273    000                           .even
+     454 003274 004767  004652                   jsr    pc,getpcbb
+     455 003300 116767  004550  007176           movb   dlaa+0,pcbb+2
+     456 003306 116767  004543  007171           movb   dlaa+1,pcbb+3
+     457 003314 116767  004536  007164           movb   dlaa+2,pcbb+4
+     458 003322 116767  004531  007157           movb   dlaa+3,pcbb+5
+     459 003330 116767  004524  007152           movb   dlaa+4,pcbb+6
+     460 003336 116767  004517  007145           movb   dlaa+5,pcbb+7
+     461                                         xbhx   pcbb+2,6
+       1 003344 004767  006110                   jsr    pc,xbhx
+       2 003350 012504                           .word  pcbb+2
+       3 003352 000006                           .word  6
+     462                                         xascil
+       1 003354 004767  006030                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 003360    015     012     000           .asciz <15><12>
+       4 003363    000                           .even
+     463 003364 004767  004622                   jsr    pc,putpcbb
+     464 003370 052737  004000  174510           bis    #4000,@#174510            ; dni
+     465 003376 000207                           rts    pc
+     466                                ;
+     467                                ; fc5
+     468                                ;
+     469                                fc5:
+     470                                         xasciz <fc5 - write physical address >
+       1 003400 004767  006004                   jsr    pc,xasciz
+       2 003404    146     143     065           .asciz /fc5 - write physical address /
+         003407    040     055     040  
+         003412    167     162     151  
+         003415    164     145     040  
+         003420    160     150     171  
+         003423    163     151     143  
+         003426    141     154     040  
+         003431    141     144     144  
+         003434    162     145     163  
+         003437    163     040     000  
+       3                                         .even
+     471 003442 004767  004504                   jsr    pc,getpcbb
+     472 003446 116767  007032  004400           movb   pcbb+2,dlaa+0
+     473 003454 116767  007025  004373           movb   pcbb+3,dlaa+1
+     474 003462 116767  007020  004366           movb   pcbb+4,dlaa+2
+     475 003470 116767  007013  004361           movb   pcbb+5,dlaa+3
+     476 003476 116767  007006  004354           movb   pcbb+6,dlaa+4
+     477 003504 116767  007001  004347           movb   pcbb+7,dlaa+5
+     478                                         xbhx   dlaa,6
+       1 003512 004767  005742                   jsr    pc,xbhx
+       2 003516 010054                           .word  dlaa
+       3 003520 000006                           .word  6
+     479                                         xascil
+       1 003522 004767  005662                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 003526    015     012     000           .asciz <15><12>
+       4 003531    000                           .even
+     480 003532 004767  004314                   jsr    pc,setlaa
+     481 003536 052737  004000  174510           bis    #4000,@#174510            ; dni
+     482 003544 000207                           rts    pc
+     483                                ;
+     484                                ; fc6
+     485                                ;
+     486                                fc6:
+     487                                         xascil <fc6 - read multicast address list>
+       1 003546 004767  005636                   jsr    pc,xasciz
+       2 003552    146     143     066           .ascii /fc6 - read multicast address list/
+         003555    040     055     040  
+         003560    162     145     141  
+         003563    144     040     155  
+         003566    165     154     164  
+         003571    151     143     141  
+         003574    163     164     040  
+         003577    141     144     144  
+         003602    162     145     163  
+         003605    163     040     154  
+         003610    151     163     164  
+       3 003613    015     012     000           .asciz <15><12>
+       4                                         .even
+     488 003616 004767  004330                   jsr    pc,getpcbb
+     489 003622 116700  006661                   movb   pcbb+5,r0
+     490 003626 022700  000012                   cmp    #12,r0
+     491 003632 002412                           blt    90$
+     492 003634 010067  006652                   mov    r0,mltreq
+     493 003640 005700                           tst    r0
+     494 003642 001402                           beq    80$
+     495 003644 004767  005340                   jsr    pc,putmlt
+     496                                80$:
+     497 003650 052737  004000  174510           bis    #4000,@#174510            ; dni
+     498 003656 000207                           rts    pc
+     499                                90$:
+     500 003660 052737  044000  174510           bis    #44000,@#174510           ; pcei - error in req
+     501 003666 000207                           rts    pc
+     502                                ;
+     503                                ; fc7
+     504                                ;
+     505                                fc7:
+     506                                         xasciz <fc7 - write multicast address list >             ; FIXME, incomplete - the multicast list is ignored, only the mcen bit is set in the chip to match whether or not the list contains any entries at all             ; FIXME, incomplete
+       1 003670 004767  005514                   jsr    pc,xasciz
+       2 003674    146     143     067           .asciz /fc7 - write multicast address list /
+         003677    040     055     040  
+         003702    167     162     151  
+         003705    164     145     040  
+         003710    155     165     154  
+         003713    164     151     143  
+         003716    141     163     164  
+         003721    040     141     144  
+         003724    144     162     145  
+         003727    163     163     040  
+         003732    154     151     163  
+         003735    164     040     000  
+       3                                         .even
+     507 003740 004767  004206                   jsr    pc,getpcbb
+     508 003744 116700  006537                   movb   pcbb+5,r0
+     509 003750 010067  006540                   mov    r0,mltlen
+     510 003754 005700                           tst    r0
+     511 003756 001006                           bne    20$
+     512                                ; FIXME         xubl   cmcen,40
+     513                                         xasciz <clear>
+       1 003760 004767  005424                   jsr    pc,xasciz
+       2 003764    143     154     145           .asciz /clear/
+         003767    141     162     000  
+       3                                         .even
+     514 003772 000536                           br     80$
+     515                                20$:
+     516 003774 022700  000012                   cmp    #12,r0
+     517 004000 002543                           blt    90$
+     518                                ;         xubl   smcen,40
+     519 004002 004767  005114                   jsr    pc,getmlt
+     520                                         xwhx   mltlen,2
+       1 004006 004767  005544                   jsr    pc,xwhx
+       2 004012 012514                           .word  mltlen
+       3 004014 000002                           .word  2
+     521                                         xascil
+       1 004016 004767  005366                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 004022    015     012     000           .asciz <15><12>
+       4 004025    000                           .even
+     522                                         xasciz <fc7        : >
+       1 004026 004767  005356                   jsr    pc,xasciz
+       2 004032    146     143     067           .asciz /fc7        : /
+         004035    040     040     040  
+         004040    040     040     040  
+         004043    040     040     072  
+         004046    040     000          
+       3                                         .even
+     523                                         xbhx   mltlist,14
+       1 004050 004767  005404                   jsr    pc,xbhx
+       2 004054 012516                           .word  mltlist
+       3 004056 000014                           .word  14
+     524                                         xascil
+       1 004060 004767  005324                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 004064    015     012     000           .asciz <15><12>
+       4 004067    000                           .even
+     525                                         xasciz <fc7        : >
+       1 004070 004767  005314                   jsr    pc,xasciz
+       2 004074    146     143     067           .asciz /fc7        : /
+         004077    040     040     040  
+         004102    040     040     040  
+         004105    040     040     072  
+         004110    040     000          
+       3                                         .even
+     526                                         xbhx   mltlist+14,14
+       1 004112 004767  005342                   jsr    pc,xbhx
+       2 004116 012532                           .word  mltlist+14
+       3 004120 000014                           .word  14
+     527                                         xascil
+       1 004122 004767  005262                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 004126    015     012     000           .asciz <15><12>
+       4 004131    000                           .even
+     528                                         xasciz <fc7        : >
+       1 004132 004767  005252                   jsr    pc,xasciz
+       2 004136    146     143     067           .asciz /fc7        : /
+         004141    040     040     040  
+         004144    040     040     040  
+         004147    040     040     072  
+         004152    040     000          
+       3                                         .even
+     529                                         xbhx   mltlist+30,14
+       1 004154 004767  005300                   jsr    pc,xbhx
+       2 004160 012546                           .word  mltlist+30
+       3 004162 000014                           .word  14
+     530                                         xascil
+       1 004164 004767  005220                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 004170    015     012     000           .asciz <15><12>
+       4 004173    000                           .even
+     531                                         xasciz <fc7        : >
+       1 004174 004767  005210                   jsr    pc,xasciz
+       2 004200    146     143     067           .asciz /fc7        : /
+         004203    040     040     040  
+         004206    040     040     040  
+         004211    040     040     072  
+         004214    040     000          
+       3                                         .even
+     532                                         xbhx   mltlist+44,14
+       1 004216 004767  005236                   jsr    pc,xbhx
+       2 004222 012562                           .word  mltlist+44
+       3 004224 000014                           .word  14
+     533                                         xascil
+       1 004226 004767  005156                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 004232    015     012     000           .asciz <15><12>
+       4 004235    000                           .even
+     534                                         xasciz <fc7        : >
+       1 004236 004767  005146                   jsr    pc,xasciz
+       2 004242    146     143     067           .asciz /fc7        : /
+         004245    040     040     040  
+         004250    040     040     040  
+         004253    040     040     072  
+         004256    040     000          
+       3                                         .even
+     535                                         xbhx   mltlist+60,14
+       1 004260 004767  005174                   jsr    pc,xbhx
+       2 004264 012576                           .word  mltlist+60
+       3 004266 000014                           .word  14
+     536                                ;         xascil
+     537                                ;         xasciz <fc7        : >
+     538                                ;         xbhx   mltlist+74,14
+     539                                80$:
+     540                                         xascil
+       1 004270 004767  005114                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 004274    015     012     000           .asciz <15><12>
+       4 004277    000                           .even
+     541 004300 052737  004000  174510           bis    #4000,@#174510            ; dni
+     542 004306 000207                           rts    pc
+     543                                90$:
+     544 004310 052737  044000  174510           bis    #44000,@#174510           ; pcei - error in req
+     545 004316 000207                           rts    pc
+     546                                ;
+     547                                ; fc10
+     548                                ;
+     549                                fc10:
+     550                                         xascil <fc10 - read ring format >
+       1 004320 004767  005064                   jsr    pc,xasciz
+       2 004324    146     143     061           .ascii /fc10 - read ring format /
+         004327    060     040     055  
+         004332    040     162     145  
+         004335    141     144     040  
+         004340    162     151     156  
+         004343    147     040     146  
+         004346    157     162     155  
+         004351    141     164     040  
+       3 004354    015     012     000           .asciz <15><12>
+       4 004357    000                           .even
+     551 004360 004767  003566                   jsr    pc,getpcbb
+     552                                ;
+     553 004364 016767  005756  006222           mov    tdrbl,udbb
+     554 004372 016767  005746  006216           mov    tdrbh,udbb+2
+     555 004400 116767  005744  006211           movb   telen,udbb+3
+     556 004406 016767  005740  006204           mov    trlen,udbb+4
+     557 004414 016767  005742  006200           mov    rdrbl,udbb+6
+     558 004422 016767  005732  006174           mov    rdrbh,udbb+10
+     559 004430 116767  005730  006167           movb   relen,udbb+11
+     560 004436 016767  005724  006162           mov    rrlen,udbb+12
+     561                                ;
+     562                                         xwhx   udbb,14
+       1 004444 004767  005106                   jsr    pc,xwhx
+       2 004450 012614                           .word  udbb
+       3 004452 000014                           .word  14
+     563                                         xascil
+       1 004454 004767  004730                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 004460    015     012     000           .asciz <15><12>
+       4 004463    000                           .even
+     564                                ;
+     565 004464 012767  000014  006120           mov    #14,udbblen
+     566 004472 004767  003614                   jsr    pc,putudbb
+     567 004476 052737  004000  174510           bis    #4000,@#174510            ; dni
+     568 004504 000207                           rts    pc
+     569                                ;
+     570                                ; fc11
+     571                                ;
+     572                                fc11:
+     573                                         xasciz <fc11 - write ring format >
+       1 004506 004767  004676                   jsr    pc,xasciz
+       2 004512    146     143     061           .asciz /fc11 - write ring format /
+         004515    061     040     055  
+         004520    040     167     162  
+         004523    151     164     145  
+         004526    040     162     151  
+         004531    156     147     040  
+         004534    146     157     162  
+         004537    155     141     164  
+         004542    040     000          
+       3                                         .even
+     574 004544 004767  003402                   jsr    pc,getpcbb
+     575                                ;
+     576 004550 012767  000014  006034           mov    #14,udbblen
+     577 004556 004767  003470                   jsr    pc,getudbb
+     578                                         xwhx   udbb,14
+       1 004562 004767  004770                   jsr    pc,xwhx
+       2 004566 012614                           .word  udbb
+       3 004570 000014                           .word  14
+     579                                         xascil
+       1 004572 004767  004612                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 004576    015     012     000           .asciz <15><12>
+       4 004601    000                           .even
+     580                                ;
+     581 004602 016767  006006  005536           mov    udbb,tdrbl
+     582 004610 042767  000001  005530           bic    #1,tdrbl
+     583 004616 016767  005774  005520           mov    udbb+2,tdrbh
+     584 004624 042767  177774  005512           bic    #177774,tdrbh
+     585 004632 116700  005761                   movb   udbb+3,r0
+     586 004636 010067  005506                   mov    r0,telen
+     587 004642 016767  005752  005502           mov    udbb+4,trlen
+     588 004650 016767  005746  005504           mov    udbb+6,rdrbl
+     589 004656 042767  000001  005476           bic    #1,rdrbl
+     590 004664 016767  005734  005466           mov    udbb+10,rdrbh
+     591 004672 042767  177774  005460           bic    #177774,rdrbh
+     592 004700 116700  005721                   movb   udbb+11,r0
+     593 004704 010067  005454                   mov    r0,relen
+     594 004710 016767  005712  005450           mov    udbb+12,rrlen
+     595 004716 052737  004000  174510           bis    #4000,@#174510            ; dni
+     596                                ;
+     597 004724 016767  005414  005454           mov    tdrbh,xcurrh              ; clear xcurr
+     598 004732 016767  005410  005450           mov    tdrbl,xcurrl
+     599                                ;
+     600 004740 016767  005414  005430           mov    rdrbh,rcurrh              ; clear rcurr
+     601 004746 016767  005410  005424           mov    rdrbl,rcurrl
+     602                                ;
+     603                                ; setup pointers to last buffer
+     604                                ;
+     605 004754 016767  005364  005372           mov    tdrbh,tdrmxh
+     606 004762 016767  005360  005366           mov    tdrbl,tdrmxl
+     607                                
+     608 004770 016700  005356                   mov    trlen,r0
+     609 004774 005300                           dec    r0
+     610                                10$:
+     611 004776 066767  005346  005352           add    telen,tdrmxl
+     612 005004 005567  005344                   adc    tdrmxh
+     613 005010 066767  005334  005340           add    telen,tdrmxl
+     614 005016 005567  005332                   adc    tdrmxh
+     615 005022 005300                           dec    r0
+     616 005024 001364                           bne    10$
+     617                                
+     618 005026 016767  005326  005334           mov    rdrbh,rdrmxh
+     619 005034 016767  005322  005330           mov    rdrbl,rdrmxl
+     620                                
+     621 005042 016700  005320                   mov    rrlen,r0
+     622 005046 005300                           dec    r0
+     623                                20$:
+     624 005050 066767  005310  005314           add    relen,rdrmxl
+     625 005056 005567  005306                   adc    rdrmxh
+     626 005062 066767  005276  005302           add    relen,rdrmxl
+     627 005070 005567  005274                   adc    rdrmxh
+     628 005074 005300                           dec    r0
+     629 005076 001364                           bne    20$
+     630                                
+     631 005100 000207                           rts    pc
+     632                                ;
+     633                                ; fc12
+     634                                ;
+     635                                fc12:
+     636                                         xascil <fc12 - read counters>
+       1 005102 004767  004302                   jsr    pc,xasciz
+       2 005106    146     143     061           .ascii /fc12 - read counters/
+         005111    062     040     055  
+         005114    040     162     145  
+         005117    141     144     040  
+         005122    143     157     165  
+         005125    156     164     145  
+         005130    162     163          
+       3 005132    015     012     000           .asciz <15><12>
+       4 005135    000                           .even
+     637 005136 052737  004000  174510           bis    #4000,@#174510            ; dni
+     638 005144 000207                           rts    pc
+     639                                ;
+     640                                ; fc13
+     641                                ;
+     642                                fc13:
+     643                                         xascil <fc13 - read and clear counters>
+       1 005146 004767  004236                   jsr    pc,xasciz
+       2 005152    146     143     061           .ascii /fc13 - read and clear counters/
+         005155    063     040     055  
+         005160    040     162     145  
+         005163    141     144     040  
+         005166    141     156     144  
+         005171    040     143     154  
+         005174    145     141     162  
+         005177    040     143     157  
+         005202    165     156     164  
+         005205    145     162     163  
+       3 005210    015     012     000           .asciz <15><12>
+       4 005213    000                           .even
+     644 005214 052737  004000  174510           bis    #4000,@#174510            ; dni
+     645 005222 000207                           rts    pc
+     646                                ;
+     647                                ; fc14
+     648                                ;
+     649                                fc14:
+     650                                         xasciz <fc14 - read mode bits >
+       1 005224 004767  004160                   jsr    pc,xasciz
+       2 005230    146     143     061           .asciz /fc14 - read mode bits /
+         005233    064     040     055  
+         005236    040     162     145  
+         005241    141     144     040  
+         005244    155     157     144  
+         005247    145     040     142  
+         005252    151     164     163  
+         005255    040     000          
+       3 005257    000                           .even
+     651                                         xwhx   modebits,2
+       1 005260 004767  004272                   jsr    pc,xwhx
+       2 005264 012342                           .word  modebits
+       3 005266 000002                           .word  2
+     652                                         xascil
+       1 005270 004767  004114                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 005274    015     012     000           .asciz <15><12>
+       4 005277    000                           .even
+     653 005300 004767  002646                   jsr    pc,getpcbb
+     654 005304 016767  005032  005172           mov    modebits,pcbb+2
+     655 005312 004767  002674                   jsr    pc,putpcbb
+     656 005316 052737  004000  174510           bis    #4000,@#174510            ; dni
+     657 005324 000207                           rts    pc
+     658                                ;
+     659                                ; fc15
+     660                                ;
+     661                                fc15:
+     662                                         xasciz <fc15 - write mode bits >
+       1 005326 004767  004056                   jsr    pc,xasciz
+       2 005332    146     143     061           .asciz /fc15 - write mode bits /
+         005335    065     040     055  
+         005340    040     167     162  
+         005343    151     164     145  
+         005346    040     155     157  
+         005351    144     145     040  
+         005354    142     151     164  
+         005357    163     040     000  
+       3                                         .even
+     663                                         xwhx   modebits,2
+       1 005362 004767  004170                   jsr    pc,xwhx
+       2 005366 012342                           .word  modebits
+       3 005370 000002                           .word  2
+     664                                         xasciz ^/ -> /
+       1 005372 004767  004012                   jsr    pc,xasciz
+       2 005376    040     055     076           .asciz / -> /
+         005401    040     000          
+       3 005403    000                           .even
+     665 005404 004767  002542                   jsr    pc,getpcbb
+     666 005410 016767  005070  004724           mov    pcbb+2,modebits
+     667                                         xwhx   modebits,2
+       1 005416 004767  004134                   jsr    pc,xwhx
+       2 005422 012342                           .word  modebits
+       3 005424 000002                           .word  2
+     668                                         xascil
+       1 005426 004767  003756                   jsr    pc,xasciz
+       2                                         .ascii //
+       3 005432    015     012     000           .asciz <15><12>
+       4 005435    000                           .even
+     669                                ;
+     670 005436 004767  003666                   jsr    pc,setmodebits
+     671                                ;
+     672 005442 052737  004000  174510           bis    #4000,@#174510            ; dni
+     673 005450 000207                           rts    pc
+     674                                ;
+     675                                ; fc16
+     676                                ;
+     677                                fc16:
+     678                                         xascil <fc16>
+       1 005452 004767  003732                   jsr    pc,xasciz
+       2 005456    146     143     061           .ascii /fc16/
+         005461    066                  
+       3 005462    015     012     000           .asciz <15><12>
+       4 005465    000                           .even
+     679 005466 000207                           rts    pc
+     680                                ;
+     681                                ; fc17
+     682                                ;
+     683                                fc17:
+     684                                         xascil <fc17>
+       1 005470 004767  003714                   jsr    pc,xasciz
+       2 005474    146     143     061           .ascii /fc17/
+         005477    067                  
+       3 005500    015     012     000           .asciz <15><12>
+       4 005503    000                           .even
+     685 005504 000207                           rts    pc
+     686                                ;
+     687                                ; fc20
+     688                                ;
+     689                                fc20:
+     690                                         xascil <fc20 - dump internal memory>
+       1 005506 004767  003676                   jsr    pc,xasciz
+       2 005512    146     143     062           .ascii /fc20 - dump internal memory/
+         005515    060     040     055  
+         005520    040     144     165  
+         005523    155     160     040  
+         005526    151     156     164  
+         005531    145     162     156  
+         005534    141     154     040  
+         005537    155     145     155  
+         005542    157     162     171  
+       3 005545    015     012     000           .asciz <15><12>
+       4                                         .even
+     691 005550 052737  044000  174510           bis    #44000,@#174510           ; pcei - this function is not implemented
+     692 005556 000207                           rts    pc
+     693                                ;
+     694                                ; fc21
+     695                                ;
+     696                                fc21:
+     697                                         xascil <fc21 - load internal memory>
+       1 005560 004767  003624                   jsr    pc,xasciz
+       2 005564    146     143     062           .ascii /fc21 - load internal memory/
+         005567    061     040     055  
+         005572    040     154     157  
+         005575    141     144     040  
+         005600    151     156     164  
+         005603    145     162     156  
+         005606    141     154     040  
+         005611    155     145     155  
+         005614    157     162     171  
+       3 005617    015     012     000           .asciz <15><12>
+       4                                         .even
+     698 005622 052737  044000  174510           bis    #44000,@#174510           ; pcei - this function is not implemented
+     699 005630 000207                           rts    pc
+     700                                ;
+     701                                ; fc22
+     702                                ;
+     703                                fc22:
+     704                                         xascil <fc22>
+       1 005632 004767  003552                   jsr    pc,xasciz
+       2 005636    146     143     062           .ascii /fc22/
+         005641    062                  
+       3 005642    015     012     000           .asciz <15><12>
+       4 005645    000                           .even
+     705 005646 000207                           rts    pc
+     706                                ;
+     707                                ; fc23
+     708                                ;
+     709                                fc23:
+     710                                         xascil <fc23>
+       1 005650 004767  003534                   jsr    pc,xasciz
+       2 005654    146     143     062           .ascii /fc23/
+         005657    063                  
+       3 005660    015     012     000           .asciz <15><12>
+       4 005663    000                           .even
+     711 005664 000207                           rts    pc
+     712                                ;
+     713                                ; fc24
+     714                                ;
+     715                                fc24:
+     716                                         xascil <fc24>
+       1 005666 004767  003516                   jsr    pc,xasciz
+       2 005672    146     143     062           .ascii /fc24/
+         005675    064                  
+       3 005676    015     012     000           .asciz <15><12>
+       4 005701    000                           .even
+     717 005702 000207                           rts    pc
+     718                                ;
+     719                                ; fc25
+     720                                ;
+     721                                fc25:
+     722                                         xascil <fc25>
+       1 005704 004767  003500                   jsr    pc,xasciz
+       2 005710    146     143     062           .ascii /fc25/
+         005713    065                  
+       3 005714    015     012     000           .asciz <15><12>
+       4 005717    000                           .even
+     723 005720 000207                           rts    pc
+     724                                ;
+     725                                ; fc26
+     726                                ;
+     727                                fc26:
+     728                                         xascil <fc26>
+       1 005722 004767  003462                   jsr    pc,xasciz
+       2 005726    146     143     062           .ascii /fc26/
+         005731    066                  
+       3 005732    015     012     000           .asciz <15><12>
+       4 005735    000                           .even
+     729 005736 000207                           rts    pc
+     730                                ;
+     731                                ; fc27
+     732                                ;
+     733                                fc27:
+     734                                         xascil <fc27>
+       1 005740 004767  003444                   jsr    pc,xasciz
+       2 005744    146     143     062           .ascii /fc27/
+         005747    067                  
+       3 005750    015     012     000           .asciz <15><12>
+       4 005753    000                           .even
+     735 005754 000207                           rts    pc
+     736                                ;
+     737                                ; xmitpl : poll xmit ring for entries with own set
+     738                                ;
+     739                                xmitpl:
+     740 005756 005067  004512                   clr    xmitdw
+     741 005762 005767  010120                   tst    tfpllh
+     742 005766 001402                           beq    xpl010
+     743                                ;         xascil <xmitbuf occupied>
+     744 005770 000167  000256                   jmp    xpl990
+     745                                ;         tst    running
+     746                                ;         bne    xpl010
+     747                                ;         jmp    xpl990
+     748                                xpl010:
+     749 005774 005767  004410                   tst    xcurrl
+     750 006000 001005                           bne    xpl020
+     751 006002 005767  004400                   tst    xcurrh
+     752 006006 001002                           bne    xpl020
+     753 006010 000167  000236                   jmp    xpl990
+     754                                xpl020:
+     755 006014 010046                           mov    r0,-(sp)
+     756                                ;
+     757                                ;         xasciz <xmit poll  : >
+     758                                ;         xwhx   xcurrh,2
+     759                                ;         xwhx   xcurrl,2
+     760                                ;         xascil
+     761                                ;
+     762 006016 016767  004366  004374           mov    xcurrl,xolddl
+     763 006024 016767  004356  004364           mov    xcurrh,xolddh
+     764 006032 005067  004336                   clr    xplrun
+     765                                ;
+     766                                xpl200:
+     767 006036 004767  002664                   jsr    pc,getxcnh                        ; get xcurr and next header
+     768                                
+     769 006042 032767  100000  004366           bit    #100000,xdre+4                   ; own bit set?
+     770 006050 001001                           bne    xpl210
+     771                                ;         xascil <not own, end>
+     772 006052 000447                           br     xpl700                           ; not set - check next buffer
+     773                                
+     774                                xpl210:
+     775                                ;         xasciz <xmitpl ent : >
+     776                                ;         xwhx   xcurrh,2
+     777                                ;         xwhx   xcurrl,2
+     778                                ;         xasciz < >
+     779                                ;         xwhx   xdre,10
+     780                                
+     781 006054 005767  004314                   tst    xplrun
+     782 006060 001401                           beq    xpl220                           ; not continuation
+     783                                ;         xasciz <cont >
+     784 006062 000412                           br     xpl320
+     785                                
+     786                                xpl220:
+     787 006064 032767  001000  004344           bit    #1000,xdre+4                     ; stp bit set?
+     788 006072 001001                           bne    xpl300                           ; yes
+     789                                ;         xascil <skip >
+     790 006074 000434                           br     xpl340                           ; own, but not stp in the first message - skip/rel
+     791                                
+     792                                xpl300:
+     793                                ;         xasciz <start >
+     794 006076 012767  000001  004270           mov    #1,xplrun
+     795 006104 004767  000144                   jsr    pc,xmitst
+     796                                ;
+     797                                ; 320 - if we get here, we have either the start bit in this buffer, or it is a chained buffer and we already saw start
+     798                                ;
+     799                                xpl320:
+     800 006110 032767  000400  004320           bit    #400,xdre+4                      ; enp bit set?
+     801 006116 001402                           beq    xpl330                           ; no
+     802 006120 005067  004250                   clr    xplrun
+     803                                ;         xasciz <end >
+     804                                
+     805                                xpl330:
+     806                                ;         xascil
+     807 006124 004767  000164                   jsr    pc,xmitld
+     808 006130 032767  000400  004300           bit    #400,xdre+4                      ; enp bit set?
+     809 006136 001413                           beq    xpl340                           ; no
+     810 006140 004767  000116                   jsr    pc,xmitxx                        ; end frame - and run, this version can only push out one frame, the spi needs to run next
+     811 006144 004767  000502                   jsr    pc,xmitrb
+     812 006150 016767  004240  004232           mov    xnextl,xcurrl
+     813 006156 016767  004230  004222           mov    xnexth,xcurrh
+     814 006164 000431                           br     xpl900
+     815                                xpl340:
+     816 006166 004767  000460                   jsr    pc,xmitrb
+     817                                xpl350:
+     818                                ;         xasciz <xmitpl rel : >
+     819                                ;         xwhx   xcurrh,2
+     820                                ;         xwhx   xcurrl,2
+     821                                ;         xasciz < >
+     822                                ;         xwhx   xdre,10
+     823                                ;         xascil
+     824                                ;
+     825                                ; advance to next entry and loop back, if all entries have not been done yet
+     826                                ;
+     827                                xpl700:
+     828 006172 026767  004216  004220           cmp    xnextl,xolddl
+     829 006200 001013                           bne    xpl710
+     830 006202 026767  004204  004206           cmp    xnexth,xolddh
+     831 006210 001007                           bne    xpl710
+     832 006212 016767  004176  004170           mov    xnextl,xcurrl
+     833 006220 016767  004166  004160           mov    xnexth,xcurrh
+     834 006226 000410                           br     xpl900                    ; looped round, end of run
+     835                                xpl710:
+     836 006230 016767  004160  004152           mov    xnextl,xcurrl
+     837 006236 016767  004150  004142           mov    xnexth,xcurrh
+     838 006244 000167  177566                   jmp    xpl200
+     839                                ;
+     840                                ; exit
+     841                                ;
+     842                                xpl900:
+     843 006250 012600                           mov    (sp)+,r0
+     844                                xpl990:
+     845 006252 000207                           rts    pc
+     846                                ;
+     847                                ; xmitst: do starting things re transmission, amongst others to the chip
+     848                                ;
+     849                                xmitst:
+     850                                ;
+     851                                ; clear xmitlen
+     852                                ;
+     853 006254 005067  004142                   clr    xmitlen
+     854 006260 000207                           rts    pc
+     855                                ;
+     856                                ;
+     857                                ; xmitxx: do ending things re transmission, including causing the chip to transmit
+     858                                ;
+     859                                xmitxx:
+     860 006262 005767  004136                   tst    xmitmch
+     861 006266 001403                           beq    10$
+     862 006270 052767  020000  004140           bis    #20000,xdre+4
+     863                                10$:
+     864 006276 116767  004121  007602           movb   xmitlen+1,tfpllh
+     865 006304 116767  004112  007575           movb   xmitlen,tfplll
+     866 006312 000207                           rts    pc
+     867                                ;
+     868                                ; xmitld: load bytes from current buffer
+     869                                ;
+     870                                xmitld:
+     871 006314 010046                           mov    r0,-(sp)
+     872 006316 010146                           mov    r1,-(sp)
+     873 006320 010246                           mov    r2,-(sp)
+     874 006322 010346                           mov    r3,-(sp)
+     875 006324 010446                           mov    r4,-(sp)
+     876 006326 010546                           mov    r5,-(sp)
+     877                                
+     878 006330 016703  004076                   mov    xdre+0,r3                        ; load slen into r3
+     879 006334 016701  004074                   mov    xdre+2,r1                        ; load segb
+     880 006340 042701  000001                   bic    #1,r1                            ; clean segb l      ; FIXME, we're disregarding byte alignment here
+     881 006344 016702  004066                   mov    xdre+4,r2                        ; load segb h
+     882 006350 042702  177774                   bic    #177774,r2                       ; clean segb h
+     883                                
+     884                                10$:
+     885 006354 010300                           mov    r3,r0                            ; copy remainder of slen
+     886 006356 022703  000100                   cmp    #100,r3                          ; is the actual length left > 100
+     887 006362 002002                           bge    20$                              ; no
+     888 006364 012700  000100                   mov    #100,r0                          ; set length for this run
+     889                                20$:
+     890                                ;         xasciz <xmitld buf : >
+     891                                ;         mov    r2,buf
+     892                                ;         mov    r1,buf+2
+     893                                ;         xwhx   buf,4
+     894 006370 010004                           mov    r0,r4
+     895 006372 032704  000001                   bit    #1,r4
+     896 006376 001001                           bne    22$
+     897                                ;         xascil
+     898 006400 000401                           br     23$
+     899                                22$:
+     900                                ;         xascil <!>
+     901 006402 005204                           inc    r4                                ; make length an even number
+     902                                23$:
+     903                                ;         xasciz <xubm       : >
+     904                                
+     905                                ;         mov    r2,workw
+     906                                ;         xwhx   workw,2
+     907                                ;         mov    r1,workw
+     908                                ;         xwhx   workw,2
+     909                                ;         xasciz < >
+     910                                ;         mov    r4,workw
+     911                                ;         xwhx   workw,2
+     912                                ;         xasciz < >
+     913                                ;         mov    xmitlen,workw
+     914                                ;         xwhx   workw,2
+     915                                ;         xasciz < >
+     916                                ;         mov    xmitlen,workw
+     917                                ;         add    #tfbufp,workw
+     918                                ;         xwhx   workw,2
+     919                                ;         xascil
+     920                                
+     921                                ;
+     922                                ; setup xubm for transfer from main system core to our buffer - length limited by logic above to 16 bytes
+     923                                ;
+     924 006404 016705  004012                   mov    xmitlen,r5
+     925 006410 062705  016116                   add    #tfbufp,r5
+     926 006414 010537  177104                   mov    r5,@#177104
+     927 006420 010137  177100                   mov    r1,@#177100
+     928 006424 010237  177102                   mov    r2,@#177102
+     929 006430 112737  000000  177107           movb   #0,@#177107
+     930 006436 110437  177106                   movb   r4,@#177106
+     931                                ;
+     932 006442 005767  003754                   tst    xmitlen                          ; check if this is the first part of the frame? then we need to set the mac address into the buffer
+     933 006446 001057                           bne    40$
+     934                                ;
+     935                                ; set mch bit for transmit ring entry
+     936                                ;
+     937 006450 005067  003750                   clr    xmitmch
+     938 006454 126767  001374  007434           cmpb   dlaa+0,tfbufp
+     939 006462 001027                           bne    25$
+     940 006464 126767  001365  007425           cmpb   dlaa+1,tfbufp+1
+     941 006472 001023                           bne    25$
+     942 006474 126767  001356  007416           cmpb   dlaa+2,tfbufp+2
+     943 006502 001017                           bne    25$
+     944 006504 126767  001347  007407           cmpb   dlaa+3,tfbufp+3
+     945 006512 001013                           bne    25$
+     946 006514 126767  001340  007400           cmpb   dlaa+4,tfbufp+4
+     947 006522 001007                           bne    25$
+     948 006524 126767  001331  007371           cmpb   dlaa+5,tfbufp+5
+     949 006532 001003                           bne    25$
+     950 006534 012767  000001  003662           mov    #1,xmitmch
+     951                                ;
+     952                                ; set our own address into the frame
+     953                                ;
+     954                                25$:
+     955 006542 116767  001306  007354           movb   dlaa+0,tfbufp+6
+     956 006550 116767  001301  007347           movb   dlaa+1,tfbufp+7
+     957 006556 116767  001274  007342           movb   dlaa+2,tfbufp+10
+     958 006564 116767  001267  007335           movb   dlaa+3,tfbufp+11
+     959 006572 116767  001262  007330           movb   dlaa+4,tfbufp+12
+     960 006600 116767  001255  007323           movb   dlaa+5,tfbufp+13
+     961                                
+     962                                40$:
+     963 006606 060067  003610                   add    r0,xmitlen
+     964 006612 060001                           add    r0,r1                            ; add length of run to low
+     965 006614 005502                           adc    r2                               ; carry to high
+     966                                
+     967 006616 022703  000100                   cmp    #100,r3
+     968 006622 002004                           bge    50$
+     969 006624 162703  000100                   sub    #100,r3
+     970 006630 000167  177520                   jmp    10$
+     971                                50$:
+     972 006634 012605                           mov    (sp)+,r5
+     973 006636 012604                           mov    (sp)+,r4
+     974 006640 012603                           mov    (sp)+,r3
+     975 006642 012602                           mov    (sp)+,r2
+     976 006644 012601                           mov    (sp)+,r1
+     977 006646 012600                           mov    (sp)+,r0
+     978 006650 000207                           rts    pc
+     979                                ;
+     980                                ; xmitrb: release current buffer from xmit ring
+     981                                ;
+     982                                xmitrb:
+     983 006652 032767  000400  003556           bit    #400,xdre+4                      ; enp bit set?
+     984 006660 001012                           bne    30$                              ; yes
+     985 006662 032767  100000  003556           bit    #100000,xdre+14                  ; own bit set in next buffer?
+     986 006670 001006                           bne    30$                              ; yes
+     987                                ;
+     988                                ; not end, and the next buffer is not owned. Must release the buffer and set error codes
+     989                                ;
+     990 006672 052767  040000  003536           bis    #40000,xdre+4                   ; err summary bit
+     991 006700 052767  100000  003532           bis    #100000,xdre+6                  ; set bufl
+     992                                ;
+     993                                ; reset own and write back
+     994                                ;
+     995                                30$:
+     996 006706 042767  100000  003522           bic    #100000,xdre+4                  ; clear own
+     997 006714 004767  001716                   jsr    pc,putxdre                      ; write back
+     998 006720 000207                           rts    pc
+     999                                ;
+    1000                                ; pktin: deal with packets incoming on the esp32
+    1001                                ;
+    1002                                pktin:
+    1003 006722 010046                           mov    r0,-(sp)
+    1004 006724 010146                           mov    r1,-(sp)
+    1005 006726 010246                           mov    r2,-(sp)
+    1006 006730 010346                           mov    r3,-(sp)
+    1007 006732 010446                           mov    r4,-(sp)
+    1008 006734 010546                           mov    r5,-(sp)
+    1009 006736 005067  003530                   clr    recvdw                 ; clear flag, did not do any work yet
+    1010                                ;
+    1011                                ;
+    1012                                ;
+    1013                                ;         xascil <pktin>
+    1014                                ;
+    1015                                ; check if there is a free buffer on the receive ring. If there isn't, skip
+    1016                                ;
+    1017 006742 005767  003432                   tst    rcurrl                 ; ring pointer valid?
+    1018 006746 001005                           bne    10$                    ; yes
+    1019 006750 005767  003422                   tst    rcurrh                 ; ring pointer valid?
+    1020 006754 001002                           bne    10$                    ; yes
+    1021 006756 000167  000250                   jmp    90$                    ; no - can't even check buffer space yet
+    1022                                ;
+    1023                                ; check if there is a buffer free
+    1024                                ;
+    1025                                10$:
+    1026 006762 004767  001364                   jsr    pc,getrdre             ; might be current, but refresh just to be sure
+    1027 006766 032767  100000  003462           bit    #100000,rdre+4         ; own?
+    1028 006774 001500                           beq    80$                    ; not own - skip pktin
+    1029                                ;
+    1030                                ; read frame length
+    1031                                ;
+    1032 006776 116767  004112  003327           movb   rfpllh,flen+1
+    1033 007004 116767  004105  003320           movb   rfplll,flen
+    1034                                ;         xasciz <pktin frame length : >
+    1035                                ;         xwhx   flen,1
+    1036                                ;         xascnl
+    1037 007012 026727  003314  002756           cmp     flen,#maxpay
+    1038 007020 003436                           ble     20$
+    1039                                         xasciz <pktin frame length : >
+       1 007022 004767  002362                   jsr    pc,xasciz
+       2 007026    160     153     164           .asciz /pktin frame length : /
+         007031    151     156     040  
+         007034    146     162     141  
+         007037    155     145     040  
+         007042    154     145     156  
+         007045    147     164     150  
+         007050    040     072     040  
+         007053    000                  
+       3                                         .even
+    1040                                         xwhx   flen,1
+       1 007054 004767  002476                   jsr    pc,xwhx
+       2 007060 012332                           .word  flen
+       3 007062 000001                           .word  1
+    1041                                         xascil < over max payload>
+       1 007064 004767  002320                   jsr    pc,xasciz
+       2 007070    040     157     166           .ascii / over max payload/
+         007073    145     162     040  
+         007076    155     141     170  
+         007101    040     160     141  
+         007104    171     154     157  
+         007107    141     144          
+       3 007111    015     012     000           .asciz <15><12>
+       4                                         .even
+    1042 007114 000446                           br      90$
+    1043                                ;
+    1044                                ; process frame data
+    1045                                ;
+    1046                                20$:
+    1047 007116 005767  003210                   tst    flen
+    1048 007122 001403                           beq    30$
+    1049 007124 004767  000120                   jsr    pc,getfr
+    1050 007130 000440                           br     90$
+    1051                                30$:
+    1052                                         xascil <pktin for zero length frame>
+       1 007132 004767  002252                   jsr    pc,xasciz
+       2 007136    160     153     164           .ascii /pktin for zero length frame/
+         007141    151     156     040  
+         007144    146     157     162  
+         007147    040     172     145  
+         007152    162     157     040  
+         007155    154     145     156  
+         007160    147     164     150  
+         007163    040     146     162  
+         007166    141     155     145  
+       3 007171    015     012     000           .asciz <15><12>
+       4                                         .even
+    1053 007174 000416                           br     90$
+    1054                                ;
+    1055                                ;
+    1056                                ;
+    1057                                80$:
+    1058                                         xascil <pktin: rcurr not own>
+       1 007176 004767  002206                   jsr    pc,xasciz
+       2 007202    160     153     164           .ascii /pktin: rcurr not own/
+         007205    151     156     072  
+         007210    040     162     143  
+         007213    165     162     162  
+         007216    040     156     157  
+         007221    164     040     157  
+         007224    167     156          
+       3 007226    015     012     000           .asciz <15><12>
+       4 007231    000                           .even
+    1059                                ;
+    1060                                ; done, exit
+    1061                                ;
+    1062                                90$:
+    1063 007232 012605                           mov    (sp)+,r5
+    1064 007234 012604                           mov    (sp)+,r4
+    1065 007236 012603                           mov    (sp)+,r3
+    1066 007240 012602                           mov    (sp)+,r2
+    1067 007242 012601                           mov    (sp)+,r1
+    1068 007244 012600                           mov    (sp)+,r0
+    1069 007246 000207                           rts pc
+    1070                                ;
+    1071                                ; getfr: move a frame from the receive buffer here onto the receive ring buffer in the main cpu memory
+    1072                                ;
+    1073                                getfr:
+    1074 007250 010046                           mov    r0,-(sp)
+    1075 007252 010146                           mov    r1,-(sp)
+    1076 007254 010246                           mov    r2,-(sp)
+    1077 007256 010346                           mov    r3,-(sp)
+    1078 007260 010446                           mov    r4,-(sp)
+    1079 007262 010546                           mov    r5,-(sp)
+    1080                                ;         xascil <getfr>
+    1081                                
+    1082 007264 005767  003110                   tst    rcurrl
+    1083 007270 001005                           bne    2$
+    1084 007272 005767  003100                   tst    rcurrh
+    1085 007276 001002                           bne    2$
+    1086 007300 000167  000522                   jmp    95$
+    1087                                2$:
+    1088 007304 016703  003022                   mov    flen,r3                ; r3 gets remaining frame length
+    1089 007310 012701  013124                   mov    #rfbufp,r1             ; r1 gets pointer in payload
+    1090 007314 005067  003106                   clr    mlen
+    1091 007320 004767  001026                   jsr    pc,getrdre             ; might be current, but refresh just to be sure
+    1092 007324 016702  003124                   mov    rdre+2,r2              ; segbl into r2
+    1093 007330 016704  003122                   mov    rdre+4,r4              ; segbh into r4
+    1094 007334 042704  177774                   bic    #177774,r4             ; clean segbh
+    1095 007340 016705  003106                   mov    rdre,r5                ; slen into r5
+    1096 007344 005067  003110                   clr    rdre+6                 ; start clean      -- FIXME, this is before I checked own, is this ok?
+    1097 007350 032767  100000  003100           bit    #100000,rdre+4         ; own?
+    1098 007356 001404                           beq    5$                     ; current buffer is not own
+    1099 007360 052767  001000  003070           bis    #1000,rdre+4           ; set stp
+    1100 007366 000405                           br     10$
+    1101                                5$:
+    1102 007370 052737  002000  174510           bis    #2000,@#174510         ; rcbi
+    1103 007376 000167  000424                   jmp    95$                    ; done here!
+    1104                                
+    1105                                10$:
+    1106 007402 010300                           mov    r3,r0
+    1107 007404 022703  000100                   cmp    #100,r3                ; is the actual length left > 100
+    1108 007410 002002                           bge    20$                    ; no
+    1109 007412 012700  000100                   mov    #100,r0                ; set length for this run
+    1110                                20$:
+    1111 007416 020500                           cmp    r5,r0
+    1112 007420 002001                           bge    22$
+    1113 007422 010500                           mov    r5,r0
+    1114                                22$:
+    1115 007424 032700  000001                   bit    #1,r0                  ; uneven number of bytes?
+    1116 007430 001401                           beq    30$                    ; no
+    1117 007432 005200                           inc    r0                     ; round up to the next word
+    1118                                30$:
+    1119 007434 010237  177100                   mov    r2,@#177100            ; dest low word addr
+    1120 007440 010437  177102                   mov    r4,@#177102            ; dest high word addr
+    1121 007444 010137  177104                   mov    r1,@#177104            ; src addr
+    1122 007450 112737  000001  177107           movb   #1,@#177107            ; direction - to xu busmaster
+    1123 007456 005700                           tst    r0
+    1124 007460 001402                           beq    40$
+    1125 007462 110037  177106                   movb   r0,@#177106
+    1126                                40$:
+    1127                                ;
+    1128                                ;
+    1129                                ;
+    1130 007466 060002                           add    r0,r2                  ; add length of run to low address
+    1131 007470 005504                           adc    r4                     ; add carry to high address
+    1132 007472 060001                           add    r0,r1                  ; add length of run to payload buffer pointer
+    1133 007474 160005                           sub    r0,r5                  ; subtract length of run from bytes left to do in segment
+    1134 007476 060067  002724                   add    r0,mlen                ; add current message length
+    1135 007502 160003                           sub    r0,r3                  ; subtract run length from leftover frame length
+    1136 007504 022703  000000                   cmp    #0,r3                  ; finished frame?
+    1137 007510 002402                           blt    50$                    ; no
+    1138 007512 000167  000206                   jmp    90$
+    1139                                
+    1140                                50$:
+    1141 007516 020527  000000                   cmp    r5,#0                  ; buffer filled?
+    1142 007522 003076                           bgt    60$
+    1143                                
+    1144                                         xascil <BAZINGA!!!!!>
+       1 007524 004767  001660                   jsr    pc,xasciz
+       2 007530    102     101     132           .ascii /BAZINGA!!!!!/
+         007533    111     116     107  
+         007536    101     041     041  
+         007541    041     041     041  
+       3 007544    015     012     000           .asciz <15><12>
+       4 007547    000                           .even
+    1145 007550 005767  002654                   tst    drdc                   ; can we do data chaining?
+    1146 007554 001412                           beq    52$                    ; yes, go on
+    1147 007556 066767  002644  002674           add    mlen,rdre+6            ; set message length - leave other bits in there intact, given that we started out at zero...
+    1148 007564 052767  100000  002666           bis    #100000,rdre+6         ; set bufl
+    1149 007572 052767  040000  002656           bis    #40000,rdre+4          ; set errs
+    1150 007600 000451                           br     90$
+    1151                                52$:
+    1152                                
+    1153 007602 032767  100000  002656           bit    #100000,rdre+14        ; do we own the next buffer?
+    1154 007610 001012                           bne    53$                    ; yes
+    1155 007612 066767  002610  002640           add    mlen,rdre+6            ; set message length - leave other bits in there intact, given that we started out at zero...
+    1156 007620 052767  100000  002632           bis    #100000,rdre+6         ; set bufl
+    1157 007626 052767  040000  002622           bis    #40000,rdre+4          ; set errs
+    1158 007634 000433                           br     90$
+    1159                                
+    1160                                53$:
+    1161 007636 042767  100000  002612           bic    #100000,rdre+4         ; clear own
+    1162 007644 004767  000676                   jsr    pc,putrdre                      ; write back
+    1163 007650 016767  002526  002520           mov    rnexth,rcurrh          ; next buffer
+    1164 007656 016767  002522  002514           mov    rnextl,rcurrl
+    1165 007664 004767  000462                   jsr    pc,getrdre             ; might be current, but refresh just to be sure
+    1166 007670 016702  002560                   mov    rdre+2,r2              ; segbl into r2
+    1167 007674 016704  002556                   mov    rdre+4,r4              ; segbh into r4
+    1168 007700 042704  177774                   bic    #177774,r4             ; clean segbh
+    1169 007704 016705  002542                   mov    rdre,r5                ; slen into r5
+    1170 007710 005067  002544                   clr    rdre+6                 ; start clean
+    1171 007714 000167  177462                   jmp    10$                    ; current buffer is own - we're in business
+    1172                                60$:
+    1173 007720 000167  177456                   jmp    10$
+    1174                                ;
+    1175                                ;
+    1176                                ;
+    1177                                90$:
+    1178                                ;         xascil <getfr end>
+    1179 007724 032767  100000  002524           bit    #100000,rdre+4
+    1180 007732 001435                           beq    95$                    ; not own
+    1181 007734 052767  000400  002514           bis    #400,rdre+4            ; set enp
+    1182 007742 042767  100000  002506           bic    #100000,rdre+4         ; clear own
+    1183 007750 032767  100000  002502           bit    #100000,rdre+6         ; bufl already set?
+    1184 007756 001003                           bne    91$                    ; yes, skip setting mlen
+    1185 007760 066767  002442  002472           add    mlen,rdre+6            ; set message length - leave other bits in there intact, given that we started out at zero...
+    1186                                91$:
+    1187 007766 005767  002436                   tst    drdc
+    1188 007772 001403                           beq    92$
+    1189 007774 052767  020000  002456           bis    #20000,rdre+6          ; set nchn
+    1190                                92$:
+    1191 010002 004767  000540                   jsr    pc,putrdre                      ; write back
+    1192 010006 016767  002370  002362           mov    rnexth,rcurrh
+    1193 010014 016767  002364  002356           mov    rnextl,rcurrl
+    1194 010022 004767  000324                   jsr    pc,getrdre
+    1195                                95$:
+    1196 010026 012605                           mov    (sp)+,r5
+    1197 010030 012604                           mov    (sp)+,r4
+    1198 010032 012603                           mov    (sp)+,r3
+    1199 010034 012602                           mov    (sp)+,r2
+    1200 010036 012601                           mov    (sp)+,r1
+    1201 010040 012600                           mov    (sp)+,r0
+    1202                                99$:
+    1203 010042 000207                           rts    pc
+    1204                                ;
+    1205                                ; the mac address that we use - currently this can only be the bia
+    1206                                ;
+    1207                                         .even
+    1208 010044 000000  000000  000000  dbia:    .word 0,0,0
+    1209                                
+    1210                                ;
+    1211                                ; setlaa : set the mac address to use
+    1212                                ;
+    1213                                setlaa:
+    1214                                ;         -- FIXME can't do that. yet?
+    1215 010052 000207                           rts    pc
+    1216                                         .even
+    1217 010054 000000  000000  000000  dlaa:    .word 0,0,0
+    1218                                         .even
+    1219                                ;
+    1220                                ; xubl stub routine
+    1221                                ;
+    1222                                xubl:
+    1223 010062 010546                           mov r5,-(sp)
+    1224 010064 016605  000002                   mov 2(sp),r5
+    1225 010070 062766  000010  000002           add #10,2(sp)
+    1226                                ;         mov 0(r5),@#177000
+    1227                                ;         mov 4(r5),@#177004
+    1228                                ;         mov 6(r5),@#177006
+    1229                                ;         mov 2(r5),@#177002
+    1230 010076 012605                           mov (sp)+,r5
+    1231 010100 000207                           rts pc
+    1232                                ;
+    1233                                ; xubm stub routine
+    1234                                ;
+    1235                                xubm:
+    1236 010102 010546                           mov r5,-(sp)
+    1237 010104 016605  000002                   mov 2(sp),r5
+    1238 010110 062766  000010  000002           add #10,2(sp)
+    1239 010116 016537  000000  177100           mov 0(r5),@#177100
+    1240 010124 016537  000002  177102           mov 2(r5),@#177102
+    1241 010132 016537  000004  177104           mov 4(r5),@#177104
+    1242 010140 016537  000006  177106           mov 6(r5),@#177106
+    1243 010146 012605                           mov (sp)+,r5
+    1244 010150 000207                           rts pc
+    1245                                ;
+    1246                                ; getpcbb: xubm the pcbb into our memory
+    1247                                ;
+    1248                                getpcbb:
+    1249 010152 016737  002320  177100           mov    pcbbl,@#177100
+    1250 010160 016737  002314  177102           mov    pcbbh,@#177102
+    1251 010166 012737  012502  177104           mov    #pcbb,@#177104
+    1252 010174 112737  000000  177107           movb   #0,@#177107
+    1253 010202 112737  000010  177106           movb   #10,@#177106
+    1254 010210 000207                           rts    pc
+    1255                                ;
+    1256                                ; putpcbb: xubm our pcbb copy into the unibus memory
+    1257                                ;
+    1258                                putpcbb:
+    1259 010212 016737  002260  177100           mov    pcbbl,@#177100
+    1260 010220 016737  002254  177102           mov    pcbbh,@#177102
+    1261 010226 012737  012502  177104           mov    #pcbb,@#177104
+    1262 010234 112737  000001  177107           movb   #1,@#177107
+    1263 010242 112737  000010  177106           movb   #10,@#177106
+    1264 010250 000207                           rts    pc
+    1265                                ;
+    1266                                ; getudbb: get udbb from unibus, address in pcbb must be valid and length must be set in udbblen
+    1267                                ;
+    1268                                getudbb:
+    1269 010252 016737  002226  177100           mov    pcbb+2,@#177100
+    1270 010260 016737  002222  177102           mov    pcbb+4,@#177102
+    1271 010266 012737  012614  177104           mov    #udbb,@#177104
+    1272 010274 112737  000000  177107           movb   #0,@#177107
+    1273 010302 116737  002304  177106           movb   udbblen,@#177106
+    1274 010310 000207                           rts    pc
+    1275                                ;
+    1276                                ; putudbb: move udbb to unibus, address in pcbb must be valid and length must be set in udbblen
+    1277                                ;
+    1278                                putudbb:
+    1279 010312 016737  002166  177100           mov    pcbb+2,@#177100
+    1280 010320 016737  002162  177102           mov    pcbb+4,@#177102
+    1281 010326 012737  012614  177104           mov    #udbb,@#177104
+    1282 010334 112737  000001  177107           movb   #1,@#177107
+    1283 010342 116737  002244  177106           movb   udbblen,@#177106
+    1284 010350 000207                           rts    pc
+    1285                                ;
+    1286                                ; getrdre: read receive descriptor ring entry from unibus
+    1287                                ;
+    1288                                getrdre:
+    1289 010352 016737  002022  177100           mov    rcurrl,@#177100
+    1290 010360 016737  002012  177102           mov    rcurrh,@#177102
+    1291 010366 012737  012452  177104           mov    #rdre,@#177104
+    1292 010374 112737  000000  177107           movb   #0,@#177107
+    1293 010402 112737  000010  177106           movb   #10,@#177106
+    1294                                
+    1295 010410 026767  001764  001754           cmp    rcurrl,rdrmxl             ; need to wrap?
+    1296 010416 001013                           bne    10$
+    1297 010420 026767  001752  001742           cmp    rcurrh,rdrmxh
+    1298 010426 001007                           bne    10$
+    1299 010430 016767  001724  001744           mov    rdrbh,rnexth              ; wrap, rnext is first buffer in ring
+    1300 010436 016767  001720  001740           mov    rdrbl,rnextl
+    1301 010444 000420                           br     20$
+    1302                                10$:
+    1303 010446 016767  001726  001730           mov    rcurrl,rnextl
+    1304 010454 016767  001716  001720           mov    rcurrh,rnexth
+    1305 010462 066767  001676  001714           add    relen,rnextl
+    1306 010470 005567  001706                   adc    rnexth
+    1307 010474 066767  001664  001702           add    relen,rnextl                     ; words, so add twice
+    1308 010502 005567  001674                   adc    rnexth
+    1309                                20$:
+    1310 010506 016737  001672  177100           mov    rnextl,@#177100
+    1311 010514 016737  001662  177102           mov    rnexth,@#177102
+    1312 010522 012737  012462  177104           mov    #rdre+10,@#177104
+    1313 010530 112737  000000  177107           movb   #0,@#177107
+    1314 010536 112737  000010  177106           movb   #10,@#177106
+    1315 010544 000207                           rts    pc
+    1316                                ;
+    1317                                ; putrdre: copy receive descriptor ring entry back onto unibus
+    1318                                ;
+    1319                                putrdre:
+    1320 010546 010046                           mov    r0,-(sp)
+    1321 010550 010146                           mov    r1,-(sp)
+    1322                                
+    1323                                ;         xasciz <recvpl put : >
+    1324                                ;         xwhx   rcurrh,2
+    1325                                ;         xwhx   rcurrl,2
+    1326                                ;         xasciz < >
+    1327                                ;         xwhx   rdre,10
+    1328                                ;         xascil
+    1329                                
+    1330 010552 016700  001622                   mov    rcurrl,r0
+    1331 010556 016701  001614                   mov    rcurrh,r1
+    1332 010562 062700  000004                   add    #4,r0
+    1333 010566 005501                           adc    r1
+    1334 010570 010037  177100                   mov    r0,@#177100
+    1335 010574 010137  177102                   mov    r1,@#177102
+    1336 010600 012737  012456  177104           mov    #rdre+4,@#177104
+    1337 010606 112737  000001  177107           movb   #1,@#177107
+    1338 010614 112737  000004  177106           movb   #4,@#177106
+    1339 010622 012767  000001  001642           mov    #1,recvdw
+    1340                                
+    1341 010630 012601                           mov    (sp)+,r1
+    1342 010632 012600                           mov    (sp)+,r0
+    1343 010634 000207                           rts    pc
+    1344                                ;
+    1345                                ; putxdre: copy transmit descriptor ring entry back onto unibus
+    1346                                ;
+    1347                                putxdre:
+    1348 010636 010046                           mov    r0,-(sp)
+    1349 010640 010146                           mov    r1,-(sp)
+    1350                                
+    1351                                ;         xasciz <xmitpl put : >
+    1352                                ;         xwhx   xcurrh,2
+    1353                                ;         xwhx   xcurrl,2
+    1354                                ;         xasciz < >
+    1355                                ;         xwhx   xdre,10
+    1356                                ;         xascil
+    1357                                
+    1358 010642 016700  001542                   mov    xcurrl,r0
+    1359 010646 016701  001534                   mov    xcurrh,r1
+    1360 010652 062700  000004                   add    #4,r0
+    1361 010656 005501                           adc    r1
+    1362 010660 010037  177100                   mov    r0,@#177100
+    1363 010664 010137  177102                   mov    r1,@#177102
+    1364 010670 012737  012436  177104           mov    #xdre+4,@#177104
+    1365 010676 112737  000001  177107           movb   #1,@#177107
+    1366 010704 112737  000004  177106           movb   #4,@#177106
+    1367 010712 012767  000001  001554           mov    #1,xmitdw
+    1368                                
+    1369 010720 012601                           mov    (sp)+,r1
+    1370 010722 012600                           mov    (sp)+,r0
+    1371 010724 000207                           rts    pc
+    1372                                ;
+    1373                                ; getxcnh: copy transmit descriptor ring entry from unibus at xcurr into xdre, find which buf is next, copy that to xdre+10
+    1374                                ;
+    1375                                getxcnh:
+    1376 010726 016737  001456  177100           mov    xcurrl,@#177100
+    1377 010734 016737  001446  177102           mov    xcurrh,@#177102
+    1378 010742 012737  012432  177104           mov    #xdre,@#177104
+    1379 010750 112737  000000  177107           movb   #0,@#177107
+    1380 010756 112737  000010  177106           movb   #10,@#177106
+    1381                                
+    1382 010764 026767  001420  001364           cmp    xcurrl,tdrmxl             ; need to wrap?
+    1383 010772 001013                           bne    10$
+    1384 010774 026767  001406  001352           cmp    xcurrh,tdrmxh
+    1385 011002 001007                           bne    10$
+    1386 011004 016767  001334  001400           mov    tdrbh,xnexth              ; wrap, xnext is first buffer in ring
+    1387 011012 016767  001330  001374           mov    tdrbl,xnextl
+    1388 011020 000420                           br     20$
+    1389                                10$:
+    1390 011022 016767  001362  001364           mov    xcurrl,xnextl
+    1391 011030 016767  001352  001354           mov    xcurrh,xnexth
+    1392 011036 066767  001306  001350           add    telen,xnextl
+    1393 011044 005567  001342                   adc    xnexth
+    1394 011050 066767  001274  001336           add    telen,xnextl                     ; words, so add twice
+    1395 011056 005567  001330                   adc    xnexth
+    1396                                20$:
+    1397 011062 016737  001326  177100           mov    xnextl,@#177100
+    1398 011070 016737  001316  177102           mov    xnexth,@#177102
+    1399 011076 012737  012442  177104           mov    #xdre+10,@#177104
+    1400 011104 112737  000000  177107           movb   #0,@#177107
+    1401 011112 112737  000010  177106           movb   #10,@#177106
+    1402                                
+    1403                                ;         xasciz <getxcnh    : >
+    1404                                ;         xwhx   xcurrh,2
+    1405                                ;         xwhx   xcurrl,2
+    1406                                ;         xasciz < >
+    1407                                ;         xwhx   xnexth,2
+    1408                                ;         xwhx   xnextl,2
+    1409                                ;         xascil
+    1410                                
+    1411 011120 000207                           rts    pc
+    1412                                ;
+    1413                                ; getmlt: get udbb multicast list from unibus, address in pcbb must be valid
+    1414                                ;
+    1415                                getmlt:
+    1416 011122 010046                           mov    r0,-(sp)
+    1417 011124 016700  001364                   mov    mltlen,r0
+    1418 011130 066700  001360                   add    mltlen,r0
+    1419 011134 066700  001354                   add    mltlen,r0
+    1420 011140 006300                           asl    r0
+    1421 011142 022700  000074                   cmp    #74,r0
+    1422 011146 002416                           blt    90$
+    1423 011150 016737  001330  177100           mov    pcbb+2,@#177100
+    1424 011156 016737  001324  177102           mov    pcbb+4,@#177102
+    1425 011164 012737  012516  177104           mov    #mltlist,@#177104
+    1426 011172 112737  000000  177107           movb   #0,@#177107
+    1427 011200 110037  177106                   movb   r0,@#177106
+    1428                                90$:
+    1429 011204 012600                           mov    (sp)+,r0
+    1430 011206 000207                           rts    pc
+    1431                                ;
+    1432                                ; putmlt: put udbb multicast list to unibus, address in pcbb must be valid
+    1433                                ;
+    1434                                putmlt:
+    1435 011210 010046                           mov    r0,-(sp)
+    1436 011212 026767  001274  001274           cmp    mltreq,mltlen
+    1437 011220 003010                           bgt    10$
+    1438 011222 016700  001266                   mov    mltlen,r0
+    1439 011226 066700  001262                   add    mltlen,r0
+    1440 011232 066700  001256                   add    mltlen,r0
+    1441 011236 006300                           asl    r0
+    1442 011240 000410                           br     20$
+    1443                                10$:
+    1444 011242 016700  001244                   mov    mltreq,r0
+    1445 011246 066700  001240                   add    mltreq,r0
+    1446 011252 066700  001234                   add    mltreq,r0
+    1447 011256 006300                           asl    r0
+    1448 011260 000400                           br     20$
+    1449                                20$:
+    1450 011262 022700  000074                   cmp    #74,r0
+    1451 011266 002416                           blt    90$
+    1452 011270 016737  001210  177100           mov    pcbb+2,@#177100
+    1453 011276 016737  001204  177102           mov    pcbb+4,@#177102
+    1454 011304 012737  012516  177104           mov    #mltlist,@#177104
+    1455 011312 112737  000001  177107           movb   #1,@#177107
+    1456 011320 110037  177106                   movb   r0,@#177106
+    1457                                90$:
+    1458 011324 012600                           mov    (sp)+,r0
+    1459 011326 000207                           rts    pc
+    1460                                ;
+    1461                                ; set mode bits into chip
+    1462                                ;
+    1463                                setmodebits:
+    1464 011330 032767  000004  001004           bit    #4,modebits
+    1465 011336 001401                           beq    10$
+    1466                                ;         xubl   setlpbk,40
+    1467 011340 000401                           br     19$
+    1468                                10$:
+    1469                                ;         xubl   clrlpbk,40
+    1470 011342 000400                           br     19$
+    1471                                19$:
+    1472                                ;
+    1473 011344 032767  100000  000770           bit    #100000,modebits
+    1474 011352 001401                           beq    20$
+    1475                                ;         xubl   snotmeen,40
+    1476 011354 000401                           br     29$
+    1477                                20$:
+    1478                                ;         xubl   cnotmeen,40
+    1479 011356 000400                           br     29$
+    1480                                29$:
+    1481                                ;
+    1482 011360 032767  020000  000754           bit    #20000,modebits
+    1483 011366 001404                           beq    30$
+    1484 011370 012767  000001  001032           mov    #1,drdc
+    1485 011376 000403                           br     39$
+    1486                                30$:
+    1487 011400 005067  001024                   clr    drdc
+    1488 011404 000400                           br     39$
+    1489                                39$:
+    1490 011406 000207                           rts    pc
+    1491                                ;
+    1492                                ; print an ascii zero terminated string, string directly follows jsr pc insn
+    1493                                ;
+    1494                                xasciz:
+    1495 011410 010146                           mov r1,-(sp)                  ; push r1
+    1496 011412 016601  000002                   mov 2(sp),r1                  ; set r1 to return address
+    1497                                10$:
+    1498 011416 105737  177564                   tstb @#177564                 ; output busy?
+    1499 011422 100375                           bpl 10$                       ; yes, spin
+    1500 011424 105711                           tstb (r1)                     ; byte zero?
+    1501 011426 001403                           beq 20$                       ; yes, exit
+    1502 011430 112137  177566                   movb (r1)+,@#177566           ; move byte into transmit register
+    1503 011434 000770                           br 10$                        ; next byte
+    1504                                20$:
+    1505 011436 005201                           inc r1
+    1506 011440 032701  000001                   bit #1,r1                     ; check if even address
+    1507 011444 001401                           beq 30$                       ; yes
+    1508 011446 005201                           inc r1                        ; no - move to next byte
+    1509                                30$:
+    1510 011450 010166  000002                   mov r1,2(sp)                  ; correct stored return address
+    1511 011454 012601                           mov (sp)+,r1                  ; pop r1
+    1512 011456 000207                           rts pc                        ; return to corrected pc
+    1513                                ;
+    1514                                ; print a variable number of hex bytes, separated by space
+    1515                                ;
+    1516                                xbhx:
+    1517 011460 010546                           mov r5,-(sp)
+    1518 011462 016605  000002                   mov 2(sp),r5
+    1519 011466 062766  000004  000002           add #4,2(sp)
+    1520 011474 010046                           mov r0,-(sp)
+    1521 011476 010146                           mov r1,-(sp)
+    1522 011500 010246                           mov r2,-(sp)
+    1523 011502 016502  000000                   mov 0(r5),r2
+    1524 011506 016500  000002                   mov 2(r5),r0
+    1525                                10$:
+    1526 011512 112201                           movb (r2)+,r1
+    1527 011514 004767  000200                   jsr pc,bhexb
+    1528 011520 005300                           dec r0
+    1529 011522 005700                           tst r0
+    1530 011524 001407                           beq 30$
+    1531                                20$:
+    1532 011526 105737  177564                   tstb @#177564                 ; output busy?
+    1533 011532 100375                           bpl 20$                       ; yes, spin
+    1534 011534 112737  000040  177566           movb #40,@#177566             ; move byte into transmit register
+    1535 011542 000763                           br 10$
+    1536                                30$:
+    1537 011544 012602                           mov (sp)+,r2
+    1538 011546 012601                           mov (sp)+,r1
+    1539 011550 012600                           mov (sp)+,r0
+    1540 011552 012605                           mov (sp)+,r5
+    1541 011554 000207                           rts pc
+    1542                                ;
+    1543                                ; print a variable number of hex words, separated by space
+    1544                                ;
+    1545                                xwhx:
+    1546 011556 010546                           mov r5,-(sp)
+    1547 011560 016605  000002                   mov 2(sp),r5
+    1548 011564 062766  000004  000002           add #4,2(sp)
+    1549 011572 010046                           mov r0,-(sp)
+    1550 011574 010146                           mov r1,-(sp)
+    1551 011576 010246                           mov r2,-(sp)
+    1552 011600 016502  000000                   mov 0(r5),r2
+    1553 011604 016500  000002                   mov 2(r5),r0
+    1554                                10$:
+    1555 011610 012201                           mov (r2)+,r1                  ; load the word
+    1556 011612 000301                           swab r1                       ; high byte first
+    1557 011614 004767  000100                   jsr pc,bhexb
+    1558 011620 000301                           swab r1                       ; swap to low byte
+    1559 011622 004767  000072                   jsr pc,bhexb
+    1560 011626 005300                           dec r0                        ; count in bytes, decrement twice
+    1561 011630 005700                           tst r0                        ; but check for zero anyway - dont want 65536 words, ever
+    1562 011632 001412                           beq 30$
+    1563 011634 005300                           dec r0
+    1564 011636 005700                           tst r0
+    1565 011640 001407                           beq 30$
+    1566                                20$:
+    1567 011642 105737  177564                   tstb @#177564                 ; output busy?
+    1568 011646 100375                           bpl 20$                       ; yes, spin
+    1569 011650 112737  000040  177566           movb #40,@#177566             ; move byte into transmit register
+    1570 011656 000754                           br 10$
+    1571                                30$:
+    1572 011660 012602                           mov (sp)+,r2
+    1573 011662 012601                           mov (sp)+,r1
+    1574 011664 012600                           mov (sp)+,r0
+    1575 011666 012605                           mov (sp)+,r5
+    1576 011670 000207                           rts pc
+    1577                                ;
+    1578                                ; print an ascii zero terminated string, r1 has pointer to string
+    1579                                ;
+    1580                                basciz:
+    1581 011672 010146                           mov r1,-(sp)
+    1582                                10$:
+    1583 011674 105737  177564                   tstb @#177564                 ; output busy?
+    1584 011700 100375                           bpl 10$                       ; yes, spin
+    1585 011702 105711                           tstb (r1)                     ; byte zero?
+    1586 011704 001403                           beq 20$                       ; yes, exit
+    1587 011706 112137  177566                   movb (r1)+,@#177566           ; move byte into transmit register
+    1588 011712 000770                           br 10$                        ; next byte
+    1589                                20$:
+    1590 011714 012601                           mov (sp)+,r1
+    1591 011716 000207                           rts pc                        ; exit
+    1592                                ;
+    1593                                ; print a hex byte, contained in r1 lower byte
+    1594                                ;
+    1595                                bhexb:
+    1596 011720 010046                           mov r0,-(sp)
+    1597 011722 010146                           mov r1,-(sp)
+    1598 011724 010100                           mov r1,r0
+    1599 011726 006200                           asr r0
+    1600 011730 006200                           asr r0
+    1601 011732 006200                           asr r0
+    1602 011734 006200                           asr r0
+    1603 011736 042700  177760                   bic #177760,r0
+    1604 011742 062700  012310                   add #hextab,r0
+    1605                                10$:
+    1606 011746 105737  177564                   tstb @#177564                 ; output busy?
+    1607 011752 100375                           bpl 10$                       ; yes, spin
+    1608 011754 111037  177566                   movb (r0),@#177566            ; move byte into transmit register
+    1609 011760 042701  177760                   bic #177760,r1
+    1610 011764 062701  012310                   add #hextab,r1
+    1611                                20$:
+    1612 011770 105737  177564                   tstb @#177564                 ; output busy?
+    1613 011774 100375                           bpl 20$                       ; yes, spin
+    1614 011776 111137  177566                   movb (r1),@#177566            ; move byte into transmit register
+    1615 012002 012601                           mov (sp)+,r1
+    1616 012004 012600                           mov (sp)+,r0
+    1617 012006 000207                           rts pc
+    1618                                ;
+    1619                                ; print two hex bytes separated by space, followed by crlf. Input in bytes pointed to by r1
+    1620                                ;
+    1621                                bhx2:
+    1622 012010 010046                           mov r0,-(sp)
+    1623 012012 012700  000002                   mov #2,r0
+    1624 012016 004767  000004                   jsr pc,bhx
+    1625 012022 012600                           mov (sp)+,r0
+    1626 012024 000207                           rts pc
+    1627                                ;
+    1628                                ; print a variable number of hex bytes, separated by space, followed by crlf. Input in bytes pointed to by r1, r0 has length of buffer.
+    1629                                ;
+    1630                                bhx:
+    1631 012026 010146                           mov r1,-(sp)
+    1632 012030 010246                           mov r2,-(sp)
+    1633 012032 010102                           mov r1,r2
+    1634                                10$:
+    1635 012034 112201                           movb (r2)+,r1
+    1636 012036 004767  177656                   jsr pc,bhexb
+    1637 012042 005300                           dec r0
+    1638 012044 005700                           tst r0
+    1639 012046 001407                           beq 30$
+    1640                                20$:
+    1641 012050 105737  177564                   tstb @#177564                 ; output busy?
+    1642 012054 100375                           bpl 20$                       ; yes, spin
+    1643 012056 112737  000040  177566           movb #40,@#177566             ; move byte into transmit register
+    1644 012064 000763                           br 10$
+    1645                                30$:
+    1646 012066 012602                           mov (sp)+,r2
+    1647 012070 012601                           mov (sp)+,r1
+    1648 012072 000207                           rts pc
+    1649                                ;
+    1650                                ; init - clear variables and status registers to their initial values
+    1651                                ;
+    1652                                init:
+    1653 012074 005067  000230                   clr    running
+    1654 012100 005067  000226                   clr    flen
+    1655 012104 005067  000320                   clr    drdc
+    1656 012110 005067  000226                   clr    modebits
+    1657                                
+    1658 012114 005067  000216                   clr    pdmdct
+    1659                                
+    1660 012120 005067  000220                   clr    tdrbh
+    1661 012124 005067  000216                   clr    tdrbl
+    1662 012130 005067  000214                   clr    telen
+    1663 012134 005067  000212                   clr    trlen
+    1664 012140 005067  000214                   clr    rdrbh
+    1665 012144 005067  000212                   clr    rdrbl
+    1666 012150 005067  000210                   clr    relen
+    1667 012154 005067  000206                   clr    rrlen
+    1668                                
+    1669 012160 005067  000224                   clr    xcurrl
+    1670 012164 005067  000216                   clr    xcurrh
+    1671 012170 005067  000204                   clr    rcurrl
+    1672 012174 005067  000176                   clr    rcurrh
+    1673                                
+    1674 012200 012737  000000  174510           mov    #0,@#174510               ; pcsr0 - clear any pending interrupts
+    1675 012206 012737  000000  174512           mov    #0,@#174512               ; pcsr1 - state=reset
+    1676 012214 012737  000000  174514           mov    #0,@#174514               ; pcsr2
+    1677 012222 012737  000000  174516           mov    #0,@#174516               ; pcsr3
+    1678                                
+    1679 012230 000207                           rts    pc
+    1680                                ;
+    1681                                ; waitabit - wait loop for 65535 cycles
+    1682                                ;
+    1683                                waitabit:
+    1684 012232 010046                           mov r0,-(sp)
+    1685 012234 005000                           clr r0
+    1686                                10$:
+    1687 012236 005200                           inc r0
+    1688 012240 001376                           bne 10$
+    1689 012242 012600                           mov (sp)+,r0
+    1690 012244 000207                           rts pc
+    1691                                ;
+    1692                                ; dog - timer service routine, watchdog timer
+    1693                                ;
+    1694                                dog:
+    1695 012246 005267  000066                   inc dogtick
+    1696 012252 022767  001130  000060           cmp #600.,dogtick             ; assuming 60hz clock, 10 seconds
+    1697 012260 003012                           bgt 90$
+    1698                                         xascil <dog barks>
+       1 012262 004767  177122                   jsr    pc,xasciz
+       2 012266    144     157     147           .ascii /dog barks/
+         012271    040     142     141  
+         012274    162     153     163  
+       3 012277    015     012     000           .asciz <15><12>
+       4                                         .even
+    1699 012302 000167  166472                   jmp t49
+    1700                                90$:
+    1701 012306 000002                           rti
+    1702                                ;
+    1703                                ; data
+    1704                                ;
+    1705 012310    060     061     062  hextab:  .ascii /0123456789abcdef/
+         012313    063     064     065  
+         012316    066     067     070  
+         012321    071     141     142  
+         012324    143     144     145  
+         012327    146                  
+    1706                                
+    1707                                         .even
+    1708 012330 000000                  running: .word 0                       ; if nonzero, then recv/xmit is active
+    1709 012332 000000                  flen:    .word 0                       ; frame length in the encx24j600 received frame header
+    1710 012334 000000                  p0cmd:   .word 0                       ; masked off value of the pcsr0
+    1711 012336 000000                  pdmdct:  .word 0                       ; poll demand count
+    1712                                ;
+    1713 012340 000000                  dogtick: .word 0                       ; watchdog timer value
+    1714                                ;
+    1715 012342 000000                  modebits:.word 0                       ; fc14/15 format mode bits word
+    1716                                ;
+    1717 012344 000000                  tdrbh:   .word 0
+    1718 012346 000000                  tdrbl:   .word 0
+    1719 012350 000000                  telen:   .word 0
+    1720 012352 000000                  trlen:   .word 0
+    1721 012354 000000                  tdrmxh:  .word 0
+    1722 012356 000000                  tdrmxl:  .word 0
+    1723                                
+    1724 012360 000000                  rdrbh:   .word 0
+    1725 012362 000000                  rdrbl:   .word 0
+    1726 012364 000000                  relen:   .word 0
+    1727 012366 000000                  rrlen:   .word 0
+    1728 012370 000000                  rdrmxh:  .word 0
+    1729 012372 000000                  rdrmxl:  .word 0
+    1730                                ;
+    1731 012374 000000                  xplrun:  .word 0                       ; xmitpl status, between start and end
+    1732                                ;
+    1733 012376 000000                  rcurrh:  .word 0
+    1734 012400 000000                  rcurrl:  .word 0
+    1735                                ;
+    1736 012402 000000                  rnexth:  .word 0
+    1737 012404 000000                  rnextl:  .word 0
+    1738                                ;
+    1739 012406 000000                  xcurrh:  .word 0                       ; xmit current address, h
+    1740 012410 000000                  xcurrl:  .word 0                       ; xmit current address, l
+    1741                                ;
+    1742 012412 000000                  xnexth:  .word 0                       ; xmit next address, h
+    1743 012414 000000                  xnextl:  .word 0                       ; xmit next address, l
+    1744                                ;
+    1745 012416 000000                  xolddh:  .word 0                       ; xmit old address, h
+    1746 012420 000000                  xolddl:  .word 0                       ; xmit old address, l
+    1747                                ;
+    1748 012422 000000                  xmitlen: .word 0                       ; current frame length
+    1749                                ;
+    1750 012424 000000                  xmitmch: .word 0                       ; xmit frame should have match bit set in enp buffer
+    1751                                ;
+    1752 012426 000000                  mlen:    .word 0                       ; received message length placed in buffer
+    1753                                ;
+    1754 012430 000000                  drdc:    .word 0                       ; disable recv data chaining
+    1755                                ;
+    1756 012432 000000  000000  000000  xdre:    .word 0,0,0,0,0,0,0,0         ; work area, transmit descriptor (curr+next)
+         012440 000000  000000  000000  
+         012446 000000  000000          
+    1757                                ;
+    1758 012452 000000  000000  000000  rdre:    .word 0,0,0,0,0,0,0,0         ; work area, receive descriptor (curr+next)
+         012460 000000  000000  000000  
+         012466 000000  000000          
+    1759                                ;
+    1760 012472 000000                  recvdw:  .word 0                       ; flag receive did work
+    1761 012474 000000                  xmitdw:  .word 0                       ; flag transmit did work
+    1762                                ;
+    1763 012476 000000                  pcbbl:   .word 0
+    1764 012500 000000                  pcbbh:   .word 0
+    1765 012502 000000  000000  000000  pcbb:    .word 0,0,0,0
+         012510 000000                  
+    1766                                ;
+    1767 012512 000000                  mltreq:  .word 0
+    1768 012514 000000                  mltlen:  .word 0
+    1769 012516                         mltlist: .blkw 36
+    1770                                ;
+    1771 012612 000000                  udbblen: .word 0
+    1772 012614 000000  000000  000000  udbb:    .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0             ; 32 words
+         012622 000000  000000  000000  
+         012630 000000  000000  000000  
+         012636 000000  000000  000000  
+         012644 000000  000000  000000  
+         012652 000000                  
+    1773 012654 000000  000000  000000           .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+         012662 000000  000000  000000  
+         012670 000000  000000  000000  
+         012676 000000  000000  000000  
+         012704 000000  000000  000000  
+         012712 000000                  
+    1774                                ;
+    1775 012714    000                  pktcnt:  .byte 0
+    1776 012715    000                           .even
+    1777 012716 000000                  workw:   .word 0
+    1778                                         .even
+    1779 012720 000000  000000  000000  buf:     .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+         012726 000000  000000  000000  
+         012734 000000  000000  000000  
+         012742 000000  000000  000000  
+         012750 000000  000000  000000  
+         012756 000000  000000  000000  
+         012764 000000  000000          
+    1780 012770 000000  000000  000000           .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+         012776 000000  000000  000000  
+         013004 000000  000000  000000  
+         013012 000000  000000  000000  
+         013020 000000  000000  000000  
+         013026 000000  000000  000000  
+         013034 000000  000000          
+    1781 013040 000000  000000  000000           .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+         013046 000000  000000  000000  
+         013054 000000  000000  000000  
+         013062 000000  000000  000000  
+         013070 000000  000000  000000  
+         013076 000000  000000  000000  
+         013104 000000  000000          
+    1782                                ;
+    1783                                ; receive buffer
+    1784                                ;
+    1785                                         .even
+    1786                                rfbuf:
+    1787 013110    000                  rfmgk1:  .byte 0                       ; magic header should be 0xaa
+    1788 013111    000                  rfmgk2:  .byte 0                       ; magic header should be 0x55
+    1789 013112    000                  rffrq:   .byte 0                       ; 8-bit circular frame counter
+    1790 013113    000                  rfqf:    .byte 0                       ; unsigned number of frames queued in the esp32 receive queue
+    1791 013114    000                  rfpllh:  .byte 0                       ; payload length high byte
+    1792 013115    000                  rfplll:  .byte 0                       ; payload length low byte
+    1793 013116                         rfmac:   .blkw 3                       ; mac address
+    1794 013124                         rfbufp:  .blkb maxpay
+    1795                                ;
+    1796                                ; transmit buffer
+    1797                                ;
+    1798                                         .even
+    1799                                tfbuf:
+    1800 016102 000000                  tfmgk:   .word 0                       ; magic header should be 0xa0a0
+    1801 016104    000                  tffrq:   .byte 0                       ; 8-bit circular frame counter
+    1802 016105    000                  tfqf:    .byte 0                       ; mbz
+    1803 016106    000                  tfpllh:  .byte 0                       ; payload length high byte
+    1804 016107    000                  tfplll:  .byte 0                       ; payload length low byte
+    1805 016110                         tfmac:   .blkw 3                       ; mac address
+    1806 016116                         tfbufp:  .blkb maxpay
+    1807                                
+    1808 021074    377     377     377  endmrk:  .byte 377,377,377,377,377,377,377,377
+         021077    377     377     377  
+         021102    377     377          
+    1808                                
