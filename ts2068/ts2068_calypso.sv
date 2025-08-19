@@ -189,10 +189,8 @@ wire img_readonly;
 wire [63:0] img_size;
 wire [31:0] img_ext;
 
-wire key_pressed;
-wire [7:0] key_code;
-wire key_strobe;
-wire key_extended;
+wire ps2_kbd_clk;
+wire ps2_kbd_data;
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
@@ -213,10 +211,8 @@ user_io(
     .no_csync(no_csync),
     .buttons(buttons),
 
-    .key_strobe(key_strobe),
-    .key_code(key_code),
-    .key_pressed(key_pressed),
-    .key_extended(key_extended),
+    .ps2_kbd_clk(ps2_kbd_clk),
+    .ps2_kbd_data(ps2_kbd_data),
 
     .sd_sdhc(sd_sdhc),
     .sd_lba(sd_lba),
@@ -247,6 +243,7 @@ data_io data_io(
     .SPI_SS4(SPI_SS4),
 `endif
 
+    .clkref_n(~ne7M0),
     .SPI_DI(SPI_DI),
     .SPI_DO(SPI_DO),
     .ioctl_fileext(img_ext),
@@ -303,15 +300,23 @@ sd_card sd_card(
 wire download_rom = ioctl_index == 'd0 && ioctl_download == 1'b1;
 wire download_dock = ioctl_index == 'd1 && ioctl_download == 1'b1;
 
-wire [13:0] vid_addr;
-wire [7:0] vid_dout;
+// Keep track of the amount of blocks in the current cartridge
+reg [2:0] dock_blocks = 0;
+always @(posedge clk_sys) if (download_dock) dock_blocks <= ioctl_addr[15:13];
 
-wire [15:0] memA;
-wire [7:0] memD;
-wire [7:0] memQ;
-wire memB;
+
+wire [13:0] vid_addr;
+wire [22:0] vram_addr = {7'd0, 2'b01, vid_addr};
+wire [15:0] vram_dout;
+wire [7:0] vid_dout = vid_addr[0] ? vram_dout[15:8] : vram_dout[7:0];
+
+wire [15:0] memA /* synthesis keep */;
+wire [7:0] memD /* synthesis keep */;
+wire [7:0] memQ /* synthesis keep */;
+wire memB /* synthesis keep */;
 wire [7:0] memM;
-wire memW;
+wire memR /* synthesis keep */;
+wire memW /* synthesis keep */;
 
 wire mapped;
 wire ramcs /* synthesis keep */;
@@ -322,17 +327,17 @@ wire [22:0] sdram_addr /* synthesis keep */ =
     download_dock == 1'b1 ? {4'd0, 3'b100, ioctl_addr[15:0]} :                          // DOCK write on 40000
     memA[15:14] == 2'b00 && mapped && ramcs ? {4'd0, 1'b1, page, memA[12:0]} :          // DIVMMC RAM access (20000)
     memA[15:14] == 2'b00 && mapped && ~ramcs ? {5'd0, 5'b01_011, memA[12:0]} :          // ESXDOS access (at 16000)
-    memM[memA[15:13]] ? memB ?  {5'd0, 5'b01_010, memA[12:0]} :                         // EXTROM (14000)
-                                {4'd0, 3'b100, memA[15:0]}:                             // DOCK (40000)
+    memM[memA[15:13]] & memB ? {5'd0, 5'b01_010, memA[12:0]} :                          // EXTROM (14000) Only 8KB
+    memM[memA[15:13]] & ~memB ? {4'd0, 3'b100, memA[15:0]}:                             // DOCK (40000)
     memA[15:14] == 2'b00 ? {5'd0, 4'b0100, memA[13:0]}:                                 // ROM access (10000)
     {5'd0, 2'b00, memA[15:0]};                                                          // HOME RAM
 
 wire [7:0] sdram_din /* synthesis keep */ = ioctl_download == 1'b1 ? ioctl_dout : memD;
 
-assign memQ = sdram_dout;
+assign memQ = memA[15:13] > dock_blocks && memM[memA[15:13]] && ~memB ? 8'hFF : sdram_dout;
 
 wire [7:0] sdram_dout /* synthesis keep */;
-wire sdram_rd /* synthesis keep */ = ioctl_download == 1'b1 ? 1'b0 : ramcs || (mapped & memA[15:14] == 2'b00);
+wire sdram_rd /* synthesis keep */ = ioctl_download == 1'b1 ? 1'b0 : memR;
 wire sdram_we /* synthesis keep */ = ioctl_download == 1'b1 ? ioctl_wr : memW;
 
 assign SDRAM_CLK = clk_sys;
@@ -350,7 +355,7 @@ sdram sdram(
     
     .init(~power),
     .clk(clk_sys),
-    .clkref(1'b1),
+    .clkref(ne7M0),
     
     .bank(2'b00),
     .addr(sdram_addr),
@@ -359,18 +364,28 @@ sdram sdram(
     .din(sdram_din),
     .we(sdram_we),
     
-    .vram_addr({7'd0, 2'b01, vid_addr}),
-    .vram_dout(vid_dout)
+    .vram_addr(vram_addr),
+    .vram_dout(vram_dout)
 );
 
 
 /////////////////  Keyboard  ////////////////////////
 wire [4:0] kbd_col;
 wire [7:0] kbd_row;
+wire [7:0] key_code;
+wire key_strobe;
 wire play_key;
 wire stop_key;
 wire f5_key;
 wire f9_key;
+
+ps2k ps2k(
+    .clock(clk_sys),
+    .ps2Ck(ps2_kbd_clk),
+    .ps2D(ps2_kbd_data),
+    .strb(key_strobe),
+    .code(key_code)
+);
 
 matrix matrix(
     .clock(clk_sys),
@@ -420,6 +435,7 @@ ts ts(
     .memD(memD),
     .memQ(memQ),
     .memB(memB),
+    .memR(memR),
     .memM(memM),
     .memW(memW),
     .mapped(mapped),

@@ -17,5 +17,6 @@ set_global_assignment -name VERILOG_FILE ts2068/core/sdc.v
 set_global_assignment -name VERILOG_FILE ts2068/core/spi.v
 set_global_assignment -name VERILOG_FILE ts2068/core/tzx.v
 set_global_assignment -name VERILOG_FILE ts2068/core/vdu.v
+set_global_assignment -name VERILOG_FILE ts2068/core/ps2k.v
 set_global_assignment -name VERILOG_FILE ts2068/core/mapper.v
 set_global_assignment -name VERILOG_FILE ts2068/core/matrix.v

@@ -78,7 +78,7 @@ localparam STATE_LAST  = 3'd7;   // last state in cycle
 reg  [2:0] q;
 reg [22:0] a, addr_next;
 reg        wr, wr_next;
-reg        ram_req=0, ram_req_next;
+reg        ram_req /* synthesis keep */ =0, ram_req_next /* synthesis keep */;
 reg        vram_req=0, vram_req_next;
 reg        tape_req=0, tape_req_next;
 
@@ -94,7 +94,7 @@ always @(posedge clk) begin
 	old_ref<=clkref;
 
 	q <= q + 3'd1;
-	if(~old_ref & clkref) q <= 0;
+	if(~old_ref & clkref) q <= 3'd0;
 
 	if (q == STATE_START) begin
 		ram_req <= ram_req_next;
