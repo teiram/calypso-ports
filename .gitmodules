@@ -214,3 +214,6 @@
 [submodule "altair8800/Altair8800_Mister"]
 	path = altair8800/Altair8800_Mister
 	url = https://github.com/MiSTer-devel/Altair8800_Mister.git
+[submodule "ts2068/ts2068"]
+	path = ts2068/ts2068
+	url = https://github.com/teiram/ts2068.git

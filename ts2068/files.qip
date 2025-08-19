@@ -1,0 +1,21 @@
+set_global_assignment -name SDC_FILE ts2068.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE ts2068_calypso.sv
+set_global_assignment -name VERILOG_FILE sdram.v
+
+set_global_assignment -name QIP_FILE pll_pal.qip
+set_global_assignment -name QIP_FILE pll_ntsc.qip
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name VERILOG_FILE ts2068/core/ts.v
+set_global_assignment -name VERILOG_FILE ts2068/core/cpu.v
+set_global_assignment -name VERILOG_FILE ts2068/core/dpr.v
+set_global_assignment -name VERILOG_FILE ts2068/core/psg.v
+set_global_assignment -name VERILOG_FILE ts2068/core/ram.v
+set_global_assignment -name VERILOG_FILE ts2068/core/rom.v
+set_global_assignment -name VERILOG_FILE ts2068/core/sdc.v
+set_global_assignment -name VERILOG_FILE ts2068/core/spi.v
+set_global_assignment -name VERILOG_FILE ts2068/core/tzx.v
+set_global_assignment -name VERILOG_FILE ts2068/core/vdu.v
+set_global_assignment -name VERILOG_FILE ts2068/core/mapper.v
+set_global_assignment -name VERILOG_FILE ts2068/core/matrix.v
