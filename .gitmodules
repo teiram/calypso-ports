@@ -211,3 +211,6 @@
 [submodule "ts2068/ts2068"]
 	path = ts2068/ts2068
 	url = https://github.com/teiram/ts2068.git
+[submodule "gyurco/Mist_FPGA"]
+	path = gyurco/Mist_FPGA
+	url = https://github.com/gyurco/Mist_FPGA/
