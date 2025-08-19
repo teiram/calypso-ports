@@ -124,6 +124,7 @@ localparam CONF_STR =
     "O67,Scanlines,Off,25%,50%,75%;",
     `SEP
     "T0,Reset;",
+    "T1,Remove Cartridge;",
     "T2,NMI;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
@@ -301,9 +302,16 @@ wire download_rom = ioctl_index == 'd0 && ioctl_download == 1'b1;
 wire download_dock = ioctl_index == 'd1 && ioctl_download == 1'b1;
 
 // Keep track of the amount of blocks in the current cartridge
-reg [2:0] dock_blocks = 0;
-always @(posedge clk_sys) if (download_dock) dock_blocks <= ioctl_addr[15:13];
-
+reg [2:0] dock_blocks = 'd0;
+reg dock_loaded = 1'b0;
+always @(posedge clk_sys) begin
+    reg download_dock_last;
+    download_dock_last <= download_dock;
+    if (download_dock) dock_blocks <= ioctl_addr[15:13];
+    if (download_dock_last & ~download_dock) dock_loaded <= 1'b1;
+    else if (status[1] == 1'b1) dock_loaded <= 1'b0;
+end
+assign LED[1] = dock_loaded;
 
 wire [13:0] vid_addr;
 wire [22:0] vram_addr = {7'd0, 2'b01, vid_addr};
@@ -334,7 +342,7 @@ wire [22:0] sdram_addr /* synthesis keep */ =
 
 wire [7:0] sdram_din /* synthesis keep */ = ioctl_download == 1'b1 ? ioctl_dout : memD;
 
-assign memQ = memA[15:13] > dock_blocks && memM[memA[15:13]] && ~memB ? 8'hFF : sdram_dout;
+assign memQ = (memA[15:13] > dock_blocks || ~dock_loaded) && memM[memA[15:13]] && ~memB ? 8'hFF : sdram_dout;
 
 wire [7:0] sdram_dout /* synthesis keep */;
 wire sdram_rd /* synthesis keep */ = ioctl_download == 1'b1 ? 1'b0 : memR;
@@ -410,7 +418,7 @@ wire [31:0] joyb = status[3] ? joy0 : joy1;
 wire model = status[3];
 wire divmmc = status[4];
 
-wire reset_n /* synthesis keep */ = power & f9_key & ~download_rom & ~download_dock & ~status[0];
+wire reset_n /* synthesis keep */ = power & f9_key & ~download_rom & ~download_dock & ~status[0] & ~status[1];
 wire nmi /* synthesis keep */ = (f5_key && !status[2]) || mapped;
 
 wire ear = TAPE_SOUND;
