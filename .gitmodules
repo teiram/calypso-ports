@@ -181,9 +181,6 @@
 [submodule "megadrive/fpgagen"]
 	path = megadrive/fpgagen
 	url = https://github.com/mist-devel/fpgagen.git
-[submodule "galaksija-uj/galaksija"]
-	path = galaksija-uj/galaksija
-	url = https://github.com/ZXMicroJack/galaksija.git
 [submodule "c128/C128_MiSTer"]
 	path = c128/C128_MiSTer
 	url = https://github.com/MiSTer-devel/C128_MiSTer.git
@@ -208,9 +205,6 @@
 [submodule "zxuno/ZXUno_Altera"]
 	path = zxuno/ZXUno_Altera
 	url = https://github.com/benitoss/ZXUno_Altera
-[submodule "spectrum-new/ZX_Spectrum-128K_MIST"]
-	path = spectrum-new/ZX_Spectrum-128K_MIST
-	url = https://github.com/gyurco/ZX_Spectrum-128K_MIST
 [submodule "altair8800/Altair8800_Mister"]
 	path = altair8800/Altair8800_Mister
 	url = https://github.com/MiSTer-devel/Altair8800_Mister.git
