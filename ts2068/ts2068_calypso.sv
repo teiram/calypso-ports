@@ -122,6 +122,8 @@ localparam CONF_STR =
     "O4,DivMMC,Off,On;",
     "O5,Swap Joysticks,Off,On;",
     "O67,Scanlines,Off,25%,50%,75%;",
+    "O8,Tape,Line,File;",
+    "O9,Tape Audio,On,Off;",
     `SEP
     "T0,Reset;",
     "T1,Remove Cartridge;",
@@ -170,6 +172,7 @@ wire [7:0] ioctl_index /* synthesis keep */;
 wire ioctl_wr /* synthesis keep */;
 wire [24:0] ioctl_addr /* synthesis keep */;
 wire [7:0] ioctl_dout /* synthesis keep */;
+wire [31:0] ioctl_filesize /* synthesis keep */;
 wire scandoubler_disable;
 wire no_csync;
 wire ypbpr;
@@ -248,6 +251,7 @@ data_io data_io(
     .SPI_DI(SPI_DI),
     .SPI_DO(SPI_DO),
     .ioctl_fileext(img_ext),
+    .ioctl_filesize(ioctl_filesize),
     .ioctl_download(ioctl_download),
     .ioctl_index(ioctl_index),
     .ioctl_wr(ioctl_wr),
@@ -298,20 +302,52 @@ sd_card sd_card(
 -    DOCK at $40000
 */
 
-wire download_rom = ioctl_index == 'd0 && ioctl_download == 1'b1;
-wire download_dock = ioctl_index == 'd1 && ioctl_download == 1'b1;
-
+wire rom_download = ioctl_index == 'd0 && ioctl_download == 1'b1;
+wire dock_download = ioctl_index == 'd1 && ioctl_download == 1'b1;
+wire tape_download = ioctl_index == 'd2 && ioctl_download == 1'b1;
 // Keep track of the amount of blocks in the current cartridge
 reg [2:0] dock_blocks = 'd0;
 reg dock_loaded = 1'b0;
+reg dck_with_header = 1'b0;
+wire dock_wr = dck_with_header ? ioctl_addr > 'd8 && ioctl_wr : ioctl_wr;
+wire [15:0] dock_addr = dck_with_header ? ioctl_addr[15:0] - 'd9 : ioctl_addr[15:0];
+wire [22:0] tape_addr = tape_download ? ioctl_addr[22:0] : tape_play_addr;
+reg tape_wr;
+reg tape_ack;
+
 always @(posedge clk_sys) begin
-    reg download_dock_last;
-    download_dock_last <= download_dock;
-    if (download_dock) dock_blocks <= ioctl_addr[15:13];
-    if (download_dock_last & ~download_dock) dock_loaded <= 1'b1;
-    else if (status[1] == 1'b1) dock_loaded <= 1'b0;
+    reg dock_download_last;
+    reg tape_ack_last;
+    reg ioctl_wr_last;
+    dock_download_last <= dock_download;
+    
+    if (dock_download) dock_blocks <= ioctl_addr[15:13];
+    
+    if (~dock_download_last & dock_download) begin
+        dck_with_header = |ioctl_filesize[3:0];
+    end
+    
+    if (dock_download_last & ~dock_download) begin
+        dock_loaded <= 1'b1;
+        dck_with_header = 1'b0;
+    end
+    
+    else if (status[1] == 1'b1) begin
+        dock_loaded <= 1'b0;
+        dck_with_header <= 1'b0;
+    end
+   
+    tape_ack_last <= tape_ack;
+    ioctl_wr_last <= ioctl_wr;
+    if (tape_download) begin
+        if (tape_ack_last ^ tape_ack) tape_wr <= 1'b0;
+        if (~ioctl_wr_last & ioctl_wr) tape_wr <= 1'b1;
+    end
+    
 end
+
 assign LED[1] = dock_loaded;
+assign LED[2] = dck_with_header;
 
 wire [13:0] vid_addr;
 wire [22:0] vram_addr = {7'd0, 2'b01, vid_addr};
@@ -331,8 +367,8 @@ wire ramcs /* synthesis keep */;
 wire [3:0] page;
 
 wire [22:0] sdram_addr /* synthesis keep */ =
-    download_rom == 1'b1 ? {5'd0, 2'b01, ioctl_addr[15:0]} :                            // ROM write on  10000
-    download_dock == 1'b1 ? {4'd0, 3'b100, ioctl_addr[15:0]} :                          // DOCK write on 40000
+    rom_download == 1'b1 ? {5'd0, 2'b01, ioctl_addr[15:0]} :                            // ROM write on  10000
+    dock_download == 1'b1 ? {4'd0, 3'b100, dock_addr[15:0]} :                           // DOCK write on 40000
     memA[15:14] == 2'b00 && mapped && ramcs ? {4'd0, 1'b1, page, memA[12:0]} :          // DIVMMC RAM access (20000)
     memA[15:14] == 2'b00 && mapped && ~ramcs ? {5'd0, 5'b01_011, memA[12:0]} :          // ESXDOS access (at 16000)
     memM[memA[15:13]] & memB ? {5'd0, 5'b01_010, memA[12:0]} :                          // EXTROM (14000) Only 8KB
@@ -340,13 +376,15 @@ wire [22:0] sdram_addr /* synthesis keep */ =
     memA[15:14] == 2'b00 ? {5'd0, 4'b0100, memA[13:0]}:                                 // ROM access (10000)
     {5'd0, 2'b00, memA[15:0]};                                                          // HOME RAM
 
-wire [7:0] sdram_din /* synthesis keep */ = ioctl_download == 1'b1 ? ioctl_dout : memD;
+wire [7:0] sdram_din /* synthesis keep */ = rom_download | dock_download ? ioctl_dout : memD;
 
 assign memQ = (memA[15:13] > dock_blocks || ~dock_loaded) && memM[memA[15:13]] && ~memB ? 8'hFF : sdram_dout;
 
 wire [7:0] sdram_dout /* synthesis keep */;
-wire sdram_rd /* synthesis keep */ = ioctl_download == 1'b1 ? 1'b0 : memR;
-wire sdram_we /* synthesis keep */ = ioctl_download == 1'b1 ? ioctl_wr : memW;
+wire sdram_rd /* synthesis keep */ = memR;
+wire sdram_we /* synthesis keep */ = dock_download == 1'b1 ? dock_wr:
+    rom_download == 1'b1 ? ioctl_wr:
+    memW;
 
 assign SDRAM_CLK = clk_sys;
 sdram sdram(
@@ -373,9 +411,70 @@ sdram sdram(
     .we(sdram_we),
     
     .vram_addr(vram_addr),
-    .vram_dout(vram_dout)
+    .vram_dout(vram_dout),
+    
+    .tape_addr(tape_addr),
+    .tape_din(ioctl_dout),
+    .tape_dout(tape_dout),
+    .tape_wr(tape_wr),
+    .tape_rd(tape_rd),
+    .tape_ack(tape_ack)
+
 );
 
+//////////////////////// TZX //////////////////////////////////
+
+wire tape_read;
+wire tape_data_req;
+reg tape_data_ack;
+reg tape_reset;
+reg tape_rd;
+reg [7:0] tape_dout;
+reg [22:0] tape_play_addr;
+reg [22:0] tape_last_addr;
+
+always @(posedge clk_sys) begin
+    reg old_tape_ack;
+
+    if (~reset_n) begin
+        tape_play_addr <= 1;
+        tape_last_addr <= 0;
+        tape_rd <= 0;
+        tape_reset <= 1;
+    end else begin
+        old_tape_ack <= tape_ack;
+        tape_reset <= 0;
+        if (tape_download) begin
+            tape_play_addr <= 0;
+            tape_last_addr <= ioctl_addr;
+            tape_reset <= 1;
+        end
+        if (~ioctl_download && tape_rd && tape_ack ^ old_tape_ack) begin
+            tape_data_ack <= tape_data_req;
+            tape_rd <= 0;
+            tape_play_addr <= tape_play_addr + 1'd1;
+        end else if (~ioctl_download && tape_play_addr <= tape_last_addr && !tape_rd && (tape_data_req ^ tape_data_ack)) begin
+            tape_rd <= 1;
+        end
+    end
+end
+
+/*
+reg [24:0] tape_motor_cnt;
+wire       tape_motor_led = tape_motor_cnt[24] ? tape_motor_cnt[23:16] > tape_motor_cnt[7:0] : tape_motor_cnt[23:16] <= tape_motor_cnt[7:0];
+always @(posedge clk_sys) tape_motor_cnt <= tape_motor_cnt + 1'd1;
+*/
+
+tzxplayer tzxplayer(
+    .clk(clk_sys),
+    .ce(1),
+    .restart_tape(tape_reset),
+    .host_tap_in(tape_dout),
+    .tzx_req(tape_data_req),
+    .tzx_ack(tape_data_ack),
+    .cass_read(tape_read),
+    .cass_motor(1'b1)
+);
 
 /////////////////  Keyboard  ////////////////////////
 wire [4:0] kbd_col;
@@ -408,8 +507,8 @@ matrix matrix(
 );
 
 //////////////// Core ///////////////////////////////
-wire [14:0] audio_left;
-wire [14:0] audio_right;
+wire [14:0] core_audio_left;
+wire [14:0] core_audio_right;
 wire R, G, B, I;
 wire hsync, vsync;
 wire [31:0] joya = status[3] ? joy1 : joy0;
@@ -418,10 +517,10 @@ wire [31:0] joyb = status[3] ? joy0 : joy1;
 wire model = status[3];
 wire divmmc = status[4];
 
-wire reset_n /* synthesis keep */ = power & f9_key & ~download_rom & ~download_dock & ~status[0] & ~status[1];
+wire reset_n /* synthesis keep */ = power & f9_key & ~rom_download & ~dock_download & ~status[0] & ~status[1];
 wire nmi /* synthesis keep */ = (f5_key && !status[2]) || mapped;
 
-wire ear = TAPE_SOUND;
+wire ear = status[8] ? tape_read : TAPE_SOUND;
 
 ts ts(
     .model(model),
@@ -458,8 +557,8 @@ ts ts(
     .i(I),
 
     .ear(ear),
-    .left(audio_left),
-    .right(audio_right),
+    .left(core_audio_left),
+    .right(core_audio_right),
 
     .col(kbd_col),
     .row(kbd_row),
@@ -474,6 +573,8 @@ ts ts(
 
 
 `ifdef I2S_AUDIO
+wire [15:0] audio_left = {core_audio_left, 2'd0} + {4'd0, status[9] ? 1'b0 : ear, 11'd0};
+wire [15:0] audio_right = {core_audio_right, 2'd0} + {4'd0, status[9] ? 1'b0 : ear, 11'd0};
 i2s i2s (
     .reset(1'b0),
     .clk(clk_sys),
@@ -483,8 +584,8 @@ i2s i2s (
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
 
-    .left_chan({audio_left, 2'b0}),
-    .right_chan({audio_right, 2'b0})
+    .left_chan(audio_left),
+    .right_chan(audio_right)
 );
 `endif
 
