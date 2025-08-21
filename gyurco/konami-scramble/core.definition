@@ -1,0 +1,6 @@
+CORE_ID=scramble
+PROJECT_NAME=scramble
+VERSION=0.1
+BITSTREAM_FILE=output_files/scramble.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../Mist_FPGA ../../common/T80 ../../common/mist-modules

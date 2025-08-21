@@ -1,0 +1,17 @@
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/scramble.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/scramble_top.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/scramble_video.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/scramble_audio.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/scramble_pack.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/moonwar_dial.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/MULT18X18.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/i82c55.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/dpram.vhd"
+set_global_assignment -name VHDL_FILE "../Mist_FPGA/Arcade_MiST/Konami Scramble Hardware/Scramble_MiST/rtl/spinner.vhd"
+set_global_assignment -name VHDL_FILE ../Mist_FPGA/common/Sound/ym2149/YM2149.vhd
+set_global_assignment -name VHDL_FILE ../Mist_FPGA/common/Sound/ym2149/vol_table_array.vhd
+
+set_global_assignment -name QIP_FILE ../../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../../common/T80/T80.qip
+set_global_assignment -name SYSTEMVERILOG_FILE scramble_calypso.sv
+set_global_assignment -name QIP_FILE pll.qip
