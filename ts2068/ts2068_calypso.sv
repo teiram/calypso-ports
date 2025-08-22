@@ -310,7 +310,7 @@ reg [2:0] dock_blocks = 'd0;
 reg dock_loaded = 1'b0;
 reg dck_with_header = 1'b0;
 wire dock_wr = dck_with_header ? ioctl_addr > 'd8 && ioctl_wr : ioctl_wr;
-wire [15:0] dock_addr = dck_with_header ? ioctl_addr[15:0] - 'd9 : ioctl_addr[15:0];
+wire [15:0] dock_addr = dck_with_header ? ioctl_addr[15:0] - 16'd9 : ioctl_addr[15:0];
 wire [22:0] tape_addr = tape_download ? ioctl_addr[22:0] : tape_play_addr;
 reg tape_wr;
 reg tape_ack;
@@ -320,7 +320,7 @@ always @(posedge clk_sys) begin
     reg tape_ack_last;
     reg ioctl_wr_last;
     dock_download_last <= dock_download;
-    
+
     if (dock_download) dock_blocks <= ioctl_addr[15:13];
     
     if (~dock_download_last & dock_download) begin
@@ -362,14 +362,14 @@ wire [7:0] memM;
 wire memR /* synthesis keep */;
 wire memW /* synthesis keep */;
 
-wire mapped;
+wire mapped /* synthesis keep */;
 wire ramcs /* synthesis keep */;
-wire [3:0] page;
+wire [3:0] page /* synthesis keep */;
 
 wire [22:0] sdram_addr /* synthesis keep */ =
     rom_download == 1'b1 ? {5'd0, 2'b01, ioctl_addr[15:0]} :                            // ROM write on  10000
     dock_download == 1'b1 ? {4'd0, 3'b100, dock_addr[15:0]} :                           // DOCK write on 40000
-    memA[15:14] == 2'b00 && mapped && ramcs ? {4'd0, 1'b1, page, memA[12:0]} :          // DIVMMC RAM access (20000)
+    memA[15:14] == 2'b00 && mapped && ramcs ? {4'd0, 1'b1, page, memA[12:0]} :          // DIVMMC RAM access (at 20000)
     memA[15:14] == 2'b00 && mapped && ~ramcs ? {5'd0, 5'b01_011, memA[12:0]} :          // ESXDOS access (at 16000)
     memM[memA[15:13]] & memB ? {5'd0, 5'b01_010, memA[12:0]} :                          // EXTROM (14000) Only 8KB
     memM[memA[15:13]] & ~memB ? {4'd0, 3'b100, memA[15:0]}:                             // DOCK (40000)
@@ -378,13 +378,13 @@ wire [22:0] sdram_addr /* synthesis keep */ =
 
 wire [7:0] sdram_din /* synthesis keep */ = rom_download | dock_download ? ioctl_dout : memD;
 
-assign memQ = (memA[15:13] > dock_blocks || ~dock_loaded) && memM[memA[15:13]] && ~memB ? 8'hFF : sdram_dout;
+assign memQ = (memA[15:13] > dock_blocks || ~dock_loaded) && memM[memA[15:13]] && ~memB && ~mapped ? 8'hFF : sdram_dout;
 
 wire [7:0] sdram_dout /* synthesis keep */;
 wire sdram_rd /* synthesis keep */ = memR;
 wire sdram_we /* synthesis keep */ = dock_download == 1'b1 ? dock_wr:
     rom_download == 1'b1 ? ioctl_wr:
-    memW;
+    memW & ((mapped == 1'b0 && memA[15:13] >= 2) | (mapped == 1'b1 && memA[15:13] == 3'b001));
 
 assign SDRAM_CLK = clk_sys;
 sdram sdram(
@@ -446,7 +446,7 @@ always @(posedge clk_sys) begin
         tape_reset <= 0;
         if (tape_download) begin
             tape_play_addr <= 0;
-            tape_last_addr <= ioctl_addr;
+            tape_last_addr <= ioctl_addr[22:0];
             tape_reset <= 1;
         end
         if (~ioctl_download && tape_rd && tape_ack ^ old_tape_ack) begin
@@ -459,11 +459,6 @@ always @(posedge clk_sys) begin
     end
 end
 
-/*
-reg [24:0] tape_motor_cnt;
-wire       tape_motor_led = tape_motor_cnt[24] ? tape_motor_cnt[23:16] > tape_motor_cnt[7:0] : tape_motor_cnt[23:16] <= tape_motor_cnt[7:0];
-always @(posedge clk_sys) tape_motor_cnt <= tape_motor_cnt + 1'd1;
-*/
 
 tzxplayer tzxplayer(
     .clk(clk_sys),
@@ -541,10 +536,12 @@ ts ts(
     .memA(memA),
     .memD(memD),
     .memQ(memQ),
-    .memB(memB),
     .memR(memR),
-    .memM(memM),
     .memW(memW),
+
+    .memB(memB),
+    .memM(memM),
+    
     .mapped(mapped),
     .ramcs(ramcs),
     .page(page),
@@ -573,12 +570,12 @@ ts ts(
 
 
 `ifdef I2S_AUDIO
-wire [15:0] audio_left = {core_audio_left, 2'd0} + {4'd0, status[9] ? 1'b0 : ear, 11'd0};
-wire [15:0] audio_right = {core_audio_right, 2'd0} + {4'd0, status[9] ? 1'b0 : ear, 11'd0};
+wire [15:0] audio_left = {1'b0, core_audio_left} + {4'd0, status[9] ? 1'b0 : ear, 11'd0};
+wire [15:0] audio_right = {1'b0, core_audio_right} + {4'd0, status[9] ? 1'b0 : ear, 11'd0};
 i2s i2s (
     .reset(1'b0),
     .clk(clk_sys),
-    .clk_rate(32'd42_660_000),
+    .clk_rate(32'd56_000_000),
 
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
