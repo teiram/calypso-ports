@@ -1,0 +1,11 @@
+set_global_assignment -name VERILOG_FILE "../Mist_FPGA/Computer_MiST/Jupiter Cantab - JupiterACE_MiST/rtl/jupiter_ace.v"
+set_global_assignment -name VERILOG_FILE "../Mist_FPGA/Computer_MiST/Jupiter Cantab - JupiterACE_MiST/rtl/keyboard.v"
+set_global_assignment -name SYSTEMVERILOG_FILE "../Mist_FPGA/Computer_MiST/Jupiter Cantab - JupiterACE_MiST/rtl/video.sv"
+set_global_assignment -name VERILOG_FILE "../Mist_FPGA/Computer_MiST/Jupiter Cantab - JupiterACE_MiST/rtl/dpram.v"
+
+set_global_assignment -name SEARCH_PATH "../Mist_FPGA/Computer_MiST/Jupiter Cantab - JupiterACE_MiST/rtl/roms"
+
+set_global_assignment -name SYSTEMVERILOG_FILE ace_calypso.sv
+set_global_assignment -name QIP_FILE ../../common/T80/T80.qip
+set_global_assignment -name QIP_FILE ../../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE pll.qip
