@@ -158,8 +158,8 @@ wire ne28M = ce[0:0] == 1;
 wire ne14M = ce[1:0] == 3;
 wire ne7M0 = ce[2:0] == 7;
 wire pe7M0 = ce[2:0] == 3;
-wire ne3M5 = ce[3:0] == 15;
-wire pe3M5 = ce[3:0] == 7;
+wire ne3M5 /* synthesis keep */ = ce[3:0] == 15;
+wire pe3M5 /* synthesis keep */ = ce[3:0] == 7;
 
 /////////////////  IO  ///////////////////////////
 
@@ -247,7 +247,7 @@ data_io data_io(
     .SPI_SS4(SPI_SS4),
 `endif
 
-    .clkref_n(~ne7M0),
+    .clkref_n(~ne3M5),
     .SPI_DI(SPI_DI),
     .SPI_DO(SPI_DO),
     .ioctl_fileext(img_ext),
@@ -350,9 +350,22 @@ assign LED[1] = dock_loaded;
 assign LED[2] = dck_with_header;
 
 wire [13:0] vid_addr;
-wire [22:0] vram_addr = {7'd0, 2'b01, vid_addr};
-wire [15:0] vram_dout;
-wire [7:0] vid_dout = vid_addr[0] ? vram_dout[15:8] : vram_dout[7:0];
+wire [7:0] vid_dout;
+vram vram(
+    .clock(clk_sys),
+    
+    .address_a(memA[13:0]),
+    .data_a(memD),
+    .wren_a(memW && memA[15:14] == 2'b01),
+    
+    .address_b(vid_addr),
+    .q_b(vid_dout)
+
+);
+
+//wire [22:0] vram_addr = {7'd0, 2'b01, vid_addr};
+//wire [15:0] vram_dout;
+//assign vid_dout =  vid_addr[0] ? vram_dout[15:8] : vram_dout[7:0];
 
 wire [15:0] memA /* synthesis keep */;
 wire [7:0] memD /* synthesis keep */;
@@ -366,25 +379,39 @@ wire mapped /* synthesis keep */;
 wire ramcs /* synthesis keep */;
 wire [3:0] page /* synthesis keep */;
 
+wire dock_rd_ena = ~mapped & memM[memA[15:13]] & ~memB;
+wire extrom_rd_ena = ~mapped & memM[memA[15:13]] & memB;
+wire divmmc_ena = mapped & memA[15:14] == 2'b00;
+wire divmmc_ram_ena = divmmc_ena & ramcs;
+wire divmmc_rom_ena = divmmc_ena & ~ramcs;
+
+reg memr_delayed /* synthesis keep */= 1'b0;
+reg memw_delayed = 1'b0;
+always @(posedge clk_sys) if (pe3M5) memr_delayed <= memR;
+always @(posedge clk_sys) if (pe3M5) memw_delayed <= memW;
+
 wire [22:0] sdram_addr /* synthesis keep */ =
-    rom_download == 1'b1 ? {5'd0, 2'b01, ioctl_addr[15:0]} :                            // ROM write on  10000
-    dock_download == 1'b1 ? {4'd0, 3'b100, dock_addr[15:0]} :                           // DOCK write on 40000
-    memA[15:14] == 2'b00 && mapped && ramcs ? {4'd0, 1'b1, page, memA[12:0]} :          // DIVMMC RAM access (at 20000)
-    memA[15:14] == 2'b00 && mapped && ~ramcs ? {5'd0, 5'b01_011, memA[12:0]} :          // ESXDOS access (at 16000)
-    memM[memA[15:13]] & memB ? {5'd0, 5'b01_010, memA[12:0]} :                          // EXTROM (14000) Only 8KB
-    memM[memA[15:13]] & ~memB ? {4'd0, 3'b100, memA[15:0]}:                             // DOCK (40000)
-    memA[15:14] == 2'b00 ? {5'd0, 4'b0100, memA[13:0]}:                                 // ROM access (10000)
-    {5'd0, 2'b00, memA[15:0]};                                                          // HOME RAM
+    rom_download == 1'b1 ? {5'd0, 2'b01, ioctl_addr[15:0]} :        // ROM ioctl download on  10000
+    dock_download == 1'b1 ? {4'd0, 3'b100, dock_addr[15:0]} :       // DOCK ioctl download on 40000
+    divmmc_ram_ena ? {5'd0, 1'b1, page, memA[12:0]} :               // DIVMMC RAM access (at 20000)
+    divmmc_rom_ena ? {5'd0, 5'b01_011, memA[12:0]} :                // ESXDOS access (at 16000)
+    extrom_rd_ena ? {5'd0, 5'b01_010, memA[12:0]} :                 // EXTROM (14000) Only 8KB
+    dock_rd_ena ? {4'd0, 3'b100, memA[15:0]}:                       // DOCK (40000)
+    memA[15:14] == 2'b00 ? {5'd0, 4'b0100, memA[13:0]}:             // ROM access (10000)
+    {5'd0, 2'b00, memA[15:0]};                                      // HOME RAM
 
 wire [7:0] sdram_din /* synthesis keep */ = rom_download | dock_download ? ioctl_dout : memD;
-
-assign memQ = (memA[15:13] > dock_blocks || ~dock_loaded) && memM[memA[15:13]] && ~memB && ~mapped ? 8'hFF : sdram_dout;
+assign memQ = (memA[15:13] > dock_blocks || ~dock_loaded) && dock_rd_ena ? 8'hFF : sdram_dout;
 
 wire [7:0] sdram_dout /* synthesis keep */;
-wire sdram_rd /* synthesis keep */ = memR;
+wire sdram_rd /* synthesis keep */ = memr_delayed;
+
 wire sdram_we /* synthesis keep */ = dock_download == 1'b1 ? dock_wr:
     rom_download == 1'b1 ? ioctl_wr:
-    memW & ((mapped == 1'b0 && memA[15:13] >= 2) | (mapped == 1'b1 && memA[15:13] == 3'b001));
+    memW && (
+        (~mapped && ~memM[memA[15:13]] && memA[15:14]) ||
+        (mapped && ~ramcs && memA[15:14]) ||
+        (mapped && ramcs && ~memA[15:14]));
 
 assign SDRAM_CLK = clk_sys;
 sdram sdram(
@@ -401,7 +428,7 @@ sdram sdram(
     
     .init(~power),
     .clk(clk_sys),
-    .clkref(ne7M0),
+    .clkref(ne3M5),
     
     .bank(2'b00),
     .addr(sdram_addr),
@@ -410,8 +437,8 @@ sdram sdram(
     .din(sdram_din),
     .we(sdram_we),
     
-    .vram_addr(vram_addr),
-    .vram_dout(vram_dout),
+//    .vram_addr(vram_addr),
+//    .vram_dout(vram_dout),
     
     .tape_addr(tape_addr),
     .tape_din(ioctl_dout),
@@ -513,7 +540,7 @@ wire model = status[3];
 wire divmmc = status[4];
 
 wire reset_n /* synthesis keep */ = power & f9_key & ~rom_download & ~dock_download & ~status[0] & ~status[1];
-wire nmi /* synthesis keep */ = (f5_key && !status[2]) || mapped;
+wire nmi_n /* synthesis keep */ = (f5_key & ~status[2]) | mapped;
 
 wire ear = status[8] ? tape_read : TAPE_SOUND;
 
@@ -528,7 +555,7 @@ ts ts(
     .ne3M5(ne3M5),
     .pe3M5(pe3M5),
     .reset(reset_n),
-    .nmi(nmi),
+    .nmi(nmi_n),
 
     .va(vid_addr),
     .vd(vid_dout),

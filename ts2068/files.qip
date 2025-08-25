@@ -1,6 +1,7 @@
 set_global_assignment -name SDC_FILE ts2068.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE ts2068_calypso.sv
 set_global_assignment -name VERILOG_FILE sdram.v
+set_global_assignment -name QIP_FILE vram.qip
 
 set_global_assignment -name QIP_FILE pll_pal.qip
 set_global_assignment -name QIP_FILE pll_ntsc.qip
