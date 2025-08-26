@@ -1,6 +1,6 @@
 # Information
 
-Timex Sinclair 2068 port from this original [core](https://github.com/Kyp069/ts2068)
+Timex Sinclair 2068 port from Kyp069 [core](https://github.com/Kyp069/ts2068)
 
 # Usage
 
@@ -11,7 +11,12 @@ The ROM is build up from the following parts
 - 4000 - 5FFF. Extra TS2068 ROM (8kb)
 - 6000 - 7FFF. ESXDOS DIVMMC ROM (8Kb)
  
+For DivMMC a Spectrum 48K ROM must be loaded using the OSD
+
+Remember to reset using Space + F9 once DivMMC is enabled
+
 # Changelog
 
+- 0.2. Fixed DivMMC support (You need a Spectrum 48K ROM to use DivMMC)
 - 0.1. Initial release
 

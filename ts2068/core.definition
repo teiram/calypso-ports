@@ -1,6 +1,6 @@
 CORE_ID=ts2068
 PROJECT_NAME=ts2068
-VERSION=0.1
+VERSION=0.2
 BITSTREAM_FILE=output_files/ts2068.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=../common/mist-modules ../common/T80
