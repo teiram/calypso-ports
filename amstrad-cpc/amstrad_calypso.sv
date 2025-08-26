@@ -759,9 +759,9 @@ color_mix color_mix(
 
 mist_video #(
     .SD_HCNT_WIDTH(10),
-    .OSD_X_OFFSET(10'd18),
     .COLOR_DEPTH(8),
     .OUT_COLOR_DEPTH(4),
+    .USE_BLANKS(1),
     .BIG_OSD(BIG_OSD)
 ) mist_video(
 
@@ -796,7 +796,9 @@ mist_video #(
 
     .HSync(~HSync),
     .VSync(~VSync),
-
+    .HBlank(HBlank),
+    .VBlank(VBlank),
+    
     // MiST video output signals
     .VGA_R(VGA_R),
     .VGA_G(VGA_G),
