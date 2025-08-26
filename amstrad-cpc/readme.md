@@ -16,6 +16,7 @@ Each part with 16KB size, so a file of 128KB
 
 # Changelog
 
+- 0.5. Center OSD and use blanks for better OSD aspect ratio
 - 0.4. Upgrade framewors. Big OSD. Menu reorganization
 - 0.3. Increase audio volume
 
