@@ -11,8 +11,8 @@ derive_clock_uncertainty
 
 # Clock groups
 set_clock_groups -asynchronous \
-	-group [get_clocks {SPI_SCK}] \
-	-group [get_clocks {pll|altpll_component|auto_generated|pll1|clk[*]}]
+    -group [get_clocks {SPI_SCK}] \
+    -group [get_clocks {pll|altpll_component|auto_generated|pll1|clk[*]}]
 
 # SDRAM delays
 set_input_delay -clock [get_clocks {pll|altpll_component|auto_generated|pll1|clk[0]}] -reference_pin [get_ports {SDRAM_CLK}] -max 6.4 [get_ports SDRAM_DQ[*]]

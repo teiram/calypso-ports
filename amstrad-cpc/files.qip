@@ -1,0 +1,33 @@
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+
+#set_global_assignment -name VERILOG_FILE Amstrad_MiST/sigma_delta_dac.v
+#set_global_assignment -name QIP_FILE Amstrad_MiST/T80/T80.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_MiST/GA40010/ga40010.sv
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/GA40010/syncgen_sync.v
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/GA40010/casgen_sync.v
+set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_MiST/GA40010/video.sv
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/GA40010/rslatch.v
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/crt_filter.v
+set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_MiST/u765/u765.sv
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/i8255.v
+set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_MiST/color_mix.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Amstrad_MiST/hid.sv
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/multiplay_mouse.v
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/symbiface_mouse.v
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/kempston_mouse.v
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/UM6845R.v
+set_global_assignment -name VHDL_FILE Amstrad_MiST/YM2149.vhd
+set_global_assignment -name VHDL_FILE Amstrad_MiST/vol_table_array.vhd
+set_global_assignment -name VERILOG_FILE Amstrad_MiST/Amstrad_motherboard.v
+set_global_assignment -name VHDL_FILE Amstrad_MiST/tzxplayer.vhd
+set_global_assignment -name VHDL_FILE Amstrad_MiST/playcity/playcity.vhd
+set_global_assignment -name QIP_FILE Amstrad_MiST/playcity/Z80CTC/z80ctc.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE amstrad_calypso.sv
+set_global_assignment -name VERILOG_FILE Amstrad_MMU.v
+set_global_assignment -name VERILOG_FILE sdram.v
+set_global_assignment -name SDC_FILE amstrad.sdc
+set_global_assignment -name QIP_FILE pll.qip
+
