@@ -1,5 +1,6 @@
 CORE_ID=atari800
 PROJECT_NAME=atari800_calypso
-VERSION=0.2
+VERSION=0.3
 BITSTREAM_FILE=output_files/atari800_calypso.rbf
 EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
