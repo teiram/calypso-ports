@@ -63,7 +63,7 @@ BEGIN
 		address_aclr_a => "NONE",
 		clock_enable_input_a => "BYPASS",
 		clock_enable_output_a => "BYPASS",
-		init_file => "./c64/rtl/mist/cyc3/pll_c64_pal.mif",
+		init_file => "../pll_rom_pal.mif",
 		intended_device_family => "Cyclone 10 LP",
 		lpm_hint => "ENABLE_RUNTIME_MOD=NO",
 		lpm_type => "altsyncram",
@@ -106,7 +106,7 @@ END SYN;
 -- Retrieval info: PRIVATE: JTAG_ENABLED NUMERIC "0"
 -- Retrieval info: PRIVATE: JTAG_ID STRING "NONE"
 -- Retrieval info: PRIVATE: MAXIMUM_DEPTH NUMERIC "0"
--- Retrieval info: PRIVATE: MIFfilename STRING "./c64/rtl/mist/cyc3/pll_c64_pal.mif"
+-- Retrieval info: PRIVATE: MIFfilename STRING "../pll_rom_pal.mif"
 -- Retrieval info: PRIVATE: NUMWORDS_A NUMERIC "256"
 -- Retrieval info: PRIVATE: RAM_BLOCK_TYPE NUMERIC "0"
 -- Retrieval info: PRIVATE: RegAddr NUMERIC "1"
@@ -121,7 +121,7 @@ END SYN;
 -- Retrieval info: CONSTANT: ADDRESS_ACLR_A STRING "NONE"
 -- Retrieval info: CONSTANT: CLOCK_ENABLE_INPUT_A STRING "BYPASS"
 -- Retrieval info: CONSTANT: CLOCK_ENABLE_OUTPUT_A STRING "BYPASS"
--- Retrieval info: CONSTANT: INIT_FILE STRING "./c64/rtl/mist/cyc3/pll_c64_pal.mif"
+-- Retrieval info: CONSTANT: INIT_FILE STRING "../pll_rom_pal.mif"
 -- Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone 10 LP"
 -- Retrieval info: CONSTANT: LPM_HINT STRING "ENABLE_RUNTIME_MOD=NO"
 -- Retrieval info: CONSTANT: LPM_TYPE STRING "altsyncram"

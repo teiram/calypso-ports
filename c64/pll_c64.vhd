@@ -174,17 +174,17 @@ BEGIN
 	altpll_component : altpll
 	GENERIC MAP (
 		bandwidth_type => "AUTO",
-		clk0_divide_by => 3,
+		clk0_divide_by => 4,
 		clk0_duty_cycle => 50,
-		clk0_multiply_by => 16,
+		clk0_multiply_by => 21,
 		clk0_phase_shift => "0",
-		clk1_divide_by => 3,
+		clk1_divide_by => 8,
 		clk1_duty_cycle => 50,
-		clk1_multiply_by => 8,
+		clk1_multiply_by => 21,
 		clk1_phase_shift => "0",
-		clk2_divide_by => 3,
+		clk2_divide_by => 4,
 		clk2_duty_cycle => 50,
-		clk2_multiply_by => 16,
+		clk2_multiply_by => 21,
 		clk2_phase_shift => "0",
 		compensate_clock => "CLK0",
 		inclk0_input_frequency => 83333,
@@ -236,7 +236,7 @@ BEGIN
 		port_extclk3 => "PORT_UNUSED",
 		self_reset_on_loss_lock => "OFF",
 		width_clock => 5,
-		scan_chain_mif_file => "pll_c64.mif"
+		scan_chain_mif_file => "pll_rom_pal.mif"
 	)
 	PORT MAP (
 		areset => areset,
@@ -280,9 +280,9 @@ END SYN;
 -- Retrieval info: PRIVATE: DUTY_CYCLE0 STRING "50.00000000"
 -- Retrieval info: PRIVATE: DUTY_CYCLE1 STRING "50.00000000"
 -- Retrieval info: PRIVATE: DUTY_CYCLE2 STRING "50.00000000"
--- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE0 STRING "64.000000"
--- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE1 STRING "32.000000"
--- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE2 STRING "64.000000"
+-- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE0 STRING "63.000000"
+-- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE1 STRING "31.500000"
+-- Retrieval info: PRIVATE: EFF_OUTPUT_FREQ_VALUE2 STRING "63.000000"
 -- Retrieval info: PRIVATE: EXPLICIT_SWITCHOVER_COUNTER STRING "0"
 -- Retrieval info: PRIVATE: EXT_FEEDBACK_RADIO STRING "0"
 -- Retrieval info: PRIVATE: GLOCKED_COUNTER_EDIT_CHANGED STRING "1"
@@ -313,12 +313,12 @@ END SYN;
 -- Retrieval info: PRIVATE: MULT_FACTOR1 NUMERIC "21"
 -- Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "21"
 -- Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
--- Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "64.00000000"
--- Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "32.00000000"
--- Retrieval info: PRIVATE: OUTPUT_FREQ2 STRING "64.00000000"
--- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "1"
--- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE1 STRING "1"
--- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE2 STRING "1"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "63.00000000"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "31.52700000"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ2 STRING "63.00000000"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "0"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE1 STRING "0"
+-- Retrieval info: PRIVATE: OUTPUT_FREQ_MODE2 STRING "0"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT0 STRING "MHz"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT1 STRING "MHz"
 -- Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT2 STRING "MHz"
@@ -341,7 +341,7 @@ END SYN;
 -- Retrieval info: PRIVATE: PLL_PFDENA_CHECK STRING "0"
 -- Retrieval info: PRIVATE: PLL_TARGET_HARCOPY_CHECK NUMERIC "0"
 -- Retrieval info: PRIVATE: PRIMARY_CLK_COMBO STRING "inclk0"
--- Retrieval info: PRIVATE: RECONFIG_FILE STRING "pll_c64.mif"
+-- Retrieval info: PRIVATE: RECONFIG_FILE STRING "pll_rom_pal.mif"
 -- Retrieval info: PRIVATE: SACN_INPUTS_CHECK STRING "1"
 -- Retrieval info: PRIVATE: SCAN_FEATURE_ENABLED STRING "1"
 -- Retrieval info: PRIVATE: SELF_RESET_LOCK_LOSS STRING "0"
@@ -368,17 +368,17 @@ END SYN;
 -- Retrieval info: PRIVATE: ZERO_DELAY_RADIO STRING "0"
 -- Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 -- Retrieval info: CONSTANT: BANDWIDTH_TYPE STRING "AUTO"
--- Retrieval info: CONSTANT: CLK0_DIVIDE_BY NUMERIC "3"
+-- Retrieval info: CONSTANT: CLK0_DIVIDE_BY NUMERIC "4"
 -- Retrieval info: CONSTANT: CLK0_DUTY_CYCLE NUMERIC "50"
--- Retrieval info: CONSTANT: CLK0_MULTIPLY_BY NUMERIC "16"
+-- Retrieval info: CONSTANT: CLK0_MULTIPLY_BY NUMERIC "21"
 -- Retrieval info: CONSTANT: CLK0_PHASE_SHIFT STRING "0"
--- Retrieval info: CONSTANT: CLK1_DIVIDE_BY NUMERIC "3"
+-- Retrieval info: CONSTANT: CLK1_DIVIDE_BY NUMERIC "8"
 -- Retrieval info: CONSTANT: CLK1_DUTY_CYCLE NUMERIC "50"
--- Retrieval info: CONSTANT: CLK1_MULTIPLY_BY NUMERIC "8"
+-- Retrieval info: CONSTANT: CLK1_MULTIPLY_BY NUMERIC "21"
 -- Retrieval info: CONSTANT: CLK1_PHASE_SHIFT STRING "0"
--- Retrieval info: CONSTANT: CLK2_DIVIDE_BY NUMERIC "3"
+-- Retrieval info: CONSTANT: CLK2_DIVIDE_BY NUMERIC "4"
 -- Retrieval info: CONSTANT: CLK2_DUTY_CYCLE NUMERIC "50"
--- Retrieval info: CONSTANT: CLK2_MULTIPLY_BY NUMERIC "16"
+-- Retrieval info: CONSTANT: CLK2_MULTIPLY_BY NUMERIC "21"
 -- Retrieval info: CONSTANT: CLK2_PHASE_SHIFT STRING "0"
 -- Retrieval info: CONSTANT: COMPENSATE_CLOCK STRING "CLK0"
 -- Retrieval info: CONSTANT: INCLK0_INPUT_FREQUENCY NUMERIC "83333"
@@ -429,7 +429,7 @@ END SYN;
 -- Retrieval info: CONSTANT: PORT_extclk3 STRING "PORT_UNUSED"
 -- Retrieval info: CONSTANT: SELF_RESET_ON_LOSS_LOCK STRING "OFF"
 -- Retrieval info: CONSTANT: WIDTH_CLOCK NUMERIC "5"
--- Retrieval info: CONSTANT: scan_chain_mif_file STRING "pll_c64.mif"
+-- Retrieval info: CONSTANT: scan_chain_mif_file STRING "pll_rom_pal.mif"
 -- Retrieval info: USED_PORT: @clk 0 0 5 0 OUTPUT_CLK_EXT VCC "@clk[4..0]"
 -- Retrieval info: USED_PORT: @inclk 0 0 2 0 INPUT_CLK_EXT VCC "@inclk[1..0]"
 -- Retrieval info: USED_PORT: areset 0 0 0 0 INPUT GND "areset"
@@ -464,5 +464,6 @@ END SYN;
 -- Retrieval info: GEN_FILE: TYPE_NORMAL pll_c64.bsf FALSE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL pll_c64_inst.vhd FALSE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL pll_c64.mif TRUE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL pll_rom_pal.mif TRUE
 -- Retrieval info: LIB_FILE: altera_mf
 -- Retrieval info: CBX_MODULE_PREFIX: ON
