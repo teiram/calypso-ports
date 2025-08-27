@@ -18,8 +18,8 @@
 --    Device Part: -
 --    Device Speed Grade: -
 --    PLL Scan Chain: Fast PLL (144 bits)
---    File Name: /home/mteira/src/cyc1000/software/calypso-ports/vic20/pll_vic20_pal.mif
---    Generated: Wed Aug 27 17:04:13 2025
+--    File Name: /home/mteira/src/cyc1000/software/calypso-ports/vic20/pll_vic20_ntsc.mif
+--    Generated: Wed Aug 27 17:02:57 2025
 
 WIDTH=1;
 DEPTH=144;
@@ -32,8 +32,8 @@ CONTENT BEGIN
 	1    :   0; -- Reserved Bits = 0 (1 bit(s))
 	2    :   0; -- Loop Filter Capacitance = 0 (2 bit(s)) (Setting 0)
 	3    :   0;
-	4    :   1; -- Loop Filter Resistance = 16 (5 bit(s)) (Setting 16)
-	5    :   0;
+	4    :   0; -- Loop Filter Resistance = 8 (5 bit(s)) (Setting 8)
+	5    :   1;
 	6    :   0;
 	7    :   0;
 	8    :   0;
@@ -65,41 +65,41 @@ CONTENT BEGIN
 	34   :   0;
 	35   :   1;
 	36   :   0; -- M counter: Bypass = 0 (1 bit(s))
-	37   :   0; -- M counter: High Count = 36 (8 bit(s))
+	37   :   0; -- M counter: High Count = 53 (8 bit(s))
 	38   :   0;
 	39   :   1;
-	40   :   0;
+	40   :   1;
 	41   :   0;
 	42   :   1;
 	43   :   0;
-	44   :   0;
+	44   :   1;
 	45   :   1; -- M counter: Odd Division = 1 (1 bit(s))
-	46   :   0; -- M counter: Low Count = 35 (8 bit(s))
+	46   :   0; -- M counter: Low Count = 52 (8 bit(s))
 	47   :   0;
 	48   :   1;
-	49   :   0;
+	49   :   1;
 	50   :   0;
-	51   :   0;
-	52   :   1;
-	53   :   1;
+	51   :   1;
+	52   :   0;
+	53   :   0;
 	54   :   0; -- clk0 counter: Bypass = 0 (1 bit(s))
-	55   :   0; -- clk0 counter: High Count = 6 (8 bit(s))
+	55   :   0; -- clk0 counter: High Count = 11 (8 bit(s))
 	56   :   0;
 	57   :   0;
 	58   :   0;
-	59   :   0;
-	60   :   1;
+	59   :   1;
+	60   :   0;
 	61   :   1;
-	62   :   0;
+	62   :   1;
 	63   :   0; -- clk0 counter: Odd Division = 0 (1 bit(s))
-	64   :   0; -- clk0 counter: Low Count = 6 (8 bit(s))
+	64   :   0; -- clk0 counter: Low Count = 11 (8 bit(s))
 	65   :   0;
 	66   :   0;
 	67   :   0;
-	68   :   0;
-	69   :   1;
+	68   :   1;
+	69   :   0;
 	70   :   1;
-	71   :   0;
+	71   :   1;
 	72   :   1; -- clk1 counter: Bypass = 1 (1 bit(s))
 	73   :   0; -- clk1 counter: High Count = 0 (8 bit(s))
 	74   :   0;

@@ -20,98 +20,50 @@
 
 `default_nettype none
 
-module vic20_calypso
-(
-	input         CLK12M,
-`ifdef USE_CLOCK_50
-	input         CLOCK_50,
-`endif
+module vic20_calypso (
+    input CLK12M,
 
-	output          [7:0] LED,
-	output [VGA_BITS-1:0] VGA_R,
-	output [VGA_BITS-1:0] VGA_G,
-	output [VGA_BITS-1:0] VGA_B,
-	output        VGA_HS,
-	output        VGA_VS,
+    output [7:0] LED,
+    output [VGA_BITS-1:0] VGA_R,
+    output [VGA_BITS-1:0] VGA_G,
+    output [VGA_BITS-1:0] VGA_B,
+    output VGA_HS,
+    output VGA_VS,
 
-`ifdef USE_HDMI
-	output        HDMI_RST,
-	output  [7:0] HDMI_R,
-	output  [7:0] HDMI_G,
-	output  [7:0] HDMI_B,
-	output        HDMI_HS,
-	output        HDMI_VS,
-	output        HDMI_PCLK,
-	output        HDMI_DE,
-	inout         HDMI_SDA,
-	inout         HDMI_SCL,
-	input         HDMI_INT,
-`endif
+    input SPI_SCK,
+    inout SPI_DO,
+    input SPI_DI,
+    input SPI_SS2,
+    input SPI_SS3,
+    input CONF_DATA0,
 
-	input         SPI_SCK,
-	inout         SPI_DO,
-	input         SPI_DI,
-	input         SPI_SS2,    // data_io
-	input         SPI_SS3,    // OSD
-	input         CONF_DATA0, // SPI_SS for user_io
-
-`ifdef USE_QSPI
-	input         QSCK,
-	input         QCSn,
-	inout   [3:0] QDAT,
-`endif
 `ifndef NO_DIRECT_UPLOAD
-	input         SPI_SS4,
+    input SPI_SS4,
 `endif
 
-	output [11:0] SDRAM_A,
-	inout  [15:0] SDRAM_DQ,
-	output        SDRAM_DQML,
-	output        SDRAM_DQMH,
-	output        SDRAM_nWE,
-	output        SDRAM_nCAS,
-	output        SDRAM_nRAS,
-	output        SDRAM_nCS,
-	output  [1:0] SDRAM_BA,
-	output        SDRAM_CLK,
-	output        SDRAM_CKE,
+    output [11:0] SDRAM_A,
+    inout [15:0] SDRAM_DQ,
+    output SDRAM_DQML,
+    output SDRAM_DQMH,
+    output SDRAM_nWE,
+    output SDRAM_nCAS,
+    output SDRAM_nRAS,
+    output SDRAM_nCS,
+    output [1:0] SDRAM_BA,
+    output SDRAM_CLK,
+    output SDRAM_CKE,
 
-`ifdef DUAL_SDRAM
-	output [12:0] SDRAM2_A,
-	inout  [15:0] SDRAM2_DQ,
-	output        SDRAM2_DQML,
-	output        SDRAM2_DQMH,
-	output        SDRAM2_nWE,
-	output        SDRAM2_nCAS,
-	output        SDRAM2_nRAS,
-	output        SDRAM2_nCS,
-	output  [1:0] SDRAM2_BA,
-	output        SDRAM2_CLK,
-	output        SDRAM2_CKE,
-`endif
-
-	output        AUDIO_L,
-	output        AUDIO_R,
 `ifdef I2S_AUDIO
-	output        I2S_BCK,
-	output        I2S_LRCK,
-	output        I2S_DATA,
+    output I2S_BCK,
+    output I2S_LRCK,
+    output I2S_DATA,
 `endif
-`ifdef I2S_AUDIO_HDMI
-	output        HDMI_MCLK,
-	output        HDMI_BCK,
-	output        HDMI_LRCK,
-	output        HDMI_SDATA,
-`endif
-`ifdef SPDIF_AUDIO
-	output        SPDIF,
-`endif
-`ifdef USE_AUDIO_IN
-	input         AUDIO_IN,
-`endif
-	input         UART_RX,
-	output        UART_TX
 
+`ifdef USE_AUDIO_IN
+    input AUDIO_IN,
+`endif
+    input UART_RX,
+    output UART_TX
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -149,21 +101,6 @@ localparam bit BIG_OSD = 0;
 `define SEP
 `endif
 
-// remove this if the 2nd chip is actually used
-`ifdef DUAL_SDRAM
-assign SDRAM2_A = 13'hZZZZ;
-assign SDRAM2_BA = 0;
-assign SDRAM2_DQML = 0;
-assign SDRAM2_DQMH = 0;
-assign SDRAM2_CKE = 0;
-assign SDRAM2_CLK = 0;
-assign SDRAM2_nCS = 1;
-assign SDRAM2_DQ = 16'hZZZZ;
-assign SDRAM2_nCAS = 1;
-assign SDRAM2_nRAS = 1;
-assign SDRAM2_nWE = 1;
-`endif
-
 `include "build_id.v"
 
 assign LED[0] =  ~ioctl_download & ~led_disk & cass_motor;
@@ -171,8 +108,7 @@ assign UART_TX = ~cass_motor;
 
 localparam TAP_MEM_START = 22'h20000;
 
-localparam CONF_STR =
-{
+localparam CONF_STR = {
     "VIC20;PRGCRTTAP;",
     "S0U,D64,Mount Disk;",
     "TC,Play/Stop TAP;",
@@ -196,7 +132,7 @@ localparam CONF_STR =
     `SEP
     "T0,Reset;",
     "T1,Reset with cart unload;",
-    "V,v1.0.",`BUILD_DATE
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 reg uart_rxD;
@@ -204,8 +140,8 @@ reg uart_rxD2;
 
 // UART_RX synchronizer
 always @(posedge clk_sys) begin
-	uart_rxD <= UART_RX;
-	uart_rxD2 <= uart_rxD;
+    uart_rxD <= UART_RX;
+    uart_rxD2 <= uart_rxD;
 end
 
 wire ear_input;
@@ -213,8 +149,8 @@ wire ear_input;
 reg ainD;
 reg ainD2;
 always @(posedge clk_sys) begin
-        ainD <= AUDIO_IN;
-        ainD2 <= ainD;
+    ainD <= AUDIO_IN;
+    ainD2 <= ainD;
 end
 assign ear_input = ainD2;
 `else
@@ -228,8 +164,8 @@ wire clk_1541 = clk_32;
 reg clk8m;
 wire pll_locked;
 reg clk_ref; //sync sdram to during prg downloading
-reg  reset;
-reg  c1541_reset;
+reg reset;
+reg c1541_reset;
 reg cart_unload;
 reg force_reset;
 
@@ -250,16 +186,14 @@ wire       pll_reconfig;
 wire       q_reconfig_ntsc;
 wire       q_reconfig_pal;
 
-rom_reconfig_pal rom_reconfig_pal
-(
+rom_reconfig_pal rom_reconfig_pal (
     .address(pll_rom_address),
     .clock(clk_32),
     .rden(pll_write_rom_ena),
     .q(q_reconfig_pal)
 );
 
-rom_reconfig_ntsc rom_reconfig_ntsc
-(
+rom_reconfig_ntsc rom_reconfig_ntsc (
     .address(pll_rom_address),
     .clock(clk_32),
     .rden(pll_write_rom_ena),
@@ -268,8 +202,7 @@ rom_reconfig_ntsc rom_reconfig_ntsc
 
 assign pll_rom_q = st_ntsc ? q_reconfig_ntsc : q_reconfig_pal;
 
-pll_reconfig pll_reconfig_inst
-(
+pll_reconfig pll_reconfig_inst (
     .busy(pll_reconfig_busy),
     .clock(clk_32),
     .counter_param(0),
@@ -294,8 +227,7 @@ pll_reconfig pll_reconfig_inst
     .write_rom_ena(pll_write_rom_ena)
 );
 
-pll_vic20 pll_vic20
-(
+pll_vic20 pll_vic20 (
     .inclk0(CLK12M),
     .c0(clk_sys),  //35.48 MHz PAL, 28.63 MHz NTSC
     .areset(pll_areset),
@@ -348,8 +280,7 @@ always @(posedge clk_32) begin
     endcase
 end
 
-pll27 pll
-(
+pll27 pll (
     .inclk0(CLK12M),
     .c0(clk_32) //32 MHz
 );
@@ -442,7 +373,7 @@ wire        i2c_ack;
 wire        i2c_end;
 `endif
 
-user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))) user_io
+user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD << 13))) user_io
 (
     .clk_sys(clk_sys),
     .clk_sd(clk_1541),
@@ -463,17 +394,6 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD
     .joystick_1(joystick_1),
     .ps2_kbd_clk(ps2Clk),
     .ps2_kbd_data(ps2Data),
-
-`ifdef USE_HDMI
-    .i2c_start      (i2c_start      ),
-    .i2c_read       (i2c_read       ),
-    .i2c_addr       (i2c_addr       ),
-    .i2c_subaddr    (i2c_subaddr    ),
-    .i2c_dout       (i2c_dout       ),
-    .i2c_din        (i2c_din        ),
-    .i2c_ack        (i2c_ack        ),
-    .i2c_end        (i2c_end        ),
-`endif
 
     .sd_lba(sd_lba),
     .sd_rd(sd_rd),
@@ -496,8 +416,7 @@ wire  [7:0] col_out;
 wire [11:1] fn_keys;
 wire  [2:0] mod_keys;
 
-keyboard keyboard
-(
+keyboard keyboard (
     .reset(reset),
     .clk_sys(clk_sys),
     .ps2_kbd_clk(ps2Clk),
@@ -523,8 +442,7 @@ wire vic_ram123_sel;
 wire [7:0] to_vic;
 wire [7:0] from_vic;
 
-vic20 #(.I_EXTERNAL_ROM(1'b1)) VIC20
-(
+vic20 #(.I_EXTERNAL_ROM(1'b1)) VIC20 (
     .I_SYSCLK(clk_sys),
     .I_SYSCLK_EN(clk8m),
     .I_PAUSE(ioctl_download),
@@ -597,7 +515,7 @@ wire        p2_h;
 wire [22:0] sdram_vic20_a_adj =
     cart_unload ? 16'ha004 : 
     sdram_vic20_a[15:13] == 3'b111 ? { st_ntsc, sdram_vic20_a } : // NTSC/PAL Kernal
-	 mc_sdram_addr;
+    mc_sdram_addr;
 //   sdram_vic20_a;
 
 always_comb begin
@@ -618,54 +536,52 @@ wire mc_qm;
 
 megacart mc
 (
-	.clk(clk_sys),
-	.reset_n(pll_locked & !st_cart_unload & !force_reset),
-	.active(st_megacart),
-	.vic_addr(sdram_vic20_a),
-	.vic_wr_n(vic_wr_n),
-//	.vic_sdram_en(sdram_en),
-	.vic_io2_sel(vic_io2_sel),
-	.vic_io3_sel(vic_io3_sel),
-	.vic_blk123_sel(vic_blk123_sel),
-	.vic_blk5_sel(vic_blk5_sel),
-	.vic_ram123_sel(vic_ram123_sel),
-	.from_vic(from_vic),
-	.to_vic(mc_to_vic),
-	.mc_addr(mc_sdram_addr),
-	.mc_wr_n(mc_sdram_wr_n),
-	.mc_rom_sel(mc_rom_sel),
-	.mc_nvram_sel(mc_nvram_sel),
-	.mc_qm(mc_qm),
-//	.mc_sdram_en(mc_sdram_en),
-	.mc_soft_reset(mc_reset)
+    .clk(clk_sys),
+    .reset_n(pll_locked & !st_cart_unload & !force_reset),
+    .active(st_megacart),
+    .vic_addr(sdram_vic20_a),
+    .vic_wr_n(vic_wr_n),
+    
+    .vic_io2_sel(vic_io2_sel),
+    .vic_io3_sel(vic_io3_sel),
+    .vic_blk123_sel(vic_blk123_sel),
+    .vic_blk5_sel(vic_blk5_sel),
+    .vic_ram123_sel(vic_ram123_sel),
+    .from_vic(from_vic),
+    .to_vic(mc_to_vic),
+    .mc_addr(mc_sdram_addr),
+    .mc_wr_n(mc_sdram_wr_n),
+    .mc_rom_sel(mc_rom_sel),
+    .mc_nvram_sel(mc_nvram_sel),
+    .mc_qm(mc_qm),
+    .mc_soft_reset(mc_reset)
 );
 
 wire [7:0] mc_nvram_out;
 
-megacart_nvram nvr
-(
-	// VIC20 interface
-	.clk_a          ( clk_sys         ),
-	.reset_n        ( pll_locked & !st_cart_unload ),
-	.a_a            ( sdram_vic20_a   ),
-	.d_a            ( from_vic        ),
-	.q_a            ( mc_nvram_out    ),
-	.we_a           ( mc_nvram_sel & ~mc_sdram_wr_n ),
-	// UserIO interface
-	.clk_b          ( clk_1541        ),
-	.readnv         ( img_mounted[1]  ),
-	.writenv        ( st_writenv      ),
-	.uio_busy       ( sd_busy_1541    ),
-	.nvram_sel      ( uio_sel_nvram   ),
-	.sd_lba         ( sd_lba_nvram    ),
-	.sd_rd          ( sd_rd_nvram     ),
-	.sd_wr          ( sd_wr_nvram     ),
-	.sd_ack         ( sd_ack_nvram    ),
-	.sd_buff_din    ( sd_din_nvram    ),
-	.sd_buff_dout   ( sd_dout         ),
-	.sd_buff_wr     ( sd_strobe_nvram ),
-	.sd_buff_addr   ( sd_buff_addr    ),
-	.img_size       ( img_size )
+megacart_nvram nvr (
+    // VIC20 interface
+    .clk_a(clk_sys),
+    .reset_n(pll_locked & !st_cart_unload),
+    .a_a(sdram_vic20_a),
+    .d_a(from_vic),
+    .q_a(mc_nvram_out),
+    .we_a(mc_nvram_sel & ~mc_sdram_wr_n),
+    // UserIO interface
+    .clk_b(clk_1541),
+    .readnv(img_mounted[1]),
+    .writenv(st_writenv),
+    .uio_busy(sd_busy_1541),
+    .nvram_sel(uio_sel_nvram),
+    .sd_lba(sd_lba_nvram),
+    .sd_rd(sd_rd_nvram),
+    .sd_wr(sd_wr_nvram),
+    .sd_ack(sd_ack_nvram),
+    .sd_buff_din(sd_din_nvram),
+    .sd_buff_dout(sd_dout),
+    .sd_buff_wr(sd_strobe_nvram),
+    .sd_buff_addr(sd_buff_addr),
+    .img_size(img_size)
 );
 
 
@@ -676,16 +592,16 @@ assign to_vic = mc_qm ? mc_to_vic : (mc_nvram_sel ? mc_nvram_out : sdram_out);
 
 wire [7:0] sdram_in;
 assign sdram_in =
-	(megacart_download | rom_download | prg_download | tap_download) ? ioctl_dout
-		: from_vic;
+    (megacart_download | rom_download | prg_download | tap_download) ? ioctl_dout
+        : from_vic;
 
 wire sdram_we;
 assign sdram_we = (sdram_en & ~mc_sdram_wr_n) || // Write originates from VIC20
-	cart_unload ||
-	( ioctl_ram_wr &&
-		(((rom_download || prg_download) && !ioctl_internal_memory_wr) ||
-		(megacart_download || tap_download))
-	);
+    cart_unload ||
+    ( ioctl_ram_wr &&
+        (((rom_download || prg_download) && !ioctl_internal_memory_wr) ||
+        (megacart_download || tap_download))
+    );
 
 wire sdram_oe;
 assign sdram_oe = p2_h ? sdram_en & mc_sdram_wr_n : tap_sdram_oe;
@@ -728,17 +644,17 @@ reg   [7:0] ioctl_reg_data;
 
 data_io data_io (
     // SPI interface
-    .SPI_SCK        ( SPI_SCK ),
-    .SPI_SS2        ( SPI_SS2 ),
-    .SPI_DI         ( SPI_DI  ),
+    .SPI_SCK(SPI_SCK),
+    .SPI_SS2(SPI_SS2),
+    .SPI_DI(SPI_DI),
     // ram interface
-    .clk_sys        ( clk_sys ),
-    .clkref_n       ( ~clk_ref  ),
-    .ioctl_download ( ioctl_download ),
-    .ioctl_index    ( ioctl_index ),
-    .ioctl_wr       ( ioctl_wr ),
-    .ioctl_addr     ( ioctl_addr ),
-    .ioctl_dout     ( ioctl_dout )
+    .clk_sys(clk_sys),
+    .clkref_n(~clk_ref),
+    .ioctl_download(ioctl_download),
+    .ioctl_index(ioctl_index),
+    .ioctl_wr(ioctl_wr),
+    .ioctl_addr(ioctl_addr),
+    .ioctl_dout(ioctl_dout)
 );
 
 always_comb begin
@@ -800,15 +716,15 @@ always @(posedge clk_sys) begin
     if (old_prg_download & ~prg_download) ioctl_reg_inject_state <= 1;
     
     case (ioctl_reg_inject_state)
-		 1: begin ioctl_reg_addr <= 16'h2d; ioctl_reg_data <= ioctl_prg_addr[7:0];  ioctl_ram_wr <= 1; end
-		 3: begin ioctl_reg_addr <= 16'h2e; ioctl_reg_data <= ioctl_prg_addr[15:8]; ioctl_ram_wr <= 1; end
-		 5: begin ioctl_reg_addr <= 16'h2f; ioctl_reg_data <= ioctl_prg_addr[7:0];  ioctl_ram_wr <= 1; end
-		 7: begin ioctl_reg_addr <= 16'h30; ioctl_reg_data <= ioctl_prg_addr[15:8]; ioctl_ram_wr <= 1; end
-		 9: begin ioctl_reg_addr <= 16'h31; ioctl_reg_data <= ioctl_prg_addr[7:0];  ioctl_ram_wr <= 1; end
-		11: begin ioctl_reg_addr <= 16'h32; ioctl_reg_data <= ioctl_prg_addr[15:8]; ioctl_ram_wr <= 1; end
-		13: begin ioctl_reg_addr <= 16'hae; ioctl_reg_data <= ioctl_prg_addr[7:0];  ioctl_ram_wr <= 1; end
-		15: begin ioctl_reg_addr <= 16'haf; ioctl_reg_data <= ioctl_prg_addr[15:8]; ioctl_ram_wr <= 1; end
-		31: begin force_reset <= auto_reset; auto_reset <= 0; end
+        1: begin ioctl_reg_addr <= 16'h2d; ioctl_reg_data <= ioctl_prg_addr[7:0];  ioctl_ram_wr <= 1; end
+        3: begin ioctl_reg_addr <= 16'h2e; ioctl_reg_data <= ioctl_prg_addr[15:8]; ioctl_ram_wr <= 1; end
+        5: begin ioctl_reg_addr <= 16'h2f; ioctl_reg_data <= ioctl_prg_addr[7:0];  ioctl_ram_wr <= 1; end
+        7: begin ioctl_reg_addr <= 16'h30; ioctl_reg_data <= ioctl_prg_addr[15:8]; ioctl_ram_wr <= 1; end
+        9: begin ioctl_reg_addr <= 16'h31; ioctl_reg_data <= ioctl_prg_addr[7:0];  ioctl_ram_wr <= 1; end
+        11: begin ioctl_reg_addr <= 16'h32; ioctl_reg_data <= ioctl_prg_addr[15:8]; ioctl_ram_wr <= 1; end
+        13: begin ioctl_reg_addr <= 16'hae; ioctl_reg_data <= ioctl_prg_addr[7:0];  ioctl_ram_wr <= 1; end
+        15: begin ioctl_reg_addr <= 16'haf; ioctl_reg_data <= ioctl_prg_addr[15:8]; ioctl_ram_wr <= 1; end
+        31: begin force_reset <= auto_reset; auto_reset <= 0; end
     endcase
 
     if (ioctl_reg_inject_state) ioctl_reg_inject_state <= ioctl_reg_inject_state + 1'd1;
@@ -883,59 +799,25 @@ wire [15:0] audio_sel = st_audio_filter ? vic_audio_filtered : vic_audio;
 wire [15:0] cass_audio = { 1'd0, (~cass_read | (cass_write & ~cass_motor & ~cass_sense)), 11'd0 };  // silence cass_write when motor is off because bit is in common with keyboard
 wire [16:0] audio_out = st_tape_sound ? audio_sel + cass_audio : audio_sel;
 
-sigma_delta_dac #(15) dac_l
-(
-    .CLK(clk_sys),
-    .RESET(reset),
-    .DACin(audio_out[16] ? 16'hffff : audio_out),
-    .DACout(AUDIO_L)
-);
-
-sigma_delta_dac #(15) dac_r
-(
-    .CLK(clk_sys),
-    .RESET(reset),
-    .DACin(audio_out[16] ? 16'hffff : audio_out),
-    .DACout(AUDIO_R)
-);
-
 wire [31:0] vic20_clk_rate = st_ntsc ? 32'd28_630_000 : 32'd35_480_000;
 
 `ifdef I2S_AUDIO
 i2s i2s (
-	.reset(1'b0),
-	.clk(clk_sys),
-	.clk_rate(vic20_clk_rate),
+    .reset(1'b0),
+    .clk(clk_sys),
+    .clk_rate(vic20_clk_rate),
 
-	.sclk(I2S_BCK),
-	.lrclk(I2S_LRCK),
-	.sdata(I2S_DATA),
+    .sclk(I2S_BCK),
+    .lrclk(I2S_LRCK),
+    .sdata(I2S_DATA),
 
-	.left_chan(audio_out[16] ? 16'h7fff : {~audio_out[15], audio_out[14:0]}),
-	.right_chan(audio_out[16] ? 16'h7fff : {~audio_out[15], audio_out[14:0]})
+    .left_chan(audio_out[16] ? 16'h7fff : {~audio_out[15], audio_out[14:0]}),
+    .right_chan(audio_out[16] ? 16'h7fff : {~audio_out[15], audio_out[14:0]})
 );
 `endif
 
-`ifdef SPDIF_AUDIO
-spdif spdif
-(
-	.clk_i(clk_sys),
-	.rst_i(reset),
-	.clk_rate_i(vic20_clk_rate),
-	.spdif_o(SPDIF),
-	.sample_i({2{audio_out[16] ? 16'h7fff : {~audio_out[15], audio_out[14:0]}}})
-);
-`ifdef I2S_AUDIO_HDMI
-assign HDMI_MCLK = 0;
-always @(posedge clk_sys) begin
-	HDMI_BCK <= I2S_BCK;
-	HDMI_LRCK <= I2S_LRCK;
-	HDMI_SDATA <= I2S_DATA;
-end
-`endif
-`endif
+
 //////////////////   VIDEO   //////////////////
-
 wire  [3:0] R_O;
 wire  [3:0] G_O;
 wire  [3:0] B_O;
@@ -945,45 +827,53 @@ wire        DE_O;
 
 wire        hs,vs;
 
-mist_video #(.COLOR_DEPTH(4), .OSD_COLOR(3'd5), .SD_HCNT_WIDTH(10), .OUT_COLOR_DEPTH(VGA_BITS), .BIG_OSD(BIG_OSD)) mist_video (
-    .clk_sys     ( clk_sys    ),
+mist_video #(
+    .COLOR_DEPTH(4),
+    .OSD_COLOR(3'd5),
+    .SD_HCNT_WIDTH(10),
+    .OUT_COLOR_DEPTH(VGA_BITS),
+    .BIG_OSD(BIG_OSD)) 
+    
+    mist_video (
+    
+    .clk_sys(clk_sys),
 
     // OSD SPI interface
-    .SPI_SCK     ( SPI_SCK    ),
-    .SPI_SS3     ( SPI_SS3    ),
-    .SPI_DI      ( SPI_DI     ),
+    .SPI_SCK(SPI_SCK),
+    .SPI_SS3(SPI_SS3),
+    .SPI_DI(SPI_DI),
 
     // scanlines (00-none 01-25% 10-50% 11-75%)
-    .scanlines   ( st_scanlines  ),
+    .scanlines(st_scanlines),
 
     // non-scandoubled pixel clock divider 0 - clk_sys/4, 1 - clk_sys/2
-    .ce_divider  ( 1'b0       ),
+    .ce_divider(3'd0),
 
     // 0 = HVSync 31KHz, 1 = CSync 15KHz
-    .scandoubler_disable ( scandoubler_disable ),
+    .scandoubler_disable(scandoubler_disable),
     // disable csync without scandoubler
-    .no_csync    ( no_csync   ),
+    .no_csync(no_csync),
     // YPbPr always uses composite sync
-    .ypbpr       ( ypbpr      ),
+    .ypbpr(ypbpr),
     // Rotate OSD [0] - rotate [1] - left or right
-    .rotate      ( 2'b00      ),
+    .rotate(2'b00),
     // composite-like blending
-    .blend       ( st_blend   ),
+    .blend(st_blend),
 
     // video in
-    .R           ( R_O        ),
-    .G           ( G_O        ),
-    .B           ( B_O        ),
+    .R(R_O),
+    .G(G_O),
+    .B(B_O),
 
-    .HSync       ( HS_O       ),
-    .VSync       ( VS_O       ),
+    .HSync(HS_O),
+    .VSync(VS_O),
 
     // MiST video output signals
-    .VGA_R       ( VGA_R      ),
-    .VGA_G       ( VGA_G      ),
-    .VGA_B       ( VGA_B      ),
-    .VGA_VS      ( vs         ),
-    .VGA_HS      ( hs         )
+    .VGA_R(VGA_R),
+    .VGA_G(VGA_G),
+    .VGA_B(VGA_B),
+    .VGA_VS(vs),
+    .VGA_HS(hs)
 );
 
 // Use different alignment of csync @15kHz
@@ -991,69 +881,7 @@ wire   cs = ~(~HS_O | ~VS_O);
 assign VGA_HS = (~no_csync & scandoubler_disable & ~ypbpr) ? cs : hs;
 assign VGA_VS = (~no_csync & scandoubler_disable & ~ypbpr) ? 1'b1 : vs;
 
-`ifdef USE_HDMI
-i2c_master #(35_480_000) i2c_master (
-	.CLK         (clk_sys),
-	.I2C_START   (i2c_start),
-	.I2C_READ    (i2c_read),
-	.I2C_ADDR    (i2c_addr),
-	.I2C_SUBADDR (i2c_subaddr),
-	.I2C_WDATA   (i2c_dout),
-	.I2C_RDATA   (i2c_din),
-	.I2C_END     (i2c_end),
-	.I2C_ACK     (i2c_ack),
 
-	//I2C bus
-	.I2C_SCL     (HDMI_SCL),
-	.I2C_SDA     (HDMI_SDA)
-);
-
-mist_video #(.COLOR_DEPTH(4), .OSD_COLOR(3'd5), .SD_HCNT_WIDTH(10), .OUT_COLOR_DEPTH(8), .USE_BLANKS(1'b1), .BIG_OSD(BIG_OSD), .VIDEO_CLEANER(1'b1)) hdmi_video (
-    .clk_sys     ( clk_sys    ),
-
-    // OSD SPI interface
-    .SPI_SCK     ( SPI_SCK    ),
-    .SPI_SS3     ( SPI_SS3    ),
-    .SPI_DI      ( SPI_DI     ),
-
-    // scanlines (00-none 01-25% 10-50% 11-75%)
-    .scanlines   ( st_scanlines  ),
-
-    // non-scandoubled pixel clock divider 0 - clk_sys/4, 1 - clk_sys/2
-    .ce_divider  ( 1'b0       ),
-
-    // 0 = HVSync 31KHz, 1 = CSync 15KHz
-    .scandoubler_disable ( 1'b0 ),
-    // disable csync without scandoubler
-    .no_csync    ( 1'b1       ),
-    // YPbPr always uses composite sync
-    .ypbpr       ( 1'b0       ),
-    // Rotate OSD [0] - rotate [1] - left or right
-    .rotate      ( 2'b00      ),
-    // composite-like blending
-    .blend       ( st_blend   ),
-
-    // video in
-    .R           ( R_O        ),
-    .G           ( G_O        ),
-    .B           ( B_O        ),
-
-    .HSync       ( HS_O       ),
-    .VSync       ( VS_O       ),
-    .HBlank      ( ~DE_O      ),
-    .VBlank      ( ~VS_O      ),
-
-    // MiST video output signals
-    .VGA_R       ( HDMI_R     ),
-    .VGA_G       ( HDMI_G     ),
-    .VGA_B       ( HDMI_B     ),
-    .VGA_VS      ( HDMI_VS    ),
-    .VGA_HS      ( HDMI_HS    ),
-    .VGA_DE      ( HDMI_DE    )
-);
-assign HDMI_PCLK = clk_sys;
-
-`endif
 
 //////////////////   DISK   //////////////////
 
@@ -1067,8 +895,7 @@ wire c1541_iec_data_o;
 wire c1541_iec_clk_o;
 
 reg disk_present;
-always @(posedge clk_1541)
-	disk_present <= |img_size;
+always @(posedge clk_1541) disk_present <= |img_size;
 
 reg c1541_reset_32_d;
 reg c1541_reset_32;
@@ -1076,39 +903,39 @@ reg c1541_reset_32;
 // Sync reset to the 32MHz domain since some of the logic inside
 // the emulated drive uses synchronous resets.
 always @(posedge clk_1541) begin
-	c1541_reset_32_d<=c1541_reset;
-	c1541_reset_32<=c1541_reset_32_d;
+    c1541_reset_32_d<=c1541_reset;
+    c1541_reset_32<=c1541_reset_32_d;
 end
 
 c1541_sd c1541_sd (
-    .clk32 ( clk_1541 ),
-    .reset ( c1541_reset_32 ),
+    .clk32(clk_1541),
+    .reset(c1541_reset_32),
 
-    .disk_change ( img_mounted[0] ),
-    .disk_mount ( disk_present),
-    .disk_num ( 10'd0 ), // always 0 on MiST, the image is selected by the OSD menu
+    .disk_change(img_mounted[0]),
+    .disk_mount(disk_present),
+    .disk_num(10'd0), // always 0 on MiST, the image is selected by the OSD menu
 
-    .iec_atn_i  ( vic20_iec_atn_o  ),
-    .iec_data_i ( vic20_iec_data_o ),
-    .iec_clk_i  ( vic20_iec_clk_o  ),
-    .iec_data_o ( c1541_iec_data_o ),
-    .iec_clk_o  ( c1541_iec_clk_o ),
+    .iec_atn_i(vic20_iec_atn_o),
+    .iec_data_i(vic20_iec_data_o),
+    .iec_clk_i(vic20_iec_clk_o),
+    .iec_data_o(c1541_iec_data_o),
+    .iec_clk_o(c1541_iec_clk_o),
 
-    .sd_lba         ( sd_lba_1541    ),
-    .sd_rd          ( sd_rd_1541     ),
-    .sd_wr          ( sd_wr_1541     ),
-    .sd_ack         ( sd_ack_1541    ),
-    .sd_buff_din    ( sd_din_1541    ),
-    .sd_buff_dout   ( sd_dout        ),
-    .sd_buff_wr     ( sd_strobe_1541 ),
-    .sd_buff_addr   ( sd_buff_addr   ),
-    .sd_busy_o      ( sd_busy_1541   ),
-    .led            ( led_disk       ),
+    .sd_lba(sd_lba_1541),
+    .sd_rd(sd_rd_1541),
+    .sd_wr(sd_wr_1541),
+    .sd_ack(sd_ack_1541),
+    .sd_buff_din(sd_din_1541),
+    .sd_buff_dout(sd_dout),
+    .sd_buff_wr(sd_strobe_1541),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_busy_o(sd_busy_1541),
+    .led(led_disk),
 
-    .c1541rom_clk   ( clk_sys         ),
-    .c1541rom_addr  ( ioctl_addr[13:0]),
-    .c1541rom_data  ( ioctl_dout      ),
-    .c1541rom_wr    ( ioctl_wr & rom_download & !ioctl_addr[15:14] )
+    .c1541rom_clk(clk_sys),
+    .c1541rom_addr(ioctl_addr[13:0]),
+    .c1541rom_data(ioctl_dout),
+    .c1541rom_wr(ioctl_wr & rom_download & !ioctl_addr[15:14])
 );
 
 endmodule
