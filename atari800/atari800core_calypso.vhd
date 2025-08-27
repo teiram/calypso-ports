@@ -20,7 +20,8 @@ ENTITY atari800core_calypso IS
 		VGA_BITS : integer := 6;
 		BIG_OSD : boolean := false;
 		HDMI : boolean := false;
-		BUILD_DATE : string := ""
+		BUILD_DATE : string := "";
+        BUILD_VERSION: string :=""
 	);
 	PORT
 	(
@@ -462,7 +463,7 @@ end component;
 		"O3,Paddles,Disabled,Enabled;"&
 		"T1,Reset;"&
 		"T2,Cold reset;"&
-		"V,v"&BUILD_DATE;
+        "V," & BUILD_VERSION & "-" & BUILD_DATE;
 
 	-- convert string to std_logic_vector to be given to user_io
 	function to_slv(s: string) return std_logic_vector is

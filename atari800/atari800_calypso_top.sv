@@ -174,7 +174,8 @@ atari800core_calypso
 	.VGA_BITS(VGA_BITS),
 	.BIG_OSD(BIG_OSD ? "true" : "false"),
 	.HDMI(HDMI ? "true" : "false"),
-	.BUILD_DATE(`BUILD_DATE)
+	.BUILD_DATE(`BUILD_DATE),
+    .BUILD_VERSION(`BUILD_VERSION)
 )
 atari800core_calypso (
 	.CLK12M(CLK12M),

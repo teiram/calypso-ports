@@ -1,24 +1,25 @@
--- Copyright (C) 1991-2013 Altera Corporation
--- Your use of Altera Corporation's design tools, logic functions 
--- and other software and tools, and its AMPP partner logic 
+-- Copyright (C) 2023  Intel Corporation. All rights reserved.
+-- Your use of Intel Corporation's design tools, logic functions 
+-- and other software and tools, and any partner logic 
 -- functions, and any output files from any of the foregoing 
 -- (including device programming or simulation files), and any 
 -- associated documentation or information are expressly subject 
--- to the terms and conditions of the Altera Program License 
--- Subscription Agreement, Altera MegaCore Function License 
--- Agreement, or other applicable license agreement, including, 
--- without limitation, that your use is for the sole purpose of 
--- programming logic devices manufactured by Altera and sold by 
--- Altera or its authorized distributors.  Please refer to the 
--- applicable agreement for further details.
+-- to the terms and conditions of the Intel Program License 
+-- Subscription Agreement, the Intel Quartus Prime License Agreement,
+-- the Intel FPGA IP License Agreement, or other applicable license
+-- agreement, including, without limitation, that your use is for
+-- the sole purpose of programming logic devices manufactured by
+-- Intel and sold by Intel or its authorized distributors.  Please
+-- refer to the applicable agreement for further details, at
+-- https://fpgasoftware.intel.com/eula.
 
 -- MIF file representing initial state of PLL Scan Chain
---    Device Family: Cyclone III
+--    Device Family: Cyclone 10 LP
 --    Device Part: -
 --    Device Speed Grade: 8
 --    PLL Scan Chain: Fast PLL (144 bits)
---    File Name: /home/markw/fpga/svn/repo/trunk/atari_800xl/mist/build_COMMON/ntsc.mif
---    Generated: Sun Jul  7 22:52:32 2019
+--    File Name: /home/mteira/src/cyc1000/software/calypso-ports/atari800/ntsc.mif
+--    Generated: Wed Aug 27 18:35:24 2025
 
 WIDTH=1;
 DEPTH=144;
@@ -36,7 +37,7 @@ CONTENT BEGIN
 	6    :   0;
 	7    :   0;
 	8    :   0;
-	9    :   0; -- VCO Post Scale = 0 (1 bit(s)) (VCO post-scale divider counter value = 2)
+	9    :   1; -- VCO Post Scale = 1 (1 bit(s)) (VCO post-scale divider counter value = 1)
 	10   :   0; -- Reserved Bits = 0 (5 bit(s))
 	11   :   0;
 	12   :   0;
@@ -46,59 +47,59 @@ CONTENT BEGIN
 	16   :   0;
 	17   :   1;
 	18   :   0; -- N counter: Bypass = 0 (1 bit(s))
-	19   :   0; -- N counter: High Count = 3 (8 bit(s))
+	19   :   0; -- N counter: High Count = 1 (8 bit(s))
 	20   :   0;
 	21   :   0;
 	22   :   0;
 	23   :   0;
 	24   :   0;
-	25   :   1;
+	25   :   0;
 	26   :   1;
-	27   :   1; -- N counter: Odd Division = 1 (1 bit(s))
-	28   :   0; -- N counter: Low Count = 2 (8 bit(s))
+	27   :   0; -- N counter: Odd Division = 0 (1 bit(s))
+	28   :   0; -- N counter: Low Count = 1 (8 bit(s))
 	29   :   0;
 	30   :   0;
 	31   :   0;
 	32   :   0;
 	33   :   0;
-	34   :   1;
-	35   :   0;
+	34   :   0;
+	35   :   1;
 	36   :   0; -- M counter: Bypass = 0 (1 bit(s))
-	37   :   0; -- M counter: High Count = 52 (8 bit(s))
-	38   :   0;
+	37   :   0; -- M counter: High Count = 101 (8 bit(s))
+	38   :   1;
 	39   :   1;
-	40   :   1;
+	40   :   0;
 	41   :   0;
 	42   :   1;
 	43   :   0;
-	44   :   0;
-	45   :   1; -- M counter: Odd Division = 1 (1 bit(s))
-	46   :   0; -- M counter: Low Count = 51 (8 bit(s))
-	47   :   0;
+	44   :   1;
+	45   :   0; -- M counter: Odd Division = 0 (1 bit(s))
+	46   :   0; -- M counter: Low Count = 101 (8 bit(s))
+	47   :   1;
 	48   :   1;
-	49   :   1;
+	49   :   0;
 	50   :   0;
-	51   :   0;
-	52   :   1;
+	51   :   1;
+	52   :   0;
 	53   :   1;
 	54   :   0; -- clk0 counter: Bypass = 0 (1 bit(s))
-	55   :   0; -- clk0 counter: High Count = 9 (8 bit(s))
+	55   :   0; -- clk0 counter: High Count = 19 (8 bit(s))
 	56   :   0;
 	57   :   0;
-	58   :   0;
-	59   :   1;
+	58   :   1;
+	59   :   0;
 	60   :   0;
-	61   :   0;
+	61   :   1;
 	62   :   1;
-	63   :   0; -- clk0 counter: Odd Division = 0 (1 bit(s))
-	64   :   0; -- clk0 counter: Low Count = 9 (8 bit(s))
+	63   :   1; -- clk0 counter: Odd Division = 1 (1 bit(s))
+	64   :   0; -- clk0 counter: Low Count = 18 (8 bit(s))
 	65   :   0;
 	66   :   0;
-	67   :   0;
-	68   :   1;
+	67   :   1;
+	68   :   0;
 	69   :   0;
-	70   :   0;
-	71   :   1;
+	70   :   1;
+	71   :   0;
 	72   :   1; -- clk1 counter: Bypass = 1 (1 bit(s))
 	73   :   0; -- clk1 counter: High Count = 0 (8 bit(s))
 	74   :   0;

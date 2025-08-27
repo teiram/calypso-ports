@@ -300,7 +300,7 @@ set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
 set_global_assignment -name TOP_LEVEL_ENTITY atari800_calypso_top
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:Atari800XL/mist/build_id.tcl"
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
 
 set_global_assignment -name SYSTEMVERILOG_FILE atari800_calypso_top.sv
 set_global_assignment -name VHDL_FILE atari800core_calypso.vhd
@@ -316,7 +316,7 @@ set_global_assignment -name QIP_FILE pll_reconfig.qip
 set_global_assignment -name QIP_FILE pal_rom.qip
 set_global_assignment -name QIP_FILE ntsc_rom.qip
 #set_global_assignment -name QIP_FILE "Atari800XL/common/components/mist-modules/mist.qip"
-set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
+set_global_assignment -name QIP_FILE "../common/mist-modules/mist.qip"
 set_global_assignment -name QIP_FILE fifo_transmit.qip
 set_global_assignment -name QIP_FILE fifo_receive.qip
 set_global_assignment -name VERILOG_FILE i2s_decoder_kyp.v
@@ -400,5 +400,6 @@ set_global_assignment -name VHDL_FILE Atari800XL/common/zpu/zpu_config_regs.vhdl
 set_global_assignment -name VHDL_FILE Atari800XL/common/zpu/zpu_glue.vhdl
 set_global_assignment -name VHDL_FILE Atari800XL/mist/switch_pal_ntsc.vhd
 set_global_assignment -name VHDL_FILE Atari800XL/mist/DualPortRAM.vhd
+
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

@@ -18,8 +18,8 @@
 --    Device Part: -
 --    Device Speed Grade: 8
 --    PLL Scan Chain: Fast PLL (144 bits)
---    File Name: /home/mteira/src/cyc1000/software/atari800-test/pal.mif
---    Generated: Tue Nov 19 20:45:28 2024
+--    File Name: /home/mteira/src/cyc1000/software/calypso-ports/atari800/pal.mif
+--    Generated: Wed Aug 27 18:39:50 2025
 
 WIDTH=1;
 DEPTH=144;
@@ -65,22 +65,22 @@ CONTENT BEGIN
 	34   :   0;
 	35   :   1;
 	36   :   0; -- M counter: Bypass = 0 (1 bit(s))
-	37   :   0; -- M counter: High Count = 49 (8 bit(s))
+	37   :   0; -- M counter: High Count = 50 (8 bit(s))
 	38   :   0;
 	39   :   1;
 	40   :   1;
 	41   :   0;
 	42   :   0;
-	43   :   0;
-	44   :   1;
-	45   :   1; -- M counter: Odd Division = 1 (1 bit(s))
-	46   :   0; -- M counter: Low Count = 48 (8 bit(s))
+	43   :   1;
+	44   :   0;
+	45   :   0; -- M counter: Odd Division = 0 (1 bit(s))
+	46   :   0; -- M counter: Low Count = 50 (8 bit(s))
 	47   :   0;
 	48   :   1;
 	49   :   1;
 	50   :   0;
 	51   :   0;
-	52   :   0;
+	52   :   1;
 	53   :   0;
 	54   :   0; -- clk0 counter: Bypass = 0 (1 bit(s))
 	55   :   0; -- clk0 counter: High Count = 10 (8 bit(s))
@@ -91,15 +91,15 @@ CONTENT BEGIN
 	60   :   0;
 	61   :   1;
 	62   :   0;
-	63   :   1; -- clk0 counter: Odd Division = 1 (1 bit(s))
-	64   :   0; -- clk0 counter: Low Count = 9 (8 bit(s))
+	63   :   0; -- clk0 counter: Odd Division = 0 (1 bit(s))
+	64   :   0; -- clk0 counter: Low Count = 10 (8 bit(s))
 	65   :   0;
 	66   :   0;
 	67   :   0;
 	68   :   1;
 	69   :   0;
-	70   :   0;
-	71   :   1;
+	70   :   1;
+	71   :   0;
 	72   :   1; -- clk1 counter: Bypass = 1 (1 bit(s))
 	73   :   0; -- clk1 counter: High Count = 0 (8 bit(s))
 	74   :   0;
