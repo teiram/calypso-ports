@@ -491,6 +491,16 @@ always @(posedge clk_sys) begin
     end
 end
 
+reg cass_motor = 1'b1;
+
+always @(posedge clk_sys) begin
+    if (~reset_n) begin
+        cass_motor <= 1'b1;
+    end else begin
+        if (tape_download == 1'b1 || play_key == 1'b0) cass_motor <= 1'b1;
+        else if (stop_key == 1'b0) cass_motor <= 1'b0;
+    end
+end
 
 tzxplayer tzxplayer(
     .clk(clk_sys),
@@ -500,7 +510,7 @@ tzxplayer tzxplayer(
     .tzx_req(tape_data_req),
     .tzx_ack(tape_data_ack),
     .cass_read(tape_read),
-    .cass_motor(1'b1)
+    .cass_motor(cass_motor)
 );
 
 /////////////////  Keyboard  ////////////////////////
