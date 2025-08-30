@@ -1,4 +1,4 @@
-module plusToo_top(
+module plusToo_calypso(
 	input         CLK12M,
 `ifdef USE_CLOCK_50
 	input         CLOCK_50,
@@ -266,21 +266,21 @@ wire [3:0] key = 4'd0;
 
 	parameter CONF_STR = {
 		"PLUS_TOO;;",
-		"F1,DSK;",
-		"F2,DSK;",
+		"F1,DSK,Load Floppy 1;",
+		"F2,DSK,Load Floppy 2;",
 		`SEP
-		"S0,IMGVHDHD?,Mount SCSI6;",
-		"S1,IMGVHDHD?,Mount SCSI5;",
-		"S2,IMGVHDHD?,Mount SCSI4;",
-		"S3,IMGVHDHD?,Mount SCSI3;",
+		"S0U,IMGVHDHD?,Mount SCSI6;",
+		"S1U,IMGVHDHD?,Mount SCSI5;",
+		"S2U,IMGVHDHD?,Mount SCSI4;",
+		"S3U,IMGVHDHD?,Mount SCSI3;",
 		`SEP
-		"O4,Memory,1MB,4MB;",
-		"O5,Speed,8MHz,16MHz;",
+		"O4,Memory Size,1MB,4MB;",
+		"O5,CPU Speed,8MHz,16MHz;",
 		"O67,CPU,FX68K-68000,TG68K-68010,TG68K-68020;",
 		"R256,Save PRAM;",
 		`SEP
 		"T0,Reset;",
-		"V,v",`BUILD_DATE
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 	};
 
 	wire status_mem = status[4];
@@ -564,13 +564,6 @@ wire [3:0] key = 4'd0;
 	end
 
 	wire [10:0] audio;
-	sigma_delta_dac dac (
-		.clk ( clk32 ),
-		.ldatasum ( { audio, 4'h0 } ),
-		.rdatasum ( { audio, 4'h0 } ),
-		.left ( AUDIO_L ),
-		.right ( AUDIO_R )
-	);
 
 `ifdef I2S_AUDIO
 	i2s i2s (
