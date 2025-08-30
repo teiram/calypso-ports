@@ -1,4 +1,5 @@
 CORE_ID=plusToo
 PROJECT_NAME=plusToo
-VERSION=0.1
+VERSION=0.2
 BITSTREAM_FILE=output_files/plusToo.rbf
+EXTRA_SUBMODULES=../common/mist-modules
