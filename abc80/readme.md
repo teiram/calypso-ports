@@ -8,4 +8,5 @@ ABC80.ROM file must be provided in the SD card root folder (or core folder)
 
 
 # Changelog
+- 0.2. More responsive keyboard
 - 0.1. Initial release
