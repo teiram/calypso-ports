@@ -267,7 +267,7 @@ module PCXT
 //		"P5Ok,DEBUG.OSD disable,No,Yes;",               //[46] osd_disable
         `endif
 		//
-		"V,v",`BUILD_DATE
+        "V,",`BUILD_VERSION,"-",`BUILD_DATE
 	};
 
     wire forced_scandoubler;
