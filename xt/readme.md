@@ -14,6 +14,7 @@ The following files are needed on the root folder of the SD-Card:
 
 # Changelog
 
+- 0.4. TOP cleanup and better video setup
 - 0.3. Update framework. Big OSD
 - 0.2. First working version
 - 0.1. Initial port
