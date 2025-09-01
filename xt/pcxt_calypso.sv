@@ -771,8 +771,6 @@ end
 wire device_clock = ps2_kbd_clk_in;
 wire device_data  = ps2_kbd_data_in;
 
-
-
 wire [7:0] data_bus;
 wire INTA_n;
 wire [19:0] cpu_ad_out;
@@ -889,7 +887,7 @@ CHIPSET #(.clk_rate(cur_rate)) u_CHIPSET(
     .uart_rts_n                         (),
     .enable_sdram                       (1'b1),
     .initilized_sdram                   (initilized_sdram),
-    .sdram_clock                        (clk_chipset),    //SDRAM_CLK phased is sent to SDRAM pin 
+    .sdram_clock                        (clk_chipset),
     .sdram_address                      (SDRAM_A),
     .sdram_cke                          (SDRAM_CKE),
     .sdram_cs                           (SDRAM_nCS),
@@ -930,8 +928,7 @@ assign SDRAM_DQ = ~SDRAM_DQ_IO ? SDRAM_DQ_OUT : 16'hZZZZ;
 wire s6_3_mux;
 wire [2:0] SEGMENT;
 
-i8088 B1    
-(
+i8088 B1(
     .CORE_CLK(clk_100),
     .CLK(clk_cpu),
 
@@ -1022,7 +1019,7 @@ begin
     cmp_r <= compr(out_r);
 end
 
-wire [15:0]  laudio, raudio;
+wire [15:0] laudio, raudio;
 assign laudio = pause_core ? 1'b0 : status[37:36] ? cmp_l : out_l;
 assign raudio = pause_core ? 1'b0 : status[37:36] ? cmp_r : out_r;
 
@@ -1059,7 +1056,7 @@ begin
     clk_uart_ff_1 <= clk_uart;
     clk_uart_ff_2 <= clk_uart_ff_1;
     clk_uart_ff_3 <= clk_uart_ff_2;
-    clk_uart_en   <= ~clk_uart_ff_3 & clk_uart_ff_2;
+    clk_uart_en <= ~clk_uart_ff_3 & clk_uart_ff_2;
 end
 
 always @(posedge clk_chipset)
@@ -1144,21 +1141,21 @@ mist_video #(
     .blend(status[43]), 
 
     // video in
-    .R( r_in     ),
-    .G( g_in    ),
-    .B( b_in     ),
-    .HSync( ~vga_hs    ),
-    .VSync( ~vga_vs    ),
+    .R(r_in),
+    .G(g_in),
+    .B(b_in),
+    .HSync(~vga_hs),
+    .VSync(~vga_vs),
 
     // MiST video output signals
-    .VGA_R       ( r_mist      ),
-    .VGA_G       ( g_mist      ),
-    .VGA_B       ( b_mist     ),
-    .VGA_VS      ( VGA_VS   ),
-    .VGA_HS      ( vga_hs_o   )
+    .VGA_R(r_mist),
+    .VGA_G(g_mist),
+    .VGA_B(b_mist),
+    .VGA_VS(VGA_VS),
+    .VGA_HS(vga_hs_o)
 );
 
-assign rgb_18b = {2'b00, r_mist, 2'b00, g_mist, 2'b00, b_mist};    // for composite real video output
+assign rgb_18b = {r_mist, 2'b00, g_mist, 2'b00, b_mist, 2'b00};    // for composite real video output
 
 assign VGA_HS = composite_on ? ~(vga_hs ^ vga_vs): ~vga_hs_o;
 assign VGA_R = composite_on ?   4'd0                     : r_mist;
