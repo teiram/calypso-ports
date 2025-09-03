@@ -804,123 +804,123 @@ begin
 end
     
 CHIPSET #(.clk_rate(cur_rate)) u_CHIPSET(
-    .clock                              (clk_chipset),
-    .cpu_clock                          (clk_cpu),
-    .clk_sys                            (clk_chipset),
-    .peripheral_clock                   (pclk),
-    .clk_select                         (clk_select),
-    .color                              (color),
-    .reset                              (reset_cpu),
-    .sdram_reset                        (reset_sdram),
-    .cpu_address                        (cpu_address),
-    .cpu_data_bus                       (cpu_data_bus),
-    .processor_status                   (processor_status),
-    .processor_lock_n                   (lock_n),
-    .processor_ready                    (processor_ready),
-    .interrupt_to_cpu                   (interrupt_to_cpu),
-    .splashscreen                       (1'b0),
-    .video_output                       (mda_mode_video_ff),
-    .clk_vga_cga                        (clk_28_636),
-    .enable_cga                         (1'b1),
-    .clk_vga_mda                        (clk_56_875),
-    .enable_mda                         (1'b1),
-    .mda_rgb                            (2'b10),
-    .VGA_R                              (r_in),
-    .VGA_G                              (g_in),
-    .VGA_B                              (b_in),
-    .VGA_HSYNC                          (vga_hs),
-    .VGA_VSYNC                          (vga_vs),
-    .VGA_HBlank                         (HBlank),
-    .VGA_VBlank                         (VBlank),
-    .scandoubler                        (~forced_scandoubler),
-    .comp_video                         (comp_video),
-    .composite_on                       (composite_on),
-    .vga_composite                      (vga_composite),
-    .composite_out                      (),
-    .rgb_18b                            (rgb_18b),
-    .address_ext                        (bios_access_address),
-    .ext_access_request                 (bios_access_request),
-    .address_direction                  (address_direction),
-    .data_bus                           (data_bus),
-    .data_bus_ext                       (bios_write_data[7:0]),
-    .address_latch_enable               (address_latch_enable),
-    .io_channel_ready                   (1'b1),
-    .interrupt_request                  (0),    // use? -> It does not seem to be necessary.
-    .io_read_n_ext                      (1'b1),
-    .io_write_n_ext                     (1'b1),
-    .memory_read_n_ext                  (1'b1),
-    .memory_write_n_ext                 (bios_write_n),
-    .dma_request                        (0),    // use? -> I don't know if it will ever be necessary, at least not during testing.
-    .dma_acknowledge_n                  (dma_acknowledge_n),
-    .port_b_out                         (port_b_out),
-    .port_c_in                          (port_c_in),
-    .port_b_in                          (port_b_out),
-    .speaker_out                        (speaker_out),
-    .ps2_clock                          (device_clock),
-    .ps2_data                           (device_data),
-    .ps2_clock_out                      (ps2_kbd_clk_out),
-    .ps2_data_out                       (ps2_kbd_data_out),
-    .ps2_mouseclk_in                    (ps2_mouse_clk_in),
-    .ps2_mousedat_in                    (ps2_mouse_data_in),
-    .ps2_mouseclk_out                   (ps2_mouse_clk_out),
-    .ps2_mousedat_out                   (ps2_mouse_data_out),
-    .joy_opts                           (joy_opts),           //Joy0-Disabled, Joy0-Type, Joy1-Disabled, Joy1-Type, turbo_sync
-    .joy0                               (status[28] ? joy1 : joy0),
-    .joy1                               (status[28] ? joy0 : joy1),
-    .joya0                              (status[28] ? joya1[15:0] : joya0[15:0]),
-    .joya1                              (status[28] ? joya0[15:0] : joya1[15:0]),
-    .jtopl2_snd_e                       (jtopl2_snd_e),
-    .tandy_snd_e                        (tandy_snd_e),
-    .opl2_io                            (xtctl[4] ? 2'b10 : status[41:40]),
-    .cms_en                             (~status[10]),
-    .o_cms_l                            (cms_l_snd_e),
-    .o_cms_r                            (cms_r_snd_e),
-    .tandy_video                        (tandy_mode),
-    .tandy_bios_flag                    (tandy_bios_flag),
-    .clk_uart                           (clk_uart),
-    .clk_uart2                          (clk_uart2_en),
-    .uart_rx                            (),
-    .uart_tx                            (),
-    .uart_cts_n                         (),
-    .uart_dcd_n                         (1'b0),     //(uart_dcd),
-    .uart_dsr_n                         (1'b0),     //(uart_dsr),
-    .uart_rts_n                         (),
-    .enable_sdram                       (1'b1),
-    .initilized_sdram                   (initilized_sdram),
-    .sdram_clock                        (clk_chipset),
-    .sdram_address                      (SDRAM_A),
-    .sdram_cke                          (SDRAM_CKE),
-    .sdram_cs                           (SDRAM_nCS),
-    .sdram_ras                          (SDRAM_nRAS),
-    .sdram_cas                          (SDRAM_nCAS),
-    .sdram_we                           (SDRAM_nWE),
-    .sdram_ba                           (SDRAM_BA),
-    .sdram_dq_in                        (SDRAM_DQ_IN),
-    .sdram_dq_out                       (SDRAM_DQ_OUT),
-    .sdram_dq_io                        (SDRAM_DQ_IO),
-    .sdram_ldqm                         (SDRAM_DQML),
-    .sdram_udqm                         (SDRAM_DQMH),
-    .ems_enabled                        (~status[11]),
-    .ems_address                        (status[13:12]),
-    .bios_protect_flag                  (bios_protect_flag),
-    .ide0_addr                          (ide0_addr),
-    .ide0_writedata                     (ide0_writedata),
-    .ide0_readdata                      (ide0_readdata),
-    .ide0_read                          (ide0_read),
-    .ide0_write                         (ide0_write),
-    .rtc_data                           (rtc_data),
-    .xtctl                              (xtctl),
-    .enable_a000h                       (a000h),
-    .wait_count_clk_en                  (~clk_cpu & clk_cpu_ff_2),
-    .ram_read_wait_cycle                (ram_read_wait_cycle),
-    .ram_write_wait_cycle               (ram_write_wait_cycle),
-    .pause_core                         (pause_core)
+    .clock(clk_chipset),
+    .cpu_clock(clk_cpu),
+    .clk_sys(clk_chipset),
+    .peripheral_clock(pclk),
+    .clk_select(clk_select),
+    .color(color),
+    .reset(reset_cpu),
+    .sdram_reset(reset_sdram),
+    .cpu_address(cpu_address),
+    .cpu_data_bus(cpu_data_bus),
+    .processor_status(processor_status),
+    .processor_lock_n(lock_n),
+    .processor_ready(processor_ready),
+    .interrupt_to_cpu(interrupt_to_cpu),
+    .splashscreen(1'b0),
+    .video_output(mda_mode_video_ff),
+    .clk_vga_cga(clk_28_636),
+    .enable_cga(1'b1),
+    .clk_vga_mda(clk_56_875),
+    .enable_mda(1'b1),
+    .mda_rgb(2'b10),
+    .VGA_R(r_in),
+    .VGA_G(g_in),
+    .VGA_B(b_in),
+    .VGA_HSYNC(vga_hs),
+    .VGA_VSYNC(vga_vs),
+    .VGA_HBlank(HBlank),
+    .VGA_VBlank(VBlank),
+    .scandoubler(~composite_on),
+    .comp_video(comp_video),
+    .composite_on(composite_on),
+    .vga_composite(vga_composite),
+    .composite_out(),
+    .rgb_18b(rgb_18b),
+    .address_ext(bios_access_address),
+    .ext_access_request(bios_access_request),
+    .address_direction(address_direction),
+    .data_bus(data_bus),
+    .data_bus_ext(bios_write_data[7:0]),
+    .address_latch_enable(address_latch_enable),
+    .io_channel_ready(1'b1),
+    .interrupt_request(0),    // use? -> It does not seem to be necessary.
+    .io_read_n_ext(1'b1),
+    .io_write_n_ext(1'b1),
+    .memory_read_n_ext(1'b1),
+    .memory_write_n_ext(bios_write_n),
+    .dma_request(0),    // use? -> I don't know if it will ever be necessary, at least not during testing.
+    .dma_acknowledge_n(dma_acknowledge_n),
+    .port_b_out(port_b_out),
+    .port_c_in(port_c_in),
+    .port_b_in(port_b_out),
+    .speaker_out(speaker_out),
+    .ps2_clock(device_clock),
+    .ps2_data(device_data),
+    .ps2_clock_out(ps2_kbd_clk_out),
+    .ps2_data_out(ps2_kbd_data_out),
+    .ps2_mouseclk_in(ps2_mouse_clk_in),
+    .ps2_mousedat_in(ps2_mouse_data_in),
+    .ps2_mouseclk_out(ps2_mouse_clk_out),
+    .ps2_mousedat_out(ps2_mouse_data_out),
+    .joy_opts(joy_opts),           //Joy0-Disabled, Joy0-Type, Joy1-Disabled, Joy1-Type, turbo_sync
+    .joy0(status[28] ? joy1 : joy0),
+    .joy1(status[28] ? joy0 : joy1),
+    .joya0(status[28] ? joya1[15:0] : joya0[15:0]),
+    .joya1(status[28] ? joya0[15:0] : joya1[15:0]),
+    .jtopl2_snd_e(jtopl2_snd_e),
+    .tandy_snd_e(tandy_snd_e),
+    .opl2_io(xtctl[4] ? 2'b10 : status[41:40]),
+    .cms_en(~status[10]),
+    .o_cms_l(cms_l_snd_e),
+    .o_cms_r(cms_r_snd_e),
+    .tandy_video(tandy_mode),
+    .tandy_bios_flag(tandy_bios_flag),
+    .clk_uart(clk_uart),
+    .clk_uart2(clk_uart2_en),
+    .uart_rx(),
+    .uart_tx(),
+    .uart_cts_n(),
+    .uart_dcd_n(1'b0),     //(uart_dcd),
+    .uart_dsr_n(1'b0),     //(uart_dsr),
+    .uart_rts_n(),
+    .enable_sdram(1'b1),
+    .initilized_sdram(initilized_sdram),
+    .sdram_clock(clk_chipset),
+    .sdram_address(SDRAM_A),
+    .sdram_cke(SDRAM_CKE),
+    .sdram_cs(SDRAM_nCS),
+    .sdram_ras(SDRAM_nRAS),
+    .sdram_cas(SDRAM_nCAS),
+    .sdram_we(SDRAM_nWE),
+    .sdram_ba(SDRAM_BA),
+    .sdram_dq_in(SDRAM_DQ_IN),
+    .sdram_dq_out(SDRAM_DQ_OUT),
+    .sdram_dq_io(SDRAM_DQ_IO),
+    .sdram_ldqm(SDRAM_DQML),
+    .sdram_udqm(SDRAM_DQMH),
+    .ems_enabled(~status[11]),
+    .ems_address(status[13:12]),
+    .bios_protect_flag(bios_protect_flag),
+    .ide0_addr(ide0_addr),
+    .ide0_writedata(ide0_writedata),
+    .ide0_readdata(ide0_readdata),
+    .ide0_read(ide0_read),
+    .ide0_write(ide0_write),
+    .rtc_data(rtc_data),
+    .xtctl(xtctl),
+    .enable_a000h(a000h),
+    .wait_count_clk_en(~clk_cpu & clk_cpu_ff_2),
+    .ram_read_wait_cycle(ram_read_wait_cycle),
+    .ram_write_wait_cycle(ram_write_wait_cycle),
+    .pause_core(pause_core)
 );
 
 wire [15:0] SDRAM_DQ_IN;
 wire [15:0] SDRAM_DQ_OUT;
-wire        SDRAM_DQ_IO;
-wire        initilized_sdram;
+wire SDRAM_DQ_IO;
+wire initilized_sdram;
 
 assign SDRAM_DQ_IN = SDRAM_DQ;
 assign SDRAM_DQ = ~SDRAM_DQ_IO ? SDRAM_DQ_OUT : 16'hZZZZ;
@@ -1095,49 +1095,37 @@ wire VBlank;
 wire VSync;
 
 wire [5:0] r_in, g_in, b_in;
-wire [3:0] r_mist, g_mist, b_mist;
+wire [VGA_BITS - 1:0] r_mist, g_mist, b_mist;
 
 wire vga_hs;
 wire vga_vs;
-wire vga_hs_o;
-wire vga_vs_o;
 
 wire [6:0] comp_video;
 wire [17:0] rgb_18b;
 wire clk_vid;
 
 assign clk_vid = mda_mode_video_ff ? clk_56_875 : clk_28_636;
-
 wire color = (screen_mode_video_ff == 3'd0);
-
 
 mist_video #(
     .COLOR_DEPTH(6),
     .OUT_COLOR_DEPTH(VGA_BITS),
     .BIG_OSD(BIG_OSD)) mist_video(
 
-    .clk_sys(clk_vid),
+    .clk_sys(clk_56_875),
     
     // OSD SPI interface
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
 
-    // scanlines (00-none 01-25% 10-50% 11-75%)     //only works if scandoubler enabled
     .scanlines(2'b00),
-
-    // non-scandoubled pixel clock divider 0 - clk_sys/4, 1 - clk_sys/2
-    .ce_divider(1'b0),
-
-    // 0 = HVSync 31KHz, 1 = CSync 15KHz            //using Graphics Gremlin scandoubler
+    .ce_divider(1'b1),
     .scandoubler_disable(1'b1),
-    // disable csync without scandoubler
-    .no_csync(~forced_scandoubler), 
-    // YPbPr always uses composite sync
+    .no_csync(~composite_on), 
     .ypbpr(status[42]),
-    // Rotate OSD [0] - rotate [1] - left or right
+    
     .rotate(2'b00),
-    // composite-like blending
     .blend(status[43]), 
 
     // video in
@@ -1145,22 +1133,21 @@ mist_video #(
     .G(g_in),
     .B(b_in),
     .HSync(~vga_hs),
-    .VSync(~vga_vs),
+    .VSync(vga_vs),
 
     // MiST video output signals
     .VGA_R(r_mist),
     .VGA_G(g_mist),
     .VGA_B(b_mist),
     .VGA_VS(VGA_VS),
-    .VGA_HS(vga_hs_o)
+    .VGA_HS(VGA_HS)
 );
 
 assign rgb_18b = {r_mist, 2'b00, g_mist, 2'b00, b_mist, 2'b00};    // for composite real video output
 
-assign VGA_HS = composite_on ? ~(vga_hs ^ vga_vs): ~vga_hs_o;
-assign VGA_R = composite_on ?   4'd0                     : r_mist;
-assign VGA_G = composite_on ?  {2'b00, comp_video[4:3]}  : g_mist;
-assign VGA_B = composite_on ?  {2'b00, comp_video[6:5]}  : b_mist;
+assign VGA_R = composite_on ? 4'd0 : r_mist;
+assign VGA_G = composite_on ? {2'b00, comp_video[4:3]} : g_mist;
+assign VGA_B = composite_on ? {2'b00, comp_video[6:5]} : b_mist;
 
 
 endmodule
