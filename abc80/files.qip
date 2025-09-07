@@ -6,3 +6,4 @@ set_global_assignment -name VERILOG_FILE ABC80-FPGA/rtl/sound.v
 set_global_assignment -name VERILOG_FILE ABC80-FPGA/rtl/z80_pio.v
 set_global_assignment -name SDC_FILE abc80.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE abc80.sv
+set_global_assignment -name VERILOG_FILE sync_normalizer.v
