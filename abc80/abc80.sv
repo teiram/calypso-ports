@@ -326,10 +326,20 @@ i2s i2s (
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
-    .left_chan({~audio_mix[14], audio_mix[13:0], 1'b0}),
-    .right_chan({~audio_mix[14], audio_mix[13:0], 1'b0})
+    .left_chan({1'b0, audio_mix}),
+    .right_chan({1'b0, audio_mix})
 );
 `endif
+
+wire vs_norm;
+sync_normalizer #(
+    .SYNC_LENGTH_US(192),
+    .CLK_RATE_MHZ(12)
+) vsync_normalizer(
+    .clk(clk12),
+    .sync_in(vs),
+    .sync_out(vs_norm)
+);
 
 mist_video #(
     .COLOR_DEPTH(1),
@@ -342,13 +352,13 @@ mist_video(
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
-    .R(video),
+    .R(1'b0),
     .G(video),
     .B(video),
     .HBlank(hb),
     .VBlank(vb),
     .HSync(~hs),
-    .VSync(~vs),
+    .VSync(~vs_norm),
     .VGA_R(VGA_R),
     .VGA_G(VGA_G),
     .VGA_B(VGA_B),
