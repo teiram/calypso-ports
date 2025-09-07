@@ -214,3 +214,6 @@
 [submodule "gyurco/Mist_FPGA"]
 	path = gyurco/Mist_FPGA
 	url = https://github.com/gyurco/Mist_FPGA/
+[submodule "interakt/Interact_MISTer"]
+	path = interakt/Interact_MISTer
+	url = https://github.com/edanuff/Interact_MISTer
