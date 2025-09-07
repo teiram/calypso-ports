@@ -1,6 +1,6 @@
 CORE_ID=abc80
 PROJECT_NAME=abc80
-VERSION=0.2
+VERSION=0.3
 BITSTREAM_FILE=output_files/abc80.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=../common/T80 ../common/mist-modules

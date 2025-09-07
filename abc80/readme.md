@@ -8,5 +8,6 @@ ABC80.ROM file must be provided in the SD card root folder (or core folder)
 
 
 # Changelog
+- 0.3. Cyan video, upstream sound updates, limit vsync length (makes it work on some VGA monitors)
 - 0.2. More responsive keyboard
 - 0.1. Initial release
