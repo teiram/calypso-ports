@@ -1,0 +1,6 @@
+CORE_ID=interact
+PROJECT_NAME=interact
+VERSION=0.1
+BITSTREAM_FILE=output_files/interact.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules

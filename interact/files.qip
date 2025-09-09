@@ -1,0 +1,19 @@
+set_global_assignment -name VERILOG_FILE Interact_MiSTer/rtl/vm80a.v
+set_global_assignment -name VERILOG_FILE Interact_MiSTer/rtl/dpram.v
+set_global_assignment -name SYSTEMVERILOG_FILE Interact_MiSTer/rtl/cassette.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Interact_MiSTer/rtl/keyboard.sv
+set_global_assignment -name VERILOG_FILE Interact_MiSTer/rtl/video_timing.v
+set_global_assignment -name SEARCH_PATH Interact_MiSTer/rtl/SN74LS
+set_global_assignment -name VERILOG_FILE Interact_MiSTer/rtl/SN74LS/SN74LS195.v
+set_global_assignment -name VERILOG_FILE Interact_MiSTer/rtl/SN74LS/SN74LS73.v
+set_global_assignment -name VERILOG_FILE Interact_MiSTer/rtl/SN74LS/SN74LS74.v
+set_global_assignment -name VERILOG_FILE Interact_MiSTer/rtl/SN74LS/SN74LS92.v
+set_global_assignment -name VERILOG_FILE Interact_MiSTer/rtl/SN74LS/SN74LS138.v
+
+set_global_assignment -name SEARCH_PATH  Interact_MiSTer
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE interact_calypso.sv
+#set_global_assignment -name SDC_FILE interact.sdc
+set_global_assignment -name QIP_FILE pll.qip
