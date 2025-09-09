@@ -164,6 +164,7 @@ localparam CONF_STR = {
     `SEP
     "O2,Memory,16K,32K;",
     "O34,Scanlines,Off,25%,50%,75%;",
+    "O7,Monitor,Cyan,Brown;",
     "O5,Blend,Off,On;",
     "O6,Tape Sounds,Off,On;",
     "T0,Reset;",
@@ -174,7 +175,7 @@ wire [1:0] scanlines = status[4:3];
 wire blend = status[5];
 wire tapesnd = status[6];
 wire xmem = status[2];
-wire uart_en = status[7];
+wire brown_monitor = status[7];
 
 /////////////////  CLOCKS  ////////////////////////
 wire clk48, clk12, pll_locked;
@@ -341,8 +342,12 @@ sync_normalizer #(
     .sync_out(vs_norm)
 );
 
+wire [3:0] r = brown_monitor ? video ? 4'hf: 4'hb : 4'h0;
+wire [3:0] g = brown_monitor ? video ? 4'hf: 4'h4 : video ? 4'hf : 4'h0;
+wire [3:0] b = brown_monitor ? video ? 4'hf: 4'h0 : video ? 4'hf : 4'h0;
+
 mist_video #(
-    .COLOR_DEPTH(1),
+    .COLOR_DEPTH(4),
     .SD_HCNT_WIDTH(10),
     .OUT_COLOR_DEPTH(VGA_BITS),
     .USE_BLANKS(1'b1),
@@ -352,9 +357,9 @@ mist_video(
     .SPI_SCK(SPI_SCK),
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
-    .R(1'b0),
-    .G(video),
-    .B(video),
+    .R(r),
+    .G(g),
+    .B(b),
     .HBlank(hb),
     .VBlank(vb),
     .HSync(~hs),
