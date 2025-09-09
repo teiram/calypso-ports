@@ -116,8 +116,8 @@ wire tape_rewind = status[15];
 
 /////////////////  CLOCKS  ////////////////////////
 
-wire clk_sys /* synthesis keep */;
-wire clk_video /* synthesis keep */;
+wire clk_sys;
+wire clk_video;
 wire pll_locked;
 
 pll pll (
@@ -205,12 +205,12 @@ data_io data_io(
 wire rom_download = ioctl_download && (ioctl_index == 0);
 wire tape_download = ioctl_download && (ioctl_index != 0);
 
-wire reset /* synthesis keep */ = status[0] | buttons[1] | rom_download;
+wire reset = status[0] | buttons[1] | rom_download;
 wire rst_n = ~reset;
 
 // vm80a needs a nice long reset
 reg [7:0] rcnt = 8'h00;
-wire cpu_rst_n /* synthesis keep */= (rcnt == 8'hFF);
+wire cpu_rst_n = (rcnt == 8'hFF);
 
 always @(posedge clk_sys) begin
     if (reset) rcnt <= 8'h00;
@@ -220,12 +220,12 @@ end
 
 ////////////////  Computer  ////////////////////////
 
-wire ph1 /* synthesis keep */;
-wire ph2 /* synthesis keep */;
+wire ph1;
+wire ph2;
 wire cbclk;
-wire pix_a /* synthesis keep */;
+wire pix_a;
 wire vid_sel;
-wire [11:0] vid_a /* synthesis keep */;
+wire [11:0] vid_a;
 wire vid_sel_n;
 wire nrr_n;
 wire ce_n;
@@ -240,8 +240,8 @@ wire inte;
 wire cmp_sync;
 wire hblank_n;
 wire vblank_n;
-wire hsync_n /* synthesis keep */;
-wire vsync_n /* synthesis keep */;
+wire hsync_n;
+wire vsync_n;
 
 video_timing timing (
     .clk_14m(clk_sys),
