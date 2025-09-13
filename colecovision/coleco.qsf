@@ -37,7 +37,6 @@
 
 set_global_assignment -name FAMILY "Cyclone 10 LP"
 set_global_assignment -name DEVICE 10CL025YU256C8G
-set_global_assignment -name TOP_LEVEL_ENTITY coleco_calypso
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "23.1STD.0 LITE EDITION"
 set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.2 Lite Edition"
 set_global_assignment -name AUTO_MERGE_PLLS OFF
@@ -63,7 +62,6 @@ set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
 set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
 set_global_assignment -name AUTO_RAM_TO_LCELL_CONVERSION ON
 set_global_assignment -name REMOVE_REDUNDANT_LOGIC_CELLS ON
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:colecovision_fpga/src/board/mist/build_id.tcl"
 
 set_global_assignment -name SAVE_DISK_SPACE OFF
 
@@ -335,45 +333,12 @@ set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name ENABLE_SIGNALTAP OFF
-set_location_assignment PLL_1 -to pll|altpll_component|auto_generated|pll1
-set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
-set_global_assignment -name SYSTEMVERILOG_FILE coleco_calypso.sv
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/board/mist/spram.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/board/mist/sprom.vhd
-set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
-set_global_assignment -name SDC_FILE coleco.sdc
-set_global_assignment -name QIP_FILE "colecovision_fpga/src/board/mist/mist-modules/mist.qip"
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/board/misc/dpram.vhd
-set_global_assignment -name QIP_FILE colecovision_fpga/src/T80/T80.qip
-set_global_assignment -name QIP_FILE colecovision_fpga/src/sn76489/sn76489.qip
-set_global_assignment -name VHDL_FILE "colecovision_fpga/src/vdp18/vdp18_pack-p.vhd"
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_pattern.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_sprite.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_clk_gen.vhd
-set_global_assignment -name VHDL_FILE "colecovision_fpga/src/vdp18/vdp18_col_pack-p.vhd"
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_col_mux.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_cpuio.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_ctrl.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_hor_vert.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_addr_mux.vhd
-set_global_assignment -name VHDL_FILE "colecovision_fpga/src/vdp18/vdp18_comp_pack-p.vhd"
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/vdp18/vdp18_core.vhd
-set_global_assignment -name VHDL_FILE "colecovision_fpga/src/vdp18/vdp18_core_comp_pack-p.vhd"
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/cv_console.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/cv_addr_dec.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/cv_ctrl.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/cv_bus_mux.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/cv_clock.vhd
-set_global_assignment -name VHDL_FILE "colecovision_fpga/src/cv_comp_pack-p.vhd"
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/cv_keyboard.vhd
-set_global_assignment -name VHDL_FILE "colecovision_fpga/src/cv_keys_pack-p.vhd"
-set_global_assignment -name VHDL_FILE "colecovision_fpga/src/cv_console_comp_pack-p.vhd"
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/ps2kbd_pkg.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/ps2kbd.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/tech/cyclone/cv_por.vhd
-set_global_assignment -name VHDL_FILE "colecovision_fpga/src/tech/tech_comp_pack-p.vhd"
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/ym2149/YM2149.vhd
-set_global_assignment -name VHDL_FILE colecovision_fpga/src/ym2149/vol_table_array.vhd
 
-set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
+set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
+
+set_global_assignment -name TOP_LEVEL_ENTITY coleco_calypso
+set_global_assignment -name QIP_FILE files.qip
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

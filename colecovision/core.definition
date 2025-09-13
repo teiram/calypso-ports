@@ -1,4 +1,5 @@
 CORE_ID=coleco
 PROJECT_NAME=coleco
-VERSION=0.1
+VERSION=0.2
 BITSTREAM_FILE=output_files/coleco.rbf
+EXTRA_SUBMODULES=../common/T80 ../common/mist-modules

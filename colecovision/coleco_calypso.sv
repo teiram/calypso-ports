@@ -161,8 +161,9 @@ localparam CONF_STR =
     "O6,Joystick swap,Off,On;",
     "O23,Scanlines,Off,25%,50%,75%;",
     "O5,Blend,Off,On;",
+    `SEP
     "T0,Reset;",
-    "V,v",`BUILD_DATE
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 wire  [1:0] scanlines = status[3:2];
