@@ -1,0 +1,22 @@
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/hmi2key.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/cart_id.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/cart_mapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/cart_rom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/cart_ram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/upd7800/upd7800.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/epochtv1/epochtv1.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/epochtv1/dpram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/scv/upd1771c/upd1771c.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/rominit.sv
+set_global_assignment -name SYSTEMVERILOG_FILE SuperCassetteVision_MiSTer/rtl/joykey.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE scv_pkg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE scv.sv
+set_global_assignment -name SYSTEMVERILOG_FILE cart.sv
+set_global_assignment -name SYSTEMVERILOG_FILE upd7801.sv
+
+set_global_assignment -name SDC_FILE scv.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE scv_calypso.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE pll.qip

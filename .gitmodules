@@ -214,9 +214,9 @@
 [submodule "gyurco/Mist_FPGA"]
 	path = gyurco/Mist_FPGA
 	url = https://github.com/gyurco/Mist_FPGA/
-[submodule "interakt/Interact_MISTer"]
-	path = interakt/Interact_MISTer
-	url = https://github.com/edanuff/Interact_MISTer
 [submodule "interact/Interact_MiSTer"]
 	path = interact/Interact_MiSTer
-	url = https://github.com/MiSTer-devel/Interact_MiSTer.git
+	url = https://github.com/teiram/Interact_MiSTer.git
+[submodule "scv/SuperCassetteVision_MiSTer"]
+	path = scv/SuperCassetteVision_MiSTer
+	url = https://github.com/MiSTer-devel/SuperCassetteVision_MiSTer.git
