@@ -1,6 +1,6 @@
 CORE_ID=lynx
 PROJECT_NAME=lynx
 VERSION=0.1
-BITSTREAM_FILE=output_files/1ynx.rbf
+BITSTREAM_FILE=output_files/lynx.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=../common/T80 ../common/mist-modules
