@@ -220,3 +220,6 @@
 [submodule "scv/SuperCassetteVision_MiSTer"]
 	path = scv/SuperCassetteVision_MiSTer
 	url = https://github.com/MiSTer-devel/SuperCassetteVision_MiSTer.git
+[submodule "lynx/lynx"]
+	path = lynx/lynx
+	url = https://github.com/teiram/lynx.git

@@ -1,0 +1,16 @@
+set_global_assignment -name VERILOG_FILE lynx/src/rom.v
+set_global_assignment -name VERILOG_FILE lynx/src/video.v
+set_global_assignment -name VERILOG_FILE lynx/src/UM6845R.v
+set_global_assignment -name VERILOG_FILE lynx/src/keyboard.v
+set_global_assignment -name VERILOG_FILE lynx/src/dprf.v
+set_global_assignment -name VERILOG_FILE lynx/src/dac.v
+set_global_assignment -name VERILOG_FILE lynx/src/cpu.v
+set_global_assignment -name VERILOG_FILE lynx/src/audio.v
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE lynx_calypso.sv
+set_global_assignment -name VERILOG_FILE main.v
+set_global_assignment -name VERILOG_FILE sdram.v
+set_global_assignment -name QIP_FILE pll.qip
