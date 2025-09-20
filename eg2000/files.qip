@@ -1,0 +1,25 @@
+set_global_assignment -name VERILOG_FILE eg2000/src/cpu.v
+set_global_assignment -name VERILOG_FILE eg2000/src/dac.v
+set_global_assignment -name VERILOG_FILE eg2000/src/ram.v
+set_global_assignment -name VERILOG_FILE eg2000/src/rom.v
+set_global_assignment -name VERILOG_FILE eg2000/src/dprs.v
+set_global_assignment -name VERILOG_FILE eg2000/src/memory.v
+set_global_assignment -name VERILOG_FILE eg2000/src/UM6845R.v
+set_global_assignment -name VERILOG_FILE eg2000/src/keyboard.v
+set_global_assignment -name VERILOG_FILE eg2000/src/JT49/jt49_noise.v
+set_global_assignment -name VERILOG_FILE eg2000/src/JT49/jt49_exp.v
+set_global_assignment -name VERILOG_FILE eg2000/src/JT49/jt49_eg.v
+set_global_assignment -name VERILOG_FILE eg2000/src/JT49/jt49_div.v
+set_global_assignment -name VERILOG_FILE eg2000/src/JT49/jt49_cen.v
+set_global_assignment -name VERILOG_FILE eg2000/src/JT49/jt49_bus.v
+set_global_assignment -name VERILOG_FILE eg2000/src/JT49/jt49.v
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE eg2000_calypso.sv
+set_global_assignment -name VERILOG_FILE glue.v
+set_global_assignment -name VERILOG_FILE sdram.v
+
+set_global_assignment -name SDC_FILE eg2000.sdc
+set_global_assignment -name QIP_FILE pll.qip

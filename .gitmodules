@@ -223,3 +223,6 @@
 [submodule "lynx/lynx"]
 	path = lynx/lynx
 	url = https://github.com/teiram/lynx.git
+[submodule "eg2000/eg2000"]
+	path = eg2000/eg2000
+	url = https://github.com/teiram/eg2000

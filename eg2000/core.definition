@@ -1,0 +1,6 @@
+CORE_ID=eg2000
+PROJECT_NAME=eg2000
+VERSION=0.1
+BITSTREAM_FILE=output_files/eg2000.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/T80 ../common/mist-modules
