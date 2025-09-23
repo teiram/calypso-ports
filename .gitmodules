@@ -226,3 +226,6 @@
 [submodule "eg2000/eg2000"]
 	path = eg2000/eg2000
 	url = https://github.com/teiram/eg2000
+[submodule "bk0011m/BK0011M"]
+	path = bk0011m/BK0011M
+	url = https://github.com/teiram/BK0011M
