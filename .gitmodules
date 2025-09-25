@@ -229,3 +229,6 @@
 [submodule "bk0011m/BK0011M"]
 	path = bk0011m/BK0011M
 	url = https://github.com/teiram/BK0011M
+[submodule "tgfx16/TurboGrafx16_FPGA"]
+	path = tgfx16/TurboGrafx16_FPGA
+	url = https://github.com/teiram/TurboGrafx16_FPGA

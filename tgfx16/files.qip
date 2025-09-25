@@ -1,0 +1,6 @@
+set_global_assignment -name SDC_FILE tgfx16.sdc
+set_global_assignment -name QIP_FILE TurboGrafx16_FPGA/rtl/shared/tgfx16.qip
+set_global_assignment -name SYSTEMVERILOG_FILE tgfx16_calypso.sv
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name QIP_FILE pll27.qip
+

@@ -1,0 +1,5 @@
+CORE_ID=tgfx16
+PROJECT_NAME=tgfx16
+VERSION=0.1
+BITSTREAM_FILE=output_files/tgfx16.rbf
+EXTRA_BINARIES=readme.md
