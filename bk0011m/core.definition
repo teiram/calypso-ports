@@ -1,6 +1,6 @@
 CORE_ID=bk0011m
 PROJECT_NAME=bk0011m
-VERSION=0.1
+VERSION=0.2
 BITSTREAM_FILE=output_files/bk0011m.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=../common/mist-modules

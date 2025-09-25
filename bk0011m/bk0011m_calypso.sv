@@ -112,7 +112,7 @@ assign LED[0] = ~dsk_copy;
 `include "build_id.v"
 localparam CONF_STR = 
 {
-    "BK0011M;;",
+    "BK0011M;BINDSK;",
     "S1U,DSKBKD,Mount FDD(A);",
     "S2U,DSKBKD,Mount FDD(B);",
     "S0U,VHD,Mount HDD;",
@@ -725,8 +725,8 @@ mist_video #(
 
     // video in
     .R(R),
-    .G({G,G}),
-    .B({B,B}),
+    .G({G,1'b0}),
+    .B({B,1'b0}),
 
     .HBlank(HBlank),
     .VBlank(VBlank),

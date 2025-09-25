@@ -6,4 +6,5 @@ BK0011M.ROM must be provided in the SD card root folder (or core folder)
 
 
 # Changelog
+- 0.2. Enable BIN support (only for BK0010)
 - 0.1. Initial release
