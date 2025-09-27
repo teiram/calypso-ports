@@ -1,0 +1,23 @@
+set_global_assignment -name SYSTEMVERILOG_FILE gameboy/sdram.sv
+set_global_assignment -name VHDL_FILE gameboy/spram.vhd
+set_global_assignment -name VHDL_FILE gameboy/dpram.vhd
+set_global_assignment -name VHDL_FILE gameboy/reg_savestates.vhd
+set_global_assignment -name VHDL_FILE gameboy/bus_savestates.vhd
+set_global_assignment -name VHDL_FILE gameboy/gbc_snd.vhd
+set_global_assignment -name VERILOG_FILE gameboy/gb.v
+set_global_assignment -name VERILOG_FILE gameboy/video.v
+set_global_assignment -name VERILOG_FILE gameboy/hdma.v
+set_global_assignment -name VERILOG_FILE gameboy/sprites.v
+set_global_assignment -name VERILOG_FILE gameboy/timer.v
+set_global_assignment -name VERILOG_FILE gameboy/link.v
+set_global_assignment -name VHDL_FILE gameboy/boot_rom.vhd
+set_global_assignment -name QIP_FILE gameboy/gbc_bios.qip
+
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE gameboy_calypso.sv
+set_global_assignment -name VERILOG_FILE lcd.v
+set_global_assignment -name SDC_FILE gameboy.sdc
+set_global_assignment -name QIP_FILE pll.qip
+

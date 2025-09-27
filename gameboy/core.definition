@@ -1,0 +1,6 @@
+CORE_ID=gameboy
+PROJECT_NAME=gameboy
+VERSION=0.4
+BITSTREAM_FILE=output_files/gameboy.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/T80 ../common/mist-modules

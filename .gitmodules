@@ -232,3 +232,6 @@
 [submodule "tgfx16/TurboGrafx16_FPGA"]
 	path = tgfx16/TurboGrafx16_FPGA
 	url = https://github.com/teiram/TurboGrafx16_FPGA
+[submodule "gameboy/gameboy"]
+	path = gameboy/gameboy
+	url = https://github.com/teiram/gameboy
