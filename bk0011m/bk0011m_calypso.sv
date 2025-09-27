@@ -120,6 +120,7 @@ localparam CONF_STR =
     "O1,CPU Speed,3MHz/4MHz,6MHz/8MHz;",
     "O56,Model,BK0011M & DSK,BK0010 & DSK,BK0011M,BK0010;",
     "OA,Sound mode,PSG,Covox;",
+    "O4,Tape Sound,Yes,No;",
     `SEP
     "T2,Reset & Unload Disk;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -337,11 +338,12 @@ vm1_se cpu(
     .pin_sel(cpu_psel)
 );
 
+
 wire        cpu_dout_in  = dout_delay[{~bk0010,1'b0}] & cpu_dout_out;
 wire        sysreg_sel   = cpu_psel[1];
 wire        port_sel     = cpu_psel[2];
 wire [15:0] cpureg_data  = (bus_sync & !cpu_psel & (bus_addr[15:4] == (16'o177700 >> 4))) ? cpu_dout : 16'd0;
-wire [15:0] sysreg_data  = sysreg_sel ? {start_addr, 1'b1, ~key_down, 3'b000, super_flg, 2'b00} : 16'd0;
+wire [15:0] sysreg_data  = sysreg_sel ? {start_addr, 1'b1, ~key_down, TAPE_SOUND, 2'b00, super_flg, 2'b00} : 16'd0;
 wire [15:0] cpu_din      = cpureg_data | keyboard_data | scrreg_data | ram_data | sysreg_data | port_data | ivec_data;
 wire        sysreg_write = bus_stb & sysreg_sel & bus_we;
 wire        port_write   = bus_stb & port_sel   & bus_we;
@@ -613,6 +615,12 @@ ym2149 psg(
     .MODE(0)
 );
 
+wire [15:0] tape_snd = {1'd0, status[4] ? 1'b0 : TAPE_SOUND, 14'd0};
+wire [15:0] covox_l = {1'b0, out_port_data[7:0], 7'd0} + {2'd0, spk_out, 11'd0} + tape_snd;
+wire [15:0] covox_r = {1'b0, out_port_data[15:8], 7'd0} + {2'b00, spk_out, 11'd0} + tape_snd;
+
+wire [15:0] psg_l = {SOUND_L, 5'd0} + tape_snd;
+wire [9:0] psg_r = {SOUND_L, 5'd0} + tape_snd;
 
 `ifdef I2S_AUDIO
 i2s i2s (
@@ -622,8 +630,8 @@ i2s i2s (
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
-    .left_chan({covox_enable ? {1'b0, out_port_data[7:0],  1'b0} + {2'b00, spk_out, 5'b00000} : SOUND_L, 5'd0}),
-    .right_chan({covox_enable ? {1'b0, out_port_data[15:8], 1'b0} + {2'b00, spk_out, 5'b00000} : SOUND_R, 5'd0})
+    .left_chan(covox_enable ? covox_l : psg_l),
+    .right_chan(covox_enable ? covox_r : psg_r)
 );
 
 
