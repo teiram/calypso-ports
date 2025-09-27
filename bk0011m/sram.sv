@@ -70,8 +70,8 @@ localparam OP_MODE             = 2'b00;    // only 00 (standard operation) allow
 localparam NO_WRITE_BURST      = 1'b1;     // 0= write burst enabled, 1=only single access write
 localparam MODE                = {3'b000, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, BURST_LENGTH};
 
-localparam sdram_startup_cycles= 14'd12100;// 100us, plus a little more, @ 100MHz
-localparam cycles_per_refresh  = 14'd780;  // (64000*100)/8192-1 Calc'd as (64ms @ 100MHz)/8192 rose
+localparam sdram_startup_cycles= 15'd19400;// 200us, plus a little more, @ 96MHz
+localparam cycles_per_refresh  = 14'd1500;  // (64000*96)/4096-1 Calc'd as (64ms @ 96MHz)/4096 rows
 localparam startup_refresh_max = 14'b11111111111111;
 
 // SDRAM commands
