@@ -48,7 +48,8 @@ module sdram
 
 	output reg [15:0] vram_dout,
 	input      [22:0] vram_addr,
-
+    input      [1:0] vram_bank,
+    
 	input      [22:0] tape_addr,
 	input       [7:0] tape_din,
 	output reg  [7:0] tape_dout,
@@ -58,7 +59,7 @@ module sdram
 );
 
 assign SDRAM_CKE = ~init;
-assign dout = oe ? ram_dout : 8'hFF;
+assign dout = (oe | we) ? ram_dout : 8'hFF;
 
 // no burst configured
 localparam RASCAS_DELAY   = 3'd2;   // tRCD=20ns -> 2 cycles@64MHz
@@ -192,7 +193,7 @@ always @(posedge clk) begin
 		if(ram_req_next | vram_req_next | tape_req_next) begin
 			{SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_ACTIVE;
 			SDRAM_A <= addr_next[20:9];
-			SDRAM_BA <= tape_req_next ? 2'b10 : bank;
+			SDRAM_BA <= tape_req_next ? 2'b10 : vram_req_next ? vram_bank : bank;
 			if(ram_req_next & wr_next) ram_dout <= din;
 		end else
 			{SDRAM_nCS, SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_AUTO_REFRESH;

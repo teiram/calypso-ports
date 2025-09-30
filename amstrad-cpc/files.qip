@@ -20,14 +20,15 @@ set_global_assignment -name VERILOG_FILE Amstrad_MiST/kempston_mouse.v
 set_global_assignment -name VERILOG_FILE Amstrad_MiST/UM6845R.v
 set_global_assignment -name VHDL_FILE Amstrad_MiST/YM2149.vhd
 set_global_assignment -name VHDL_FILE Amstrad_MiST/vol_table_array.vhd
-set_global_assignment -name VERILOG_FILE Amstrad_MiST/Amstrad_motherboard.v
 set_global_assignment -name VHDL_FILE Amstrad_MiST/tzxplayer.vhd
 set_global_assignment -name VHDL_FILE Amstrad_MiST/playcity/playcity.vhd
 set_global_assignment -name QIP_FILE Amstrad_MiST/playcity/Z80CTC/z80ctc.qip
 
 set_global_assignment -name SYSTEMVERILOG_FILE amstrad_calypso.sv
 set_global_assignment -name VERILOG_FILE Amstrad_MMU.v
+set_global_assignment -name VERILOG_FILE Amstrad_motherboard.v
 set_global_assignment -name VERILOG_FILE sdram.v
+set_global_assignment -name VHDL_FILE cpc_dandanator.vhd
 set_global_assignment -name SDC_FILE amstrad.sdc
 set_global_assignment -name QIP_FILE pll.qip
 
