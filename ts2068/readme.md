@@ -16,7 +16,7 @@ For DivMMC a Spectrum 48K ROM must be loaded using the OSD
 Remember to reset using Space + F9 once DivMMC is enabled
 
 # Changelog
-
+- 0.4. Fix swap joysticks OSD option
 - 0.3. Enable PageUp and PageDown to start/stop internal TZX player
 - 0.2. Fixed DivMMC support (You need a Spectrum 48K ROM to use DivMMC)
 - 0.1. Initial release
