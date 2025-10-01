@@ -548,8 +548,8 @@ wire [14:0] core_audio_left;
 wire [14:0] core_audio_right;
 wire R, G, B, I;
 wire hsync, vsync;
-wire [31:0] joya = status[3] ? joy1 : joy0;
-wire [31:0] joyb = status[3] ? joy0 : joy1;
+wire [31:0] joya = status[5] ? joy1 : joy0;
+wire [31:0] joyb = status[5] ? joy0 : joy1;
 
 wire model = status[3];
 wire divmmc = status[4];
