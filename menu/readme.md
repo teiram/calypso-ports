@@ -12,5 +12,6 @@ You can find a sample image as [menu.rom](menu.rom) in this folder, which would 
 ![Sample](menu.rom?raw=true "Sample Background")
 
 # Changelog
+- 0.4. The KITT mode
 - 0.3. Configuration option to change the background
 

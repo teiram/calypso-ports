@@ -1,4 +1,6 @@
 CORE_ID=menu
 PROJECT_NAME=menu
-VERSION=0.3
+VERSION=0.4
 BITSTREAM_FILE=output_files/menu.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules

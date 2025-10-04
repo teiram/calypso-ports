@@ -116,7 +116,7 @@ endmodule
 // Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "100.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "50.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ2 STRING "25.00000000"
-// Retrieval info: PRIVATE: OUTPUT_FREQ3 STRING "12.50000000"
+// Retrieval info: PRIVATE: OUTPUT_FREQ3 STRING "12.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE1 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE2 STRING "0"
@@ -260,7 +260,7 @@ endmodule
 // Retrieval info: GEN_FILE: TYPE_NORMAL pll.inc FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL pll.cmp FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL pll.bsf FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL pll.v TRUE
-// Retrieval info: GEN_FILE: TYPE_NORMAL pll.v TRUE
+// Retrieval info: GEN_FILE: TYPE_NORMAL pll_inst.v TRUE
+// Retrieval info: GEN_FILE: TYPE_NORMAL pll_bb.v TRUE
 // Retrieval info: LIB_FILE: altera_mf
 // Retrieval info: CBX_MODULE_PREFIX: ON

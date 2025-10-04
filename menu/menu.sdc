@@ -34,10 +34,10 @@ derive_clock_uncertainty
 
 set_clock_groups -asynchronous \
     -group [get_clocks {SPI_SCK}] \
-    -group [get_clocks {menu_mist|pll|altpll_component|auto_generated|pll1|clk[*]}]
+    -group [get_clocks {pll|altpll_component|auto_generated|pll1|clk[*]}]
 
-set sdram_clk "menu_mist|pll|altpll_component|auto_generated|pll1|clk[0]"
-set sys_clk   "menu_mist|pll|altpll_component|auto_generated|pll1|clk[2]"
+set sdram_clk "pll|altpll_component|auto_generated|pll1|clk[0]"
+set sys_clk   "pll|altpll_component|auto_generated|pll1|clk[2]"
 
 set_input_delay -add_delay  -clock_fall -clock [get_clocks {CLK12M}]  1.000 [get_ports {CLK12M}]
 set_input_delay -add_delay  -clock_fall -clock [get_clocks {SPI_SCK}]  1.000 [get_ports {CONF_DATA0}]

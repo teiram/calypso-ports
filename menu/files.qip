@@ -1,0 +1,10 @@
+set_global_assignment -name SYSTEMVERILOG_FILE Menu_MIST/cos.sv
+set_global_assignment -name VERILOG_FILE Menu_MIST/lfsr.v
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE menu_calypso.sv
+set_global_assignment -name QIP_FILE kitt.qip
+set_global_assignment -name SDC_FILE menu.sdc
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv

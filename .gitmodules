@@ -235,3 +235,12 @@
 [submodule "gameboy/gameboy"]
 	path = gameboy/gameboy
 	url = https://github.com/teiram/gameboy
+[submodule "neogeo/NeoGeo_FPGA"]
+	path = neogeo/NeoGeo_FPGA
+	url = https://github.com/teiram/NeoGeo_FPGA
+[submodule "atari-lynx/AtariLynx_MiSTer"]
+	path = atari-lynx/AtariLynx_MiSTer
+	url = https://github.com/teiram/AtariLynx_MiSTer
+[submodule "pc88/PC88_MiSTer"]
+	path = pc88/PC88_MiSTer
+	url = https://github.com/teiram/PC88_MiSTer

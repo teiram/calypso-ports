@@ -24,7 +24,6 @@
 
 set_global_assignment -name FAMILY "Cyclone 10 LP"
 set_global_assignment -name DEVICE 10CL025YU256C8G
-set_global_assignment -name TOP_LEVEL_ENTITY menu_top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "23.1STD.0 LITE EDITION"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "18:32:00  JULY 18, 2024"
 set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.2 Lite Edition"
@@ -54,7 +53,6 @@ set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
 set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
 set_global_assignment -name AUTO_RAM_TO_LCELL_CONVERSION ON
 set_global_assignment -name REMOVE_REDUNDANT_LOGIC_CELLS ON
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:Menu_MIST/mist/build_id.tcl"
 set_global_assignment -name SAVE_DISK_SPACE OFF
 
 # Fitter Assignments
@@ -103,9 +101,9 @@ set_location_assignment PIN_P11 -to EAR
 ####################################
 # I2S
 ####################################
-set_location_assignment PIN_D16 -to I2S_LCK
+set_location_assignment PIN_D16 -to I2S_LRCK
 set_location_assignment PIN_D15 -to I2S_BCK
-set_location_assignment PIN_C15 -to I2S_DIN
+set_location_assignment PIN_C15 -to I2S_DATA
 
 
 ####################################
@@ -254,29 +252,16 @@ set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 
-#set_global_assignment -name VERILOG_FILE pll25.v
-
 
 set_global_assignment -name VERILOG_MACRO "I2S_AUDIO=1"
 set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
-#set_global_assignment -name VERILOG_MACRO "VGA_8BIT=1"
-#set_global_assignment -name VERILOG_MACRO "USE_CLOCK_50=1"
 set_global_assignment -name VERILOG_MACRO "BIG_OSD=1"
-#set_global_assignment -name VERILOG_MACRO "USE_HDMI=1"
 set_global_assignment -name VERILOG_MACRO "NO_DIRECT_UPLOAD=1"
 set_global_assignment -name RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP "AS INPUT TRI-STATED"
 
-
-set_global_assignment -name SDC_FILE menu.sdc
-set_global_assignment -name SYSTEMVERILOG_FILE menu.sv
-set_global_assignment -name QIP_FILE pll.qip
-set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
-set_global_assignment -name QIP_FILE "Menu_MIST/mist-modules/mist.qip"
-set_global_assignment -name SYSTEMVERILOG_FILE Menu_MIST/cos.sv
-set_global_assignment -name VERILOG_FILE Menu_MIST/lfsr.v
-set_global_assignment -name VERILOG_FILE top.v
-set_global_assignment -name SIGNALTAP_FILE output_files/sdram.stp
-set_global_assignment -name CDF_FILE output_files/menu.cdf
+set_global_assignment -name TOP_LEVEL_ENTITY menu_calypso
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
+set_global_assignment -name QIP_FILE files.qip
 
 
 
