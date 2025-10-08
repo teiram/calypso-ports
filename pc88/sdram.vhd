@@ -130,14 +130,10 @@ constant INITR_TIMES	:integer	:=20;
 signal	INITR_COUNT	:integer range 0 to INITR_TIMES;
 constant INITTIMERCNT:integer	:=1000;
 signal	INITTIMER	:integer range 0 to INITTIMERCNT;
-constant clockwtime	:integer	:=50000;	--usec
---constant clockwtime	:integer	:=2;	--usec
-constant cwaitcnt	:integer	:=clockwtime*86;	--clocks
+constant clockwtime	:integer	:=200;	                 --usec
+constant cwaitcnt	:integer	:=clockwtime * CLKMHZ;   --clocks
 signal	CLOCKWAIT	:integer range 0 to cwaitcnt;
 signal	clkcount	:integer range 0 to 20;
--- signal	pCPUWR		:std_logic;
--- signal	pCPURD		:std_logic;
--- signal	pCPUADR			:std_logic_vector(AWIDTH-1 downto 0);
 constant allzero	:std_logic_vector(12 downto 0)	:=(others=>'0');
 
 constant REFINT		:integer	:=CLKMHZ*REFCYC/20;
@@ -363,6 +359,8 @@ begin
 			if(INITTIMER>0)then
 				if(INITTIMER=1)then
 					MEMCKE<='1';
+                    MEMUDQ <= '1';
+                    MEMLDQ <= '1';
 					CLOCKWAIT<=cwaitcnt;
 				else
 					MEMCKE<='0';
@@ -1399,23 +1397,30 @@ begin
 				CPURSTn<='0';
 			else
 				CPURSTn<='1';
-				if(clkcount=20)then
-					-- CLKMb<=CLOCKM;
-					if(CLOCKM='1')then
-						CLKSFT<="000001111100000111111";
-					else
-						CLKSFT<="000001111111111000000";
-					end if;
-				else
-					CLKSFT<=CLKSFT(19 downto 0) & CLKSFT(20);
-				end if;
-				if(clkcount=20)then
-					SUBCSFT<="000001111100000111111";
-				else
-					SUBCSFT<=SUBCSFT(19 downto 0) & SUBCSFT(20);
-				end if;
+                if(CLOCKM='1')then
+                    CLKSFT<="000001111100000111111";
+                else
+                    CLKSFT<="000001111111111000000";
+                end if;
+                SUBCSFT<="000001111100000111111";
+            end if;
+
+            if(clkcount=20)then
+                -- CLKMb<=CLOCKM;
+                if(CLOCKM='1')then
+                    CLKSFT<="000001111100000111111";
+                else
+                    CLKSFT<="000001111111111000000";
+                end if;
+            else
+                CLKSFT<=CLKSFT(19 downto 0) & CLKSFT(20);
+            end if;
+            if(clkcount=20)then
+                SUBCSFT<="000001111100000111111";
+            else
+                SUBCSFT<=SUBCSFT(19 downto 0) & SUBCSFT(20);
+            end if;
 				
-			end if;
 		end if;
 		end if;
 	end process;
