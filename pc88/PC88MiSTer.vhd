@@ -104,7 +104,7 @@ port(
 end PC88MiSTer;
 
 architecture MAIN of PC88MiSTer is
-component SDRAMCde0cvDEMU2
+component SDRAMCALYPSO
 	generic(
 		CAWIDTH			:integer	:=10;
 		AWIDTH			:integer	:=25;
@@ -1716,7 +1716,7 @@ port map(
 
 	PCMADDRW<=ADDR_ADPCM(RAMAWIDTH-1 downto 18) & PCMADDR;
 
-	RAM	:SDRAMCde0cvDEMU2
+	RAM	:SDRAMCALYPSO
     generic map(
         CAWIDTH => RAMCAWIDTH,
         AWIDTH => RAMAWIDTH,
