@@ -151,7 +151,7 @@ set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
 
 
 set_global_assignment -name SYSTEMVERILOG_FILE pc88_calypso.sv
-set_global_assignment -name VHDL_FILE PC88MiSTer.vhd
+set_global_assignment -name VHDL_FILE PC88MiST.vhd
 set_global_assignment -name VHDL_FILE sdram.vhd
 set_global_assignment -name VHDL_FILE addressmap_calypso_pkg.vhd
 set_global_assignment -name QIP_FILE pll.qip

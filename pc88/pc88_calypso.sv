@@ -110,16 +110,13 @@ wire TAPE_SOUND=UART_RX;
 wire mist_active = |sd_rd[2:0] || |sd_wr[2:0];
 
 assign LED[0] = ~ioctl_download; 
-assign LED[1]  = disk_led;
-assign LED[2]  = mist_active;
+assign LED[6] = disk_led;
+assign LED[5] = mist_active;
+assign LED[7] = reset;
 
 `include "build_id.v" 
 parameter CONF_STR = {
     "PC8801;;",
-    `SEP
-//    "F0,ROM,Reload ROM;",
-    "O35,Scanlines,None,25%,50%,75%;",
-    `SEP
     "O78,Mode,N88V2,N88V1H,N88V1S,N;",
     "O9,Speed,4MHz,8MHz;",
     `SEP
@@ -161,38 +158,42 @@ wire  [1:0] buttons;
 
 wire [15:0] joystick_0, joystick_1;
 
-wire  [5:0] joyA = ~{joystick_0[5:4],joystick_0[0],joystick_0[1],joystick_0[2],joystick_0[3]};
-wire  [5:0] joyB = ~{joystick_1[5:4],joystick_1[0],joystick_1[1],joystick_1[2],joystick_1[3]};
+wire [5:0] joyA = ~{joystick_0[5:4],joystick_0[0],joystick_0[1],joystick_0[2],joystick_0[3]};
+wire [5:0] joyB = ~{joystick_1[5:4],joystick_1[0],joystick_1[1],joystick_1[2],joystick_1[3]};
 
-wire        ioctl_download;
-wire  [7:0] ioctl_index;
-wire        ioctl_wr;
+wire ioctl_download;
+wire [7:0] ioctl_index;
+wire ioctl_wr;
 wire [24:0] ioctl_addr;
-wire  [7:0] ioctl_dout;
+wire [7:0] ioctl_dout;
 
-wire        ps2_kbd_clk_out;
-wire        ps2_kbd_data_out;
-wire        ps2_kbd_clk_in;
-wire        ps2_kbd_data_in;
-wire        ps2_mouse_clk_out;
-wire        ps2_mouse_data_out;
-wire        ps2_mouse_clk_in;
-wire        ps2_mouse_data_in;
+wire ps2_kbd_clk_out;
+wire ps2_kbd_data_out;
+wire ps2_kbd_clk_in;
+wire ps2_kbd_data_in;
+wire ps2_mouse_clk_out;
+wire ps2_mouse_data_out;
+wire ps2_mouse_clk_in;
+wire ps2_mouse_data_in;
 
-wire  [31:0] sd_lba;
-wire   [3:0] sd_rd;
-wire   [3:0] sd_wr;
+wire [31:0] sd_lba;
+wire [3:0] sd_rd;
+wire [3:0] sd_wr;
 
-wire  [3:0] sd_ack;
-wire  [8:0] sd_buff_addr;
-wire  [7:0] sd_buff_dout;
-wire  [7:0] sd_buff_din;
-wire        sd_buff_wr;
-wire  [3:0] img_mounted;
-wire  [3:0] img_readonly;
+wire [3:0] sd_ack;
+wire [8:0] sd_buff_addr;
+wire [7:0] sd_buff_dout;
+wire [7:0] sd_buff_din;
+wire sd_buff_wr;
+wire [3:0] img_mounted;
+wire [3:0] img_readonly;
 wire [63:0] img_size;
 
-wire [24:0] ps2_mouse;
+wire mouse_strobe;
+wire [8:0] mouse_y;
+wire [8:0] mouse_x;
+wire [7:0] mouse_flags;
+wire [24:0] ps2_mouse = {mouse_strobe, mouse_y, mouse_x, mouse_flags[5:0]};
 
 wire key_strobe;
 wire key_pressed;
@@ -234,6 +235,11 @@ user_io #(
     .key_extended(key_extended),
     .key_code(key_code),
     
+    .mouse_strobe(mouse_strobe),
+    .mouse_x(mouse_x),
+    .mouse_y(mouse_y),
+    .mouse_flags(mouse_flags),
+    
     .sd_sdhc(1),
     .sd_lba(sd_lba),
     .sd_rd(sd_rd),
@@ -273,18 +279,9 @@ data_io data_io(
 );
 
 /////////////////  RESET  /////////////////////////
-wire reset_n = ~|reset_cnt;
-reg [23:0] reset_cnt;
-always @(posedge clk_sys) begin
-    reg old_download;
-    
-    old_download <= ioctl_download;
-    if (old_download & ~ioctl_download) reset_cnt <= 24'hffffff;
-    if (|reset_cnt) reset_cnt <= reset_cnt - 24'd1;
-end
 
 // Reset key
-reg kbd_reset;
+reg kbd_reset /* synthesis keep */;
 always @(posedge clk_sys) begin
     if (key_strobe) begin
         if (!key_extended) begin
@@ -294,34 +291,37 @@ always @(posedge clk_sys) begin
         end
     end
 end
-wire reset = buttons[1] | status[0] | ioctl_download | ~pll_locked | kbd_reset;
+wire reset /* synthesis keep */ = buttons[1] | status[0] | kbd_reset;
 
-wire [1:0] basicmode=~status[8:7];
-wire clkmode=status[9];
-wire cBT        =~status[10];
-wire    c40C    =status[11];
-wire    c20L    =status[12];
-wire    cDisk   =status[13];
-wire    MTSAVE  =1;
-wire [1:0]FDsync=status[16:15];
-wire    cInDev  =status[20];
-wire    cSB2    =status[21];
+wire [1:0] basicmode = ~status[8:7];
+wire clkmode = status[9];
+wire cBT = ~status[10];
+wire c40C = status[11];
+wire c20L = status[12];
+wire cDisk = status[13];
+wire MTSAVE = 1;
+wire [1:0] FDsync = status[16:15];
+wire cInDev = status[20];
+wire cSB2 = status[21];
 
 wire disk_led;
 
 wire [7:0] red, green, blue;
 wire HSync, VSync, ce_pix, vid_de;
+wire hblank, vblank;
+wire [15:0] audio_left;
+wire [15:0] audio_right;
 
-PC88MiSTer #(
+PC88MiST #(
     .RAMAWIDTH(22),
     .RAMCAWIDTH(8)
-    ) PC88_top
-(
-    .clk21m(clk_sys),
+) PC88(
+    .clksys(clk_sys),
     .rclk(clk_ram),
     .emuclk(clk_emu),
     .plllocked(pll_locked),
-    
+    .rstn(~reset),
+
     .sysrtc(),
 
     .LOADER_ADR(ioctl_addr[18:0]),
@@ -370,7 +370,7 @@ PC88MiSTer #(
     .pFd_sync(FDsync),
 
     .pLed(disk_led),
-    .pDip({clkmode,2'b0,cDisk,c20L,c40C,MTSAVE,cBT,basicmode}),
+    .pDip({clkmode, 2'b0, cDisk, c20L, c40C, MTSAVE, cBT, basicmode}),
     .pCoreConfig({cSB2,cInDev}),
     .pPsw(2'b11),
 
@@ -381,14 +381,16 @@ PC88MiSTer #(
     .pVideoVS(VSync),
     .pVideoEN(vid_de),
     .pVideoClk(ce_pix),
+    .pVideoHBlank(hblank),
+    .pVideoVBlank(vblank),
 
-    .pSndL(),
-    .pSndR(),
+    .pSndL(audio_left),
+    .pSndR(audio_right),
 
-    .rstn(reset_n & ~reset)
+    .tape(TAPE_SOUND)
+    
 );
 
-assign LED[7] = ~reset_n | reset;
 
 wire ldr_ack;
 reg ldr_wr = 0;
@@ -403,24 +405,22 @@ always @(posedge clk_sys) begin
     if (ioctl_wr & ~ldr_done) ldr_wr <= 1;
 
     if (old_download & ~ioctl_download) ldr_done <= 1;
-//    if (~old_download & ioctl_download) ldr_done <= 0;
 end
 
 
 `ifdef I2S_AUDIO
-wire[15:0] audio;
 
 i2s i2s (
     .reset(1'b0),
     .clk(clk_sys),
-    .clk_rate(32'd42_660_000),
+    .clk_rate(32'd20_000_000),
 
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
 
-    .left_chan(audio),
-    .right_chan(audio)
+    .left_chan(audio_left),
+    .right_chan(audio_right)
 );
 `endif
 
@@ -429,6 +429,7 @@ mist_video #(
     .SD_HCNT_WIDTH(11),
     .OSD_COLOR(3'b101),
     .OUT_COLOR_DEPTH(VGA_BITS),
+    .USE_BLANKS(1'b1),
     .BIG_OSD(BIG_OSD))
 mist_video(
     .clk_sys(clk_ram),
@@ -438,8 +439,8 @@ mist_video(
     .R(red),
     .G(green),
     .B(blue),
-    .HBlank(),
-    .VBlank(),
+    .HBlank(hblank),
+    .VBlank(vblank),
     .HSync(HSync),
     .VSync(VSync),
     .VGA_R(VGA_R),
@@ -447,10 +448,10 @@ mist_video(
     .VGA_B(VGA_B),
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
-    .ce_divider(3'b1),
-    .scandoubler_disable(scandoubler_disable),
+    .ce_divider(3'd1),
+    .scandoubler_disable(1'b1),
     .no_csync(no_csync),
-    .scanlines(status[5:3]),
+    .scanlines(),
     .ypbpr(ypbpr)
 );
 
