@@ -674,7 +674,7 @@ wire  [9:0] audio_l, audio_r;
 
 //wire  [7:0] cpu_din = (dan_ramdis == 1'b1 && dan_ena == 1'b1) ? dan_databus : ram_dout & mf2_dout & fdc_dout & kmouse_dout & smouse_dout & mmouse_dout & playcity_dout;
 wire  [7:0] cpu_din = ram_dout & mf2_dout & fdc_dout & kmouse_dout & smouse_dout & mmouse_dout & playcity_dout;
-wire        NMI = playcity_nmi | mf2_nmi | ~dan_nnmi;
+wire        NMI = playcity_nmi | mf2_nmi;
 
 wire        IRQ = ~playcity_int_n;
 
