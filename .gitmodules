@@ -244,3 +244,15 @@
 [submodule "pc88/PC88_MiSTer"]
 	path = pc88/PC88_MiSTer
 	url = https://github.com/teiram/PC88_MiSTer
+[submodule "apple1/Apple-I_MiSTer"]
+	path = apple1/Apple-I_MiSTer
+	url = https://github.com/teiram/Apple-I_MiSTer.git
+[submodule "pmd85/PMD85_MiSTer"]
+	path = pmd85/PMD85_MiSTer
+	url = https://github.com/teiram/PMD85_MiSTer
+[submodule "test-mz80/Sharp-MZ80-poseidon"]
+	path = test-mz80/Sharp-MZ80-poseidon
+	url = https://github.com/retrocrypta/Sharp-MZ80-poseidon.git
+[submodule "sharpmz/SharpMZ_MiSTer"]
+	path = sharpmz/SharpMZ_MiSTer
+	url = https://github.com/teiram/SharpMZ_MiSTer

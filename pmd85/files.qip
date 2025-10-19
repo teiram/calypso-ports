@@ -1,0 +1,27 @@
+set_global_assignment -name VERILOG_FILE PMD85_MiSTer/rtl/dram.v
+set_global_assignment -name SYSTEMVERILOG_FILE PMD85_MiSTer/rtl/eprom.sv
+set_global_assignment -name VERILOG_FILE PMD85_MiSTer/rtl/i8224.v
+set_global_assignment -name VERILOG_FILE PMD85_MiSTer/rtl/i8228.v
+set_global_assignment -name VERILOG_FILE PMD85_MiSTer/rtl/vm80a.v
+
+set_global_assignment -name VERILOG_FILE PMD85_MiSTer/rtl/dpram.v
+set_global_assignment -name SYSTEMVERILOG_FILE PMD85_MiSTer/rtl/saa1099.sv
+set_global_assignment -name VERILOG_FILE PMD85_MiSTer/rtl/K580vi53.v
+set_global_assignment -name VERILOG_FILE PMD85_MiSTer/rtl/i8251.v
+set_global_assignment -name VERILOG_FILE PMD85_MiSTer/rtl/i8255.v 
+
+set_global_assignment -name SEARCH_PATH PMD85_MiSTer
+
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE pdm85_calypso.sv
+set_global_assignment -name SYSTEMVERILOG_FILE PMD85_2A.sv
+set_global_assignment -name SYSTEMVERILOG_FILE keyboard.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
+set_global_assignment -name QIP_FILE pll1.qip
+set_global_assignment -name QIP_FILE pll2.qip
+
+set_global_assignment -name SDC_FILE pmd85.sdc
+
+
