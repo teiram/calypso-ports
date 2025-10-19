@@ -1,0 +1,26 @@
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/clock.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/pwr_reset.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/cpu/arlet_6502.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/ram.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/rom_basic.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/rom_wozmon.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/vga/vram.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/uart/uart.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/ascii_input.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/ps2keyboard/ps2keyboard.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/vga/vga.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/uart/async_tx_rx.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/cpu/arlet/cpu.v
+set_global_assignment -name VERILOG_FILE Apple-I_MiSTer/rtl/cpu/arlet/ALU.v
+
+set_global_assignment -name SEARCH_PATH Apple-I_MiSTer
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE apple1_calypso.sv
+set_global_assignment -name apple1.v
+set_global_assignment -name VERILOG_FILE font_rom.v
+set_global_assignment -name QIP_FILE pll.qip
+
+set_global_assignment -name SDC_FILE apple1.sdc
+
