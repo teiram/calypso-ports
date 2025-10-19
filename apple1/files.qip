@@ -18,7 +18,7 @@ set_global_assignment -name SEARCH_PATH Apple-I_MiSTer
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
 
 set_global_assignment -name SYSTEMVERILOG_FILE apple1_calypso.sv
-set_global_assignment -name apple1.v
+set_global_assignment -name VERILOG_FILE apple1.v
 set_global_assignment -name VERILOG_FILE font_rom.v
 set_global_assignment -name QIP_FILE pll.qip
 
