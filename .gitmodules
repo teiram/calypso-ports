@@ -250,9 +250,9 @@
 [submodule "pmd85/PMD85_MiSTer"]
 	path = pmd85/PMD85_MiSTer
 	url = https://github.com/teiram/PMD85_MiSTer
-[submodule "test-mz80/Sharp-MZ80-poseidon"]
-	path = test-mz80/Sharp-MZ80-poseidon
-	url = https://github.com/retrocrypta/Sharp-MZ80-poseidon.git
 [submodule "sharpmz/SharpMZ_MiSTer"]
 	path = sharpmz/SharpMZ_MiSTer
 	url = https://github.com/teiram/SharpMZ_MiSTer
+[submodule "trucco/Multicore"]
+	path = trucco/Multicore
+	url = https://gitlab.com/victor.trucco/Multicore.git
