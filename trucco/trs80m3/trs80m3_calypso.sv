@@ -125,16 +125,14 @@ parameter CONF_STR = {
 /////////////////  CLOCKS  ////////////////////////
 
 wire clock_master_s; // 20Mhz
-wire clk_sdram /* synthesis keep */;    // 80Mhz
+wire clk_sdram;      // 80Mhz
 wire clk_sys = clock_master_s;
-wire clk_sdcard;        // 40Mhz
 wire pll_locked;
 
 pll pll(
     .inclk0(CLK12M),
     .c0(clock_master_s),
     .c1(clk_sdram),
-    .c2(clk_sdcard),
     .locked(pll_locked)
 );
 
@@ -189,7 +187,7 @@ user_io #(
     .PS2DIV(400)
 ) user_io(
     .clk_sys(clk_sys),
-    .clk_sd(clk_sdcard),
+    .clk_sd(clk_sys),
     .SPI_SS_IO(CONF_DATA0),
     .SPI_CLK(SPI_SCK),
     .SPI_MOSI(SPI_DI),
@@ -257,7 +255,7 @@ wire sdcard_mosi;
 wire sdcard_miso;
 
 sd_card sd_card(
-    .clk_sys(clk_sdcard),
+    .clk_sys(clk_sys),
 
     .sd_lba(sd_lba),
     .sd_rd(sd_rd),
@@ -287,11 +285,11 @@ wire reset_por_s = ~pll_locked;
 
 
 /////////////////  Memory  ////////////////////////
-wire [22:0] sdram_addr /* synthesis keep */ = {7'd0, ram_addr_s};
-wire [7:0] sdram_din /* synthesis keep */ = ram_data_to_s;
-wire [7:0] sdram_dout /* synthesis keep */;
-wire sdram_rd /* synthesis keep */ = ram_rd_s;
-wire sdram_we /* synthesis keep */ = ram_wr_s;
+wire [22:0] sdram_addr = {7'd0, ram_addr_s};
+wire [7:0] sdram_din = ram_data_to_s;
+wire [7:0] sdram_dout;
+wire sdram_rd = ram_rd_s;
+wire sdram_we = ram_wr_s;
 wire sdram_ready;
 
 assign ram_data_from_s = sdram_dout;
@@ -331,8 +329,8 @@ wire ram_rd_s;
 wire ram_wr_s;
 wire [7:0] ram_data_to_s;
 wire [7:0] ram_data_from_s;
-wire [13:0] rom_addr_s /* synthesis keep */;
-wire [7:0] rom_data_from_s /* synthesis keep */;
+wire [13:0] rom_addr_s;
+wire [7:0] rom_data_from_s;
 
 wire [7:0] kb_columns_s;
 wire [7:0] kb_rows_s;
