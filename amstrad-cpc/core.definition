@@ -1,6 +1,6 @@
 CORE_ID=amstrad
 PROJECT_NAME=amstrad
-VERSION=0.7
+VERSION=0.8
 BITSTREAM_FILE=output_files/amstrad.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=../common/mist-modules ../common/T80
