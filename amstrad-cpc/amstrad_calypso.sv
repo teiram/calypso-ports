@@ -95,7 +95,7 @@ localparam CONF_STR = {
     "P3OEF,Multiface 2,Enabled,Hidden,Disabled;",
     "P3O6,CPU timings,Original,Fast;",
     "P3OGH,FDC,Original,Fast,Disabled;",
-    "O5,Distributor,Amstrad,Schneider;",
+    "OTV,Distributor,Amstrad,Orion,Schneider,Awa,Solavox,Saisho,Triumph,Isp;",
     "O4,Model,CPC 6128,CPC 664;",
     "T0,Reset & apply model;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -108,7 +108,7 @@ wire       st_joyswap = status[18];
 wire       st_nowait = status[6];
 wire       st_cpc664 = status[4];
 wire       st_crtc = status[2];
-wire       st_distributor = status[5];
+wire [2:0] st_distributor = status[31:29];
 wire [1:0] st_fdc = status[17:16];
 wire       st_tape_sound = status[20];
 wire       st_stereo = ~status[21];
@@ -698,7 +698,7 @@ Amstrad_motherboard motherboard(
     .Fn(Fn),
 
     .no_wait(st_nowait & ~tape_motor),
-    .ppi_jumpers({2'b11, ~st_distributor, 1'b1}),
+    .ppi_jumpers({1'b1, ~st_distributor}),
     .crtc_type(~st_crtc),
     .sync_filter(st_sync_filter),
 
