@@ -4,6 +4,7 @@ DVK PDP-11 russian clone port based on this [MiST port](https://github.com/xolod
 Translation from russian of the [DVK Manual](dvk-manual.md)
 
 # Current status
-Preliminar. Starts and boots from the DX disks
+Preliminar. 
 
 # Changelog
+- v0.1. Seems to finally boot from MY disks

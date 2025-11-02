@@ -107,13 +107,13 @@ module pll (
 				.vcounderrange ());
 	defparam
 		altpll_component.bandwidth_type = "AUTO",
-		altpll_component.clk0_divide_by = `PLL_DIV,
+		altpll_component.clk0_divide_by = 3,
 		altpll_component.clk0_duty_cycle = 50,
-		altpll_component.clk0_multiply_by = `PLL_MUL,
+		altpll_component.clk0_multiply_by = 25,
 		altpll_component.clk0_phase_shift = "0",
-		altpll_component.clk1_divide_by = `PLL_DIV,
+		altpll_component.clk1_divide_by = 3,
 		altpll_component.clk1_duty_cycle = 50,
-		altpll_component.clk1_multiply_by = `PLL_MUL,
+		altpll_component.clk1_multiply_by = 25,
 		altpll_component.clk1_phase_shift = "5000",
 		altpll_component.clk2_divide_by = 6,
 		altpll_component.clk2_duty_cycle = 50,
@@ -199,7 +199,7 @@ endmodule
 // Retrieval info: PRIVATE: DIV_FACTOR0 NUMERIC "1"
 // Retrieval info: PRIVATE: DIV_FACTOR1 NUMERIC "1"
 // Retrieval info: PRIVATE: DIV_FACTOR2 NUMERIC "1"
-// Retrieval info: PRIVATE: DIV_FACTOR3 NUMERIC "1"
+// Retrieval info: PRIVATE: DIV_FACTOR3 NUMERIC "24"
 // Retrieval info: PRIVATE: DUTY_CYCLE0 STRING "50.00000000"
 // Retrieval info: PRIVATE: DUTY_CYCLE1 STRING "50.00000000"
 // Retrieval info: PRIVATE: DUTY_CYCLE2 STRING "50.00000000"
@@ -239,7 +239,7 @@ endmodule
 // Retrieval info: PRIVATE: MULT_FACTOR0 NUMERIC "1"
 // Retrieval info: PRIVATE: MULT_FACTOR1 NUMERIC "1"
 // Retrieval info: PRIVATE: MULT_FACTOR2 NUMERIC "1"
-// Retrieval info: PRIVATE: MULT_FACTOR3 NUMERIC "1"
+// Retrieval info: PRIVATE: MULT_FACTOR3 NUMERIC "25"
 // Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
 // Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "100.00000000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ1 STRING "100.00000000"
@@ -248,7 +248,7 @@ endmodule
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "1"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE1 STRING "1"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE2 STRING "1"
-// Retrieval info: PRIVATE: OUTPUT_FREQ_MODE3 STRING "1"
+// Retrieval info: PRIVATE: OUTPUT_FREQ_MODE3 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT0 STRING "MHz"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT1 STRING "MHz"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT2 STRING "MHz"
