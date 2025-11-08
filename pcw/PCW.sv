@@ -161,7 +161,7 @@ localparam CONF_STR = {
 	"OH,DKTronics I/F,Disabled,Enabled;",
 	`SEP
 	"T0,Reset;",
-	"V,calypso-",`BUILD_DATE
+    "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
 
 wire clk_sys /* synthesis keep */;
