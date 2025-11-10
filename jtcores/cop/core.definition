@@ -1,7 +1,0 @@
-CORE_ID=jtcop
-PROJECT_NAME=jotego
-VERSION=0.1
-BITSTREAM_FILE=../jtcores/release/calypso/jtcop.rbf
-EXTRA_BINARIES=readme.md
-EXTRA_SUBMODULES=../jtcores
-BUILDER=./build.sh
