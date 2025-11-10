@@ -256,3 +256,6 @@
 [submodule "trucco/Multicore"]
 	path = trucco/Multicore
 	url = https://gitlab.com/victor.trucco/Multicore.git
+[submodule "jtcores/jtcores"]
+	path = jtcores/jtcores
+	url = https://github.com/teiram/jtcores.git
