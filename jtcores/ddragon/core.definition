@@ -1,7 +1,7 @@
-CORE_ID=jtyiear
-PROJECT_NAME=yiear
+CORE_ID=jtdd
+PROJECT_NAME=dd
 VERSION=0.1
-BITSTREAM_FILE=../jtcores/release/calypso/jtyiear.rbf
+BITSTREAM_FILE=../jtcores/release/calypso/jtdd.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=../jtcores
 BUILDER=./build.sh
