@@ -1,0 +1,7 @@
+CORE_ID=jt1943
+PROJECT_NAME=1943
+VERSION=0.1
+BITSTREAM_FILE=../jtcores/release/calypso/jt1943.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../jtcores
+BUILDER=./build.sh

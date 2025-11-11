@@ -1,0 +1,7 @@
+CORE_ID=jtcastle
+PROJECT_NAME=castle
+VERSION=0.1
+BITSTREAM_FILE=../jtcores/release/calypso/jtcastle.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../jtcores
+BUILDER=./build.sh

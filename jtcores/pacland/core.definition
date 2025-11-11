@@ -1,0 +1,7 @@
+CORE_ID=jtpacland
+PROJECT_NAME=pacland
+VERSION=0.1
+BITSTREAM_FILE=../jtcores/release/calypso/jtpacland.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../jtcores
+BUILDER=./build.sh
