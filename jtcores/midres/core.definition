@@ -1,0 +1,7 @@
+CORE_ID=jtmidres
+PROJECT_NAME=midres
+VERSION=0.1
+BITSTREAM_FILE=../jtcores/release/calypso/jtmidres.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../jtcores
+BUILDER=./build.sh

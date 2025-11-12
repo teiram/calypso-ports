@@ -1,0 +1,7 @@
+CORE_ID=jtbtiger
+PROJECT_NAME=btiger
+VERSION=0.1
+BITSTREAM_FILE=../jtcores/release/calypso/jtbtiger.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../jtcores
+BUILDER=./build.sh

@@ -1,0 +1,7 @@
+CORE_ID=jttora
+PROJECT_NAME=troad
+VERSION=0.1
+BITSTREAM_FILE=../jtcores/release/calypso/jttora.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../jtcores
+BUILDER=./build.sh
