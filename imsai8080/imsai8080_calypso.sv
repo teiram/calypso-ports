@@ -113,7 +113,7 @@ assign LED[0] = ~ioctl_download;
 parameter CONF_STR = {
     "IMSAI8080;;",
     `SEP
-    "F0,ROM,Reload Panel;",
+    "F0,ROM,Load Panel;",
     `SEP
     "O3,Swap Joysticks,No,Yes;",
     "OC,Mode,Computer,Console;",
@@ -296,6 +296,10 @@ always @(posedge clk36m) begin
     if (~|leds) leds <= 'd1;
 end
 
+wire [3:0] r_panel;
+wire [3:0] g_panel;
+wire [3:0] b_panel;
+
 panel panel(
     .clk36m(clk36m),
     .reset(reset),
@@ -307,11 +311,38 @@ panel panel(
     .ram_value(ram_value),
     
     .leds(leds),
-    
-    .r(R),
-    .g(G),
-    .b(B)
+
+    .key_pressed(key_pressed),
+    .key_code(key_code),
+    .key_strobe(key_strobe),
+    .key_extended(key_extended),
+
+    .r(r_panel),
+    .g(g_panel),
+    .b(b_panel)
 );
+
+wire pixel_terminal;
+
+terminal terminal(
+    .clk36m(clk36m),
+    .reset(reset),
+    .col(col),
+    .row(row - 11'd240),
+    .hblank(hblank),
+    .vblank(vblank),
+    
+    .key_pressed(key_pressed),
+    .key_code(key_code),
+    .key_strobe(key_strobe),
+    .key_extended(key_extended),
+    
+    .vout(pixel_terminal)
+);
+
+assign R = row < 10'd240 ? r_panel : {4{pixel_terminal}};
+assign G = row < 10'd240 ? g_panel : {4{pixel_terminal}};
+assign B = row < 10'd240 ? b_panel : {4{pixel_terminal}};
 
 ////////////////////////////////////////////
 
