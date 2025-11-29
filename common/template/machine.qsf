@@ -114,14 +114,14 @@ set_location_assignment PIN_F8 -to SDRAM_CKE
 set_location_assignment PIN_B13 -to SDRAM_DQML
 set_location_assignment PIN_D12 -to SDRAM_DQMH
 
-set_location_assignment PIN_T12 -to AUX[0]
-set_location_assignment PIN_R11 -to AUX[1]
-set_location_assignment PIN_R12 -to AUX[2]
-set_location_assignment PIN_P14 -to AUX[3]
-set_location_assignment PIN_J14 -to AUX[4]
-set_location_assignment PIN_L2 -to AUX[5]
-set_location_assignment PIN_F13 -to AUX[6]
-set_location_assignment PIN_F16 -to AUX[7]
+set_location_assignment PIN_T12 -to PSRAM_CE
+set_location_assignment PIN_R11 -to PSRAM_CLK
+set_location_assignment PIN_R12 -to PSRAM_SIO[0]
+set_location_assignment PIN_P14 -to PSRAM_SIO[1]
+set_location_assignment PIN_J14 -to PSRAM_SIO[2]
+set_location_assignment PIN_L2 -to PSRAM_SIO[3]
+set_location_assignment PIN_F13 -to AUX[0]
+set_location_assignment PIN_F16 -to AUX[1]
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[0]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[1]
