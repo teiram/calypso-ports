@@ -1,0 +1,6 @@
+CORE_ID=orao
+PROJECT_NAME=orao
+VERSION=0.1
+BITSTREAM_FILE=output_files/orao.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules

@@ -1,0 +1,14 @@
+set_global_assignment -name VERILOG_FILE Orao_MiSTer/rtl/orao_ram.v
+set_global_assignment -name VERILOG_FILE Orao_MiSTer/rtl/orao_vram.v
+set_global_assignment -name VERILOG_FILE Orao_MiSTer/rtl/orao_video.v
+set_global_assignment -name VERILOG_FILE Orao_MiSTer/rtl/orao_rom.v
+set_global_assignment -name VHDL_FILE Orao_MiSTer/rtl/cpu65xx_fast.vhd
+set_global_assignment -name VHDL_FILE Orao_MiSTer/rtl/cpu65xx_e.vhd
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name SYSTEMVERILOG_FILE orao_calypso.sv
+set_global_assignment -name SYSTEMVERILOG_FILE orao_hw.sv
+set_global_assignment -name SYSTEMVERILOG_FILE orao_io.sv
+set_global_assignment -name SYSTEMVERILOG_FILE keyboard.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
+set_global_assignment -name QIP_FILE pll.qip

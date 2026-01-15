@@ -259,3 +259,6 @@
 [submodule "jtcores/jtcores"]
 	path = jtcores/jtcores
 	url = https://github.com/teiram/jtcores.git
+[submodule "orao/Orao_MiSTer"]
+	path = orao/Orao_MiSTer
+	url = https://github.com/teiram/Orao_MiSTer
