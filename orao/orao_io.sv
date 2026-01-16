@@ -43,7 +43,7 @@ module orao_io(
    output reg tape_rd,
    input tape_reset,
    
-   output        video_blank,    // Video controls
+   output        video_blank,
    input         video_sync,
 
    output reg    audio,

@@ -141,14 +141,14 @@ orao_video vid(
 
 wire [7:0]  io_read_data;
 wire  io_we = we && (addr[15:13] == 3'b100);
-   
+
 orao_io io(
    .clk(clk),
    .reset(reset),
    .ce(ce_1m),
    
    .video_blank(video_blank),
-   .video_sync(video_sync),
+   .video_sync(),
    
    .data_out(io_read_data),
    .data_in(data_in),
