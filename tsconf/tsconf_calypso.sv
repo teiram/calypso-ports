@@ -62,8 +62,9 @@ module tsconf_calypso(
     output SDRAM_CLK,
     output SDRAM_CKE,
     
-    input UART_RX,
-    output UART_TX
+    input I2S_MIDI_BCK,
+    input I2S_MIDI_LRCK,
+    input I2S_MIDI_DATA
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -106,7 +107,7 @@ localparam bit USE_AUDIO_IN = 1;
 wire TAPE_SOUND=AUDIO_IN;
 `else
 localparam bit USE_AUDIO_IN = 0;
-wire TAPE_SOUND=UART_RX;
+//wire TAPE_SOUND=UART_RX;
 `endif
 
 assign LED[0] = ~ioctl_download & ~ioctl_upload;
@@ -117,7 +118,7 @@ localparam CONF_STR = {
     "O78,Joystick 1,Kempston,Sinclair 1,Sinclair 2,Cursor;",
     "O9A,Joystick 2,Kempston,Sinclair 1,Sinclair 2,Cursor;",
     "O3,Swap mouse buttons,OFF,ON;",
-    "O12,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
+    "O12,Scanlines,None,25%,50%,75%;",
     "O4,Vsync,49 Hz,60 Hz;",
     "O5,VDAC1,ON,OFF;",
     "O6,CPU Type,CMOS,NMOS;",
@@ -206,8 +207,12 @@ wire [28:0] ps2_mouse = { mouse_strobe_level, mouse_z, mouse_y[7:0], mouse_x[7:0
 reg         mouse_strobe_level;
 always @(posedge clk_sys) if (mouse_strobe) mouse_strobe_level <= ~mouse_strobe_level;
 
-user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD << 13))) user_io
-(
+user_io #(
+    .STRLEN($size(CONF_STR)>>3),
+    .SD_IMAGES(2),
+    .SERIAL_CHANNEL(1),
+    .FEATURES(32'h0 | (BIG_OSD << 13)))
+user_io(
     .clk_sys(clk_sys),
     .clk_sd(clk_sys),
     .conf_str(CONF_STR),
@@ -250,7 +255,10 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD
     .scandoubler_disable(scandoubler_disable),
     .ypbpr(ypbpr),
     .no_csync(no_csync),
-    .rtc(rtc)
+    .rtc(rtc),
+    
+    .serial_data(midi_byte),
+    .serial_strobe(midi_strobe)
 );
 
 wire        ioctl_wr;
@@ -368,7 +376,7 @@ tsconf tsconf
     .TAPE_IN(TAPE_SOUND),
     .TAPE_OUT(tape_out),
     .MIDI_OUT(midi_out),
-    .UART_RX(UART_RX),
+    .UART_RX(),
     .UART_TX(uart_out),
 
     .CFG_OUT0(st_out0),
@@ -415,8 +423,16 @@ always @(posedge clk_sys) begin
     end
 end
 
-assign UART_TX = uart_tx;
-
+// MIDI regeneration to route over user_io.serial_data
+wire [7:0] midi_byte;
+wire midi_strobe;
+serial_packer midi_packer(
+    .clock(clk_sys),
+    .serial_in(midi_out),
+    
+    .serial_out(midi_byte),
+    .serial_strobe_out(midi_strobe)
+);
 
 //////////////////   VIDEO   ///////////////////
 reg VSync, HSync;
@@ -481,18 +497,38 @@ always @(posedge clk_sys) begin
 end
 
 `ifdef I2S_AUDIO
+
+wire [15:0] midi_left;
+wire [15:0] midi_right;
+
+
+i2s_decoder midi_decoder(
+    .clock(clk_sys),
+    
+    .i2s_bck(I2S_MIDI_BCK),
+    .i2s_lrck(I2S_MIDI_LRCK),
+    .i2s_data(I2S_MIDI_DATA),
+    
+    .audio_left(midi_left),
+    .audio_right(midi_right)
+);
+
+wire [15:0] sound_left = {SOUND_L[15], SOUND_L[15:1]} + {midi_left[15], midi_left[15:1]};
+wire [15:0] sound_right = {SOUND_R[15], SOUND_R[15:1]} + {midi_right[15], midi_right[15:1]};
+
 i2s i2s (
     .reset(1'b0),
     .clk(clk_sys),
-    .clk_rate(32'd42_660_000),
+    .clk_rate(32'd84_000_000),
 
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
 
-    .left_chan(mute_cnt ? 16'd0 : SOUND_L),
-    .right_chan(mute_cnt ? 16'd0: SOUND_R)
+    .left_chan(mute_cnt ? 16'd0 : sound_left),
+    .right_chan(mute_cnt ? 16'd0: sound_right)
 );
+
 `endif
 
 

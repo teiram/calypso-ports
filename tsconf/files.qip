@@ -42,5 +42,7 @@ set_global_assignment -name SEARCH_PATH TSConf_MiST
 
 set_global_assignment -name SYSTEMVERILOG_FILE tsconf_calypso.sv
 set_global_assignment -name VERILOG_FILE sdram.v
+set_global_assignment -name SYSTEMVERILOG_FILE i2s_decoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE serial_packer.sv
 set_global_assignment -name QIP_FILE pll.qip
-set_global_assignment -name QIP_FILE TSConf_MiST/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
