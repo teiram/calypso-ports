@@ -262,3 +262,9 @@
 [submodule "orao/Orao_MiSTer"]
 	path = orao/Orao_MiSTer
 	url = https://github.com/teiram/Orao_MiSTer
+[submodule "lynx128/lynx128-kyp"]
+	path = lynx128/lynx128-kyp
+	url = git@github.com:teiram/lynx128-kyp.git
+[submodule "computer-space/Arcade-ComputerSpace_MiSTer"]
+	path = computer-space/Arcade-ComputerSpace_MiSTer
+	url = https://github.com/MiSTer-devel/Arcade-ComputerSpace_MiSTer.git

@@ -1,0 +1,17 @@
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/v74161_16bit.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/v74161.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/sync_star_board.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/scan_counter.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/saucer_diode_image.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/rocket_diode_images.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/motion_board.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/memory_board.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/clocks.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/computer_space_sound.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/computer_space_logic.vhd
+set_global_assignment -name VHDL_FILE Arcade-ComputerSpace_MiSTer/rtl/computer_space_top.vhd
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name SYSTEMVERILOG_FILE computer_space_calypso.sv
+set_global_assignment -name QIP_FILE pll.qip
+
