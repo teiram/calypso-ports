@@ -1,0 +1,6 @@
+CORE_ID=comspc
+PROJECT_NAME=computer_space
+VERSION=0.1
+BITSTREAM_FILE=output_files/computer_space.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
