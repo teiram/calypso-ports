@@ -1,0 +1,24 @@
+set_global_assignment -name QIP_FILE Arcade-SpaceRace_MiSTer/rtl/ic.qip
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/clock.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/hcounter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/vcounter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/videosync.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/videomisc.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/stars.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/rockets.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/score.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/crash.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/gamecntl.sv
+set_global_assignment -name QIP_FILE Arcade-SpaceRace_MiSTer/rtl/sound_delta.qip
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/space_race_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-SpaceRace_MiSTer/rtl/synchronizer.sv
+
+set_global_assignment -name SEARCH_PATH Arcade-SpaceRace_MiSTer/
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name SDC_FILE space_race.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE space_race_calypso.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sound.sv
+set_global_assignment -name QIP_FILE sound_delta_2p.qip
+
+set_global_assignment -name QIP_FILE pll.qip

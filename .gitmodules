@@ -268,3 +268,6 @@
 [submodule "computer-space/Arcade-ComputerSpace_MiSTer"]
 	path = computer-space/Arcade-ComputerSpace_MiSTer
 	url = https://github.com/MiSTer-devel/Arcade-ComputerSpace_MiSTer.git
+[submodule "space-race/Arcade-SpaceRace_MiSTer"]
+	path = space-race/Arcade-SpaceRace_MiSTer
+	url = https://github.com/teiram/Arcade-SpaceRace_MiSTer.git

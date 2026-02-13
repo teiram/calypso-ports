@@ -1,0 +1,6 @@
+CORE_ID=spacerace
+PROJECT_NAME=space_race
+VERSION=0.1
+BITSTREAM_FILE=output_files/space_race.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
