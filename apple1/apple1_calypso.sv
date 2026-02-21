@@ -114,7 +114,7 @@ assign LED[0] = ~ioctl_download;
 parameter CONF_STR = {
     "APPLE-I;;",
     `SEP
-    "F,TXT,Load ASCII;",
+    "F0,TXT,Load ASCII;",
 //  "F,CAS,Load Cassette;",
     "O2,RAM Size,8K,32K;",
     `SEP
@@ -125,16 +125,17 @@ parameter CONF_STR = {
 /////////////////  CLOCKS  ////////////////////////
 
 
-wire clk6p25, clk25, pll_locked;
+wire clk6p25, clk25 /* synthesis keep */, pll_locked;
 wire clk_sys = clk25;
-
-wire reset = status[0] | buttons[1];
+wire clk_sdram;
+wire reset /* synthesis keep */ = status[0] | buttons[1];
 
 
 pll pll(
     .inclk0(CLK12M),
     .c0(clk6p25),
     .c1(clk25),
+    .c2(clk_sdram),
     .locked(pll_locked)
 );
 
@@ -205,11 +206,11 @@ wire [15:0] sdram_addr /* synthesis keep */;
 wire [7:0] sdram_din /* synthesis keep */;
 wire [7:0] sdram_dout /* synthesis keep */;
 wire sdram_rd /* synthesis keep */;
-wire sdram_we /* synthesis keep */;
+wire sdram_wr /* synthesis keep */;
 
 wire sdram_ready /* synthesis keep */;
 
-assign SDRAM_CLK = clk_sys;
+assign SDRAM_CLK = clk_sdram;
 sdram sdram(
     .SDRAM_DQ(SDRAM_DQ),
     .SDRAM_A(SDRAM_A),
@@ -223,14 +224,14 @@ sdram sdram(
     .SDRAM_CKE(SDRAM_CKE),
     
     .init(~pll_locked),
-    .clk(clk_sys),
+    .clk(clk_sdram),
 
     .wtbt(0),
     .addr({7'd0, sdram_addr}),
     .rd(sdram_rd),
     .dout(sdram_dout),
     .din(sdram_din),
-    .we(sdram_we),
+    .we(sdram_wr),
     .ready(sdram_ready)
 );
 
@@ -246,7 +247,7 @@ apple1 #(
     .WOZMON_ROM_FILENAME("roms/wozmon.hex")
 ) apple1 (
     .clk25(clk25),
-    .rst_n(~(status[0] | buttons[1])),
+    .rst_n(~reset),
 
     .uart_rx(),
     .uart_tx(),
@@ -264,10 +265,18 @@ apple1 #(
     .vga_de(),
     .vga_cls(),
 
-    .ioctl_download(ioctl_download && ioctl_index),
-    .textinput_dout(ioctl_dout),
-    .textinput_addr(ioctl_addr[12:0]),
+    .ioctl_download(ioctl_download),
+    .ioctl_dout(ioctl_dout),
+    .ioctl_wr(ioctl_wr),
+    .ioctl_addr(ioctl_addr[12:0]),
     
+    .sdram_addr(sdram_addr),
+    .sdram_din(sdram_din),
+    .sdram_dout(sdram_dout),
+    .sdram_wr(sdram_wr),
+    .sdram_rd(sdram_rd),
+    .sdram_ready(sdram_ready),
+
     .pc_monitor(),
     .large_ram(status[2])
 );

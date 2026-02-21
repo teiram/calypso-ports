@@ -50,12 +50,20 @@ module apple1 #(
     output vga_blu,             // blue VGA signal
     input vga_cls,              // clear screen button
     output vga_de,
-	 
+
     // load text files directly
     input ioctl_download,       // download available
-    input [7:0] textinput_dout, // text data
-    input [15:0] textinput_addr,// text address
-	 
+    input [7:0] ioctl_dout,     // text data
+    input ioctl_wr,             // data available
+    input [15:0] ioctl_addr,    // text address
+
+    output [15:0] sdram_addr,
+    output [7:0] sdram_din,
+    input [7:0] sdram_dout,
+    output sdram_rd,
+    output sdram_wr,
+    input sdram_ready,
+    
     // Debugging ports
     output [15:0] pc_monitor,   // spy for program counter / debugging
 
@@ -128,9 +136,8 @@ module apple1 #(
     // select PS/2 keyboard input when selected.
     wire ps2kb_cs = ps2_select & rx_cs & ~text_cs;
     
-	 
     // VGA always get characters when they are sent.
-    wire vga_cs   = tx_cs;
+    wire vga_cs = tx_cs;
 
     wire basic_cs = (ab[15:12] ==  4'b1110);             // 0xE000 -> 0xEFFF
     wire rom_cs =   (ab[15:8]  ==  8'b11111111);         // 0xFF00 -> 0xFFFF
@@ -212,20 +219,30 @@ module apple1 #(
     wire [7:0] text_dout;
     wire ascii_data_ready;
     assign text_cs = rx_cs & ascii_data_ready;
-   /*
+   
     ascii_input ascii(
         .clk25(clk25),
         .rst(rst),
         .key_clk(ps2_clk),
         .cs(ps2_select & rx_cs),
         .address(ab[0]),
-	.ioctl_download(ioctl_download),
-	.textinput_dout(textinput_dout),
-	.textinput_addr(textinput_addr),
+        
+        .ioctl_download(ioctl_download),
+        .ioctl_dout(ioctl_dout),
+        .ioctl_addr(ioctl_addr),
+        .ioctl_wr(ioctl_wr),
+        
+        .sdram_addr(sdram_addr),
+        .sdram_din(sdram_din),
+        .sdram_dout(sdram_dout),
+        .sdram_rd(sdram_rd),
+        .sdram_wr(sdram_wr),
+        .sdram_ready(sdram_ready),
+
         .dout(text_dout),
         .data_ready(ascii_data_ready)
     );
-    */
+    
     // VGA Display interface
     reg [2:0] fg_colour;
     reg [2:0] bg_colour;
@@ -245,7 +262,7 @@ module apple1 #(
         .vga_red(vga_red),
         .vga_grn(vga_grn),
         .vga_blu(vga_blu),
-			.vga_de(vga_de),
+        .vga_de(vga_de),
         .address(ab[0]),
         .w_en(we & vga_cs),
         .din(dbo),
@@ -260,7 +277,6 @@ module apple1 #(
     // it can't hurt to have some fun. :D
     always @(posedge clk25 or posedge rst)
     begin
- //if (text_cs) $display("%x",text_cs);
         if (rst)
         begin
             font_mode <= 2'b0;
