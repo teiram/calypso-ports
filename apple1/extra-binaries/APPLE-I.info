@@ -1,11 +1,12 @@
 Apple-I 
 Developer: Steve Woniak
-Manufacturer: Apple Computer Company
+Manufacturer: Apple Computer
 Year:    1976
 Country: USA
 CPU:     MOS6502@1Mhz
 Memory:  4 or 8Kb RAM
 -----------------------------
-BASIC ROM is included at E000.
-Can be run with E000R on Monitor
+BASIC ROM at E000.
+Can be run with E000R on 
+monitor
 
