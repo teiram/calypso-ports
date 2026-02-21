@@ -1,0 +1,6 @@
+CORE_ID=apple-i
+PROJECT_NAME=apple1
+VERSION=0.1
+BITSTREAM_FILE=output_files/apple1.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
