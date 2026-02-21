@@ -9,4 +9,25 @@ Memory:  4 or 8Kb RAM
 BASIC ROM at E000.
 Can be run with E000R on 
 monitor
-
+Addresses of interest:
+Addr Function Val Meaning
+C000 Font     00  Default
+              01  Ver scan
+              02  Hor scan
+              03  Dot mode
+C001 Fg col   00  Black
+              01  Blue
+              02  Green
+              03  Cyan
+              04  Red
+              05  Magenta
+              06  Yellow
+              07  White
+C002 Bg col   00  Black
+              01  Blue
+              02  Green
+              03  Cyan
+              04  Red
+              05  Magenta
+              06  Yellow
+              07  White
