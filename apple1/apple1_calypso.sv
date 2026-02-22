@@ -60,8 +60,9 @@ module apple1_calypso(
     output SDRAM_nCS,
     output [1:0] SDRAM_BA,
     output SDRAM_CLK,
-    output SDRAM_CKE
+    output SDRAM_CKE,
 
+    input MCU_AUDIO_IN
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -115,8 +116,11 @@ parameter CONF_STR = {
     "APPLE-I;;",
     `SEP
     "F0,TXT,Load ASCII;",
-//  "F,CAS,Load Cassette;",
     "O2,RAM Size,8K,32K;",
+    `SEP
+    "P2pTAP,BIN,Apple-I,Tape Player;",
+    "O3,Audio In,MCU,EAR;",
+    "O4,Tape Audio,On,Off;",
     `SEP
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -244,7 +248,8 @@ apple1 #(
     .FONT_ROM_FILENAME("roms/vga_font_bitreversed.hex"),
     .RAM_FILENAME("roms/ram.hex"),
     .VRAM_FILENAME("roms/vga_vram.bin"),
-    .WOZMON_ROM_FILENAME("roms/wozmon.hex")
+    .WOZMON_ROM_FILENAME("roms/wozmon.hex"),
+    .ACI_ROM_FILENAME("aci.hex")
 ) apple1 (
     .clk25(clk25),
     .rst_n(~reset),
@@ -278,9 +283,26 @@ apple1 #(
     .sdram_ready(sdram_ready),
 
     .pc_monitor(),
-    .large_ram(status[2])
+    .large_ram(status[2]),
+    
+    .tape_in(status[3] ? TAPE_SOUND : MCU_AUDIO_IN)
 );
 
+
+wire [15:0] audio = status[4] ? 15'd0 : {1'b0, status[3] ? TAPE_SOUND : MCU_AUDIO_IN, 14'd0};
+
+`ifdef I2S_AUDIO
+i2s i2s (
+    .reset(1'b0),
+    .clk(clk25),
+    .clk_rate(32'd25_000_000),
+    .sclk(I2S_BCK),
+    .lrclk(I2S_LRCK),
+    .sdata(I2S_DATA),
+    .left_chan(audio),
+    .right_chan(audio)
+);
+`endif
 
 mist_video #(
     .COLOR_DEPTH(1),

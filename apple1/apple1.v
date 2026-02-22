@@ -27,7 +27,8 @@ module apple1 #(
     parameter FONT_ROM_FILENAME   = "../../../roms/vga_font_bitreversed.hex",
     parameter RAM_FILENAME        = "../../../roms/ram.hex",
     parameter VRAM_FILENAME       = "../../../roms/vga_vram.bin",
-    parameter WOZMON_ROM_FILENAME = "../../../roms/wozmon.hex"
+    parameter WOZMON_ROM_FILENAME = "../../../roms/wozmon.hex",
+    parameter ACI_ROM_FILENAME    = "aci.hex"
 ) (
     input  clk25,               // 25 MHz master clock
     input  rst_n,               // active low synchronous reset (needed for simulation)
@@ -68,7 +69,9 @@ module apple1 #(
     output [15:0] pc_monitor,   // spy for program counter / debugging
 
     // 32K RAM
-    input large_ram
+    input large_ram,
+    
+    input tape_in
 );
     //////////////////////////////////////////////////////////////////////////
     // Registers and Wires
@@ -122,6 +125,9 @@ module apple1 #(
     wire ram_cs = large_ram ? (ab[15] == 'b0)            // 0x0000 -> 0x7FFF
                             : (ab[15:13] ==  3'b000);    // 0x0000 -> 0x1FFF
 
+    wire tape_in_cs = ab[15:7] == 9'b110000001;          // 0xC080 -> 0xC0FF
+    wire aci_cs = ab[15:8] == 8'hc1;                     // 0xC100 -> 0xC1FF
+    
     // font mode, background and foreground colour
     wire vga_mode_cs = (ab[15:2] == 14'b11000000000000); // 0xC000 -> 0xC003
 
@@ -177,6 +183,16 @@ module apple1 #(
         .dout(basic_dout)
     );
 
+    // ACI ROM. Placed at 0xC100 - 0xC1FF 
+    wire [7:0] aci_dout;
+    rom_aci #(
+        .ACI_ROM_FILENAME(ACI_ROM_FILENAME)
+    ) aci_rom(
+        .clk(clk25),
+        .address(ab[7:0]),
+        .dout(aci_dout)
+    );
+    
     //////////////////////////////////////////////////////////////////////////
     // Peripherals
 
@@ -316,6 +332,8 @@ module apple1 #(
     // link up chip selected device to cpu input
     assign dbi = ram_cs      ? ram_dout :
                  rom_cs      ? rom_dout :
+                 aci_cs      ? aci_dout :
+                 tape_in_cs  ? {7'd0, tape_in} :
                  basic_cs    ? basic_dout :
                  uart_cs     ? uart_dout :
                  text_cs     ? text_dout :

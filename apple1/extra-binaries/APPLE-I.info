@@ -1,14 +1,14 @@
 Apple-I 
-Developer: Steve Woniak
+Developer: Steve Wozniak
 Manufacturer: Apple Computer
 Year:    1976
 Country: USA
 CPU:     MOS6502@1Mhz
 Memory:  4 or 8Kb RAM
------------------------------
-BASIC ROM at E000.
-Can be run with E000R on 
-monitor
+ 
+* BASIC ROM at E000
+* ACI ROM   at C100
+ 
 Addresses of interest:
 Addr Function Val Meaning
 C000 Font     00  Default

@@ -20,6 +20,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE apple1_calypso.sv
 set_global_assignment -name VERILOG_FILE apple1.v
 set_global_assignment -name VERILOG_FILE ascii_input.v
 set_global_assignment -name VERILOG_FILE font_rom.v
+set_global_assignment -name VERILOG_FILE rom_aci.v
 set_global_assignment -name QIP_FILE pll.qip
 
 set_global_assignment -name SDC_FILE apple1.sdc
