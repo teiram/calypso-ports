@@ -268,3 +268,12 @@
 [submodule "space-race/Arcade-SpaceRace_MiSTer"]
 	path = space-race/Arcade-SpaceRace_MiSTer
 	url = https://github.com/teiram/Arcade-SpaceRace_MiSTer.git
+[submodule "qbert/Arcade-QBert_MiSTer"]
+	path = qbert/Arcade-QBert_MiSTer
+	url = https://github.com/teiram/Arcade-QBert_MiSTer.git
+[submodule "aleste/aleste-lx-fpga-sv"]
+	path = aleste/aleste-lx-fpga-sv
+	url = https://github.com/hww/aleste-lx-fpga-sv
+[submodule "svi328-psram/SVI328-SiDi"]
+	path = svi328-psram/SVI328-SiDi
+	url = https://github.com/teiram/SVI328-SiDi
