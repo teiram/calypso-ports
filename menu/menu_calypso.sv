@@ -86,9 +86,11 @@ localparam CONF_STR = {
     "O1,Video mode,PAL,NTSC;",
     "O23,Rotate,Off,Left,Right;",
     "O4,KITT Mode,Off,On;",
+    "O57,OSD HPos,0,-64,-48,-32,-16,+16,+32,+48;",
+    "O8A,OSD VPos,0,-64,-48,-32,-16,+16,+32,+48;",
+    "OBD,OSD Color,Black,Blue,Green,Cyan,Red,Magenta,Yellow,White;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
-
 wire clk_x2, clk_pix, clk_sys, clk_ram, pll_locked;
 pll pll(
     .inclk0(CLK12M),
@@ -99,6 +101,23 @@ pll pll(
     .locked(pll_locked)
 );
 
+reg signed [10:0] osd_x_offset = 11'd0;
+reg signed [10:0] osd_y_offset = 11'd0;
+reg [2:0] osd_color = 3'd2;
+
+always @(posedge clk_x2) begin
+    case (status[7:5])
+        3'd0: osd_x_offset <= 11'd0;
+        3'd1, 3'd2, 3'd3, 3'd4: osd_x_offset <= {4'b1111, status[7:5], 4'd0};
+        3'd5, 3'd6, 3'd7: osd_x_offset <= {5'd0, status[6:5], 4'd0};
+    endcase
+    case (status[10:8])
+        3'd0: osd_y_offset <= 11'd0;
+        3'd1, 3'd2, 3'd3, 3'd4: osd_y_offset <= {4'b1111, status[10:8], 4'd0};
+        3'd5, 3'd6, 3'd7: osd_y_offset <= {5'd0, status[9:8], 4'd0};
+    endcase
+    osd_color = status[13:11];
+end
 
 wire scandoubler_disable;
 wire ypbpr;
@@ -355,9 +374,6 @@ wire [7:0] B_in = bmp_loaded ? cpu_q[7 : 0] : comp_v;
 mist_video #(
     .COLOR_DEPTH(8),
     .SD_HCNT_WIDTH(10),
-    .OSD_X_OFFSET(10),
-    .OSD_Y_OFFSET(0),
-    .OSD_COLOR(2),
     .OSD_AUTO_CE(0),
     .OUT_COLOR_DEPTH(VGA_BITS),
     .USE_BLANKS(1),
@@ -385,6 +401,9 @@ mist_video #(
     .scandoubler_disable(scandoubler_disable),
     .scanlines(2'b00),
     .ypbpr(ypbpr),
+    .osd_color(osd_color),
+    .osd_x_offset(osd_x_offset),
+    .osd_y_offset(osd_y_offset),
     .no_csync(no_csync)
 );
 
