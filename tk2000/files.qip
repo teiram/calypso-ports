@@ -1,0 +1,26 @@
+set_global_assignment -name SYSTEMVERILOG_FILE TK-2000/fpga-sources/mist/mist_sd_card.sv
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/cpu6502.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/video_generator.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/vga_controller.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/timing_generator.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/spram.vhd
+#set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/apple2p/PS2_Ctrl.vhd
+#set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/apple2p/keyboard.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/tk2000/ps2_iobase.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/tk2000/keyboard.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/tk2000/keymaps.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/tk2000/debounce.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/disk_ii_rom.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/disk_ii.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/drive_ii.vhd
+set_global_assignment -name VHDL_FILE TK-2000/fpga-sources/tk2000.vhd
+set_global_assignment -name VERILOG_FILE TK-2000/fpga-sources/ramcard/ramcard.v
+
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+
+set_global_assignment -name VHDL_FILE tk2000_calypso.vhd
+set_global_assignment -name VHDL_FILE build_id.vhdl
+set_global_assignment -name VERILOG_FILE sdram.v
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name QIP_FILE roms.qip
+

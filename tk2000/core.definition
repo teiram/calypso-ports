@@ -1,0 +1,5 @@
+CORE_ID=tk2000
+PROJECT_NAME=tk2000
+VERSION=0.1
+BITSTREAM_FILE=output_files/tk2000.rbf
+EXTRA_SUBMODULES=../common/mist-modules
