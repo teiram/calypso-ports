@@ -60,7 +60,11 @@ module imsai8080_calypso(
     output SDRAM_nCS,
     output [1:0] SDRAM_BA,
     output SDRAM_CLK,
-    output SDRAM_CKE
+    output SDRAM_CKE,
+
+    inout [3:0] PSRAM_SIO,
+    output PSRAM_CE,
+    output PSRAM_CLK
 
 );
 
@@ -107,17 +111,13 @@ localparam bit USE_AUDIO_IN = 0;
 wire TAPE_SOUND=UART_RX;
 `endif
 
-assign LED[0] = ~ioctl_download; 
-
 `include "build_id.v"
 parameter CONF_STR = {
     "IMSAI8080;;",
     `SEP
     "F0,ROM,Load Panel;",
     `SEP
-    "O3,Swap Joysticks,No,Yes;",
-    "OC,Mode,Computer,Console;",
-    "T1,Led toggle;",
+    "F1,ROM,Load ROM;",
     `SEP
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -221,6 +221,8 @@ data_io data_io(
 wire reset =  status[0] | buttons[1] | ioctl_download | ~pll_locked;
 
 /////////////////  Memory  ////////////////////////
+wire rom_download = ioctl_download && ioctl_index == 8'd1;
+wire panel_download = ioctl_download && ioctl_index == 8'd0;
 
 assign SDRAM_CLK = clk72m;
 assign SDRAM_CKE = 1'b1;
@@ -243,13 +245,41 @@ sdram sdram(
     .port1_ack(),
     .port1_a(ioctl_addr[22:1]),
     .port1_ds({ioctl_addr[0], ~ioctl_addr[0]}),
-    .port1_we(ioctl_wr),
+    .port1_we(ioctl_wr & panel_download),
     .port1_d({ioctl_dout, ioctl_dout}),
     .port1_q(),
 
     .cpu1_addr(vid_ram_addr[16:2]),
     .cpu1_q(ram_value),
-    .cpu1_oe(~ioctl_download)
+    .cpu1_oe(~panel_download)
+);
+
+
+
+wire [22:0] psram_addr = rom_download == 1'b1 ? ioctl_addr[22:0] : {7'd0, extram_addr[15:0]};
+wire psram_rd = rom_download == 1'b1 ? 1'b0 : extram_rd;
+wire psram_we = rom_download == 1'b1 ? ioctl_wr : extram_we;
+wire psram_ready;
+wire [7:0] psram_din = rom_download == 1'b1 ? ioctl_dout : extram_din;
+wire [7:0] psram_dout;
+assign extram_dout = psram_dout;
+
+assign PSRAM_CLK = clk72m;
+
+psram64 psram(
+    .PSRAM_SIO(PSRAM_SIO),
+    .PSRAM_CE(PSRAM_CE),
+    
+    .init(~pll_locked),
+    .clk(clk72m),
+
+    .addr(psram_addr),
+    .rd(psram_rd),
+    .we(psram_we),
+    .din(psram_din),
+    .dout(psram_dout),
+    
+    .ready(psram_ready)
 );
 
 wire [13:0] audio;
@@ -281,24 +311,17 @@ vga vga(
     .vblank(vblank)
 );
 
-reg [43:0] leds;
-reg [25:0] counter;
-always @(posedge clk36m) begin
-    if (reset) begin 
-        counter <= 'd0;
-        leds <= 'd1;
-    end
-    counter <= counter + 1'd1;
-    if (counter == 'd9_000_000) begin
-        leds <= {leds[42:0], 1'b0};
-        counter <= 'd0;
-    end
-    if (~|leds) leds <= 'd1;
-end
-
 wire [3:0] r_panel;
 wire [3:0] g_panel;
 wire [3:0] b_panel;
+wire [15:0] panel_switches;
+wire [9:0] panel_m_switches;
+
+wire [7:0] port_leds;
+wire [15:0] addr_leds;
+wire [7:0] data_leds;
+wire [7:0] cpu_leds;
+wire [3:0] status_leds;
 
 panel panel(
     .clk36m(clk36m),
@@ -310,8 +333,10 @@ panel panel(
     .ram_addr(vid_ram_addr),
     .ram_value(ram_value),
     
-    .leds(leds),
-
+    .leds({port_leds, cpu_leds, data_leds, addr_leds, status_leds}),
+    .switches(panel_switches),
+    .m_switches(panel_m_switches),
+    
     .key_pressed(key_pressed),
     .key_code(key_code),
     .key_strobe(key_strobe),
@@ -338,6 +363,65 @@ terminal terminal(
     .key_extended(key_extended),
     
     .vout(pixel_terminal)
+);
+
+wire cpu_sync;
+
+wire [15:0] extram_addr;
+wire [7:0] extram_din;
+wire [7:0] extram_dout;
+wire extram_rd;
+wire extram_we;
+
+imsai8080 core(
+    .clk(clk36m),
+    .pauseModeSW(),
+    .reset(reset),
+    
+    .rx(),
+    .hold_in(1'b0),
+    .ready_in(1'b1),
+    .tx(),
+    
+    .cpu_sync(cpu_sync),
+    
+    .mem_rd(cpu_leds[7]),
+    .io_rd(cpu_leds[6]),
+    .m1(cpu_leds[5]),
+    .io_wr(cpu_leds[4]),
+    .halt_ack(cpu_leds[3]),
+    .io_stack(cpu_leds[2]),
+    .mem_wr_n(cpu_leds[1]),
+    .interrupt_ack(cpu_leds[0]),
+
+    .inte_o(status_leds[3]),
+    .wait_o(status_leds[1]),
+    .hlda_o(status_leds[0]),
+    
+    .data_leds(data_leds),
+    .addr_leds(addr_leds),
+    .programmed_output_leds(port_leds),
+    
+    .data_addr_in(panel_switches[7:0]),
+    .addr_sense_in(panel_switches[15:8]),
+    
+    .step_switch(panel_m_switches[8] | panel_m_switches[9]),
+    .examine_switch(panel_m_switches[1]),
+    .examine_next_switch(panel_m_switches[0]),
+    .deposit_switch(panel_m_switches[3]),
+    .deposit_next_switch(panel_m_switches[2]),
+    .reset_switch(panel_m_switches[5]),
+    .clear_switch(panel_m_switches[4]),
+    .run_switch(panel_m_switches[7]),
+    .stop_switch(panel_m_switches[6]),
+    
+    .extram_addr(extram_addr),
+    .extram_data_in(extram_din),
+    .extram_data_out(extram_dout),
+    .extram_rd(extram_rd),
+    .extram_we(extram_we),
+
+    .debug_leds(LED)
 );
 
 assign R = row < 10'd240 ? r_panel : {4{pixel_terminal}};

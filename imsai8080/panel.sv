@@ -56,20 +56,27 @@ reg [10:0] led_cols[20] = '{
 reg [10:0] led_rows[3] = '{11'd38, 11'd89, 11'd140};
 
 reg [4:0] led_index_cols[44] = '{
-    5'd0, 5'd1, 5'd2, 5'd3, 5'd4, 5'd5, 5'd6, 5'd7,
-    5'd0, 5'd1, 5'd2, 5'd3, 5'd4, 5'd5, 5'd6, 5'd7, 5'd8, 5'd9, 5'd10, 5'd11, 5'd12, 5'd13, 5'd14, 5'd15, 
-    5'd0, 5'd1, 5'd2, 5'd3, 5'd4, 5'd5, 5'd6, 5'd7, 5'd8, 5'd9, 5'd10, 5'd11, 5'd12, 5'd13, 5'd14, 5'd15,
-    5'd16, 5'd17, 5'd18, 5'd19};
+    5'd19, 5'd18, 5'd17, 5'd16,
+    5'd15, 5'd14, 5'd13, 5'd12, 5'd11, 5'd10, 5'd9, 5'd8, 5'd7, 5'd6, 5'd5, 5'd4, 5'd3, 5'd2, 5'd1, 5'd0,
+    5'd15, 5'd14, 5'd13, 5'd12, 5'd11, 5'd10, 5'd9, 5'd8, 5'd7, 5'd6, 5'd5, 5'd4, 5'd3, 5'd2, 5'd1, 5'd0,
+    5'd7, 5'd6, 5'd5, 5'd4, 5'd3, 5'd2, 5'd1, 5'd0};
 
 reg [1:0] led_index_rows[44] = '{
-    2'd0, 2'd0, 2'd0, 2'd0, 2'd0, 2'd0, 2'd0, 2'd0,
-    2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1,
+    2'd2, 2'd2, 2'd2, 2'd2,
     2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 2'd2, 
-    2'd2, 2'd2, 2'd2, 2'd2};
+    2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1, 2'd1,
+    2'd0, 2'd0, 2'd0, 2'd0, 2'd0, 2'd0, 2'd0, 2'd0};
 
+/*
 reg [10:0] switch_cols[16] = '{
     11'd32, 11'd63, 11'd94, 11'd125, 11'd154, 11'd184, 11'd215, 11'd246,
     11'd307, 11'd338, 11'd369, 11'd399, 11'd429, 11'd459, 11'd490, 11'd521};
+*/
+
+reg [10:0] switch_cols[16] = '{
+    11'd521, 11'd490, 11'd459, 11'd429, 11'd399, 11'd369, 11'd338, 11'd307,
+    11'd246, 11'd215, 11'd184, 11'd154, 11'd125, 11'd94, 11'd63, 11'd32};
+
 
 reg [10:0] m_switch_cols[5] = '{
     11'd583, 11'd615, 11'd644, 11'd673, 11'd703};
@@ -112,9 +119,12 @@ wire [1:0] m_switches_p[M_SWITCH_COUNT] = '{
     {m_switches[8], m_switches[9]}
 };
 
+reg [43:0] leds_latched;
+
 always @(posedge clk36m) begin
     if (row == 11'd624) begin
         ram_addr <= 15'd0;
+        leds_latched <= leds;
     end
     if (row == 11'd624 && col == 11'd1020) begin
         pixel_value <= ram_value;
@@ -134,7 +144,7 @@ always @(posedge clk36m) begin
                 col < led_cols[led_index_cols[led_index]] + LED_WIDTH &&
                 row > led_rows[led_index_rows[led_index]] &&
                 row < led_rows[led_index_rows[led_index]] + LED_HEIGHT &&
-                leds[led_index] == 1'b1 &&
+                leds_latched[led_index] == 1'b1 &&
                 pixel_values[col[2:0]] == 4'd3) begin
                 r <= 4'hf;
                 g <= 4'h0;
@@ -226,23 +236,23 @@ always @(posedge clk36m) begin
         endcase
         if (key_pressed == 1'b0) begin
             case (key_code)
-                8'h16: switches[0] <= ~switches[0]; //1
-                8'h1e: switches[1] <= ~switches[1]; //2
-                8'h26: switches[2] <= ~switches[2]; //3
-                8'h25: switches[3] <= ~switches[3]; //4
-                8'h2e: switches[4] <= ~switches[4]; //5
-                8'h36: switches[5] <= ~switches[5]; //6
-                8'h3d: switches[6] <= ~switches[6]; //7
-                8'h3e: switches[7] <= ~switches[7]; //8
+                8'h16: switches[15] <= ~switches[15]; //1
+                8'h1e: switches[14] <= ~switches[14]; //2
+                8'h26: switches[13] <= ~switches[13]; //3
+                8'h25: switches[12] <= ~switches[12]; //4
+                8'h2e: switches[11] <= ~switches[11]; //5
+                8'h36: switches[10] <= ~switches[10]; //6
+                8'h3d: switches[9] <= ~switches[9]; //7
+                8'h3e: switches[8] <= ~switches[8]; //8
                 
-                8'h15: switches[8] <= ~switches[8]; //Q
-                8'h1d: switches[9] <= ~switches[9]; //W
-                8'h24: switches[10] <= ~switches[10]; //E
-                8'h2d: switches[11] <= ~switches[11]; //R
-                8'h2c: switches[12] <= ~switches[12]; //T
-                8'h35: switches[13] <= ~switches[13]; //Y
-                8'h3c: switches[14] <= ~switches[14]; //U
-                8'h43: switches[15] <= ~switches[15]; //I
+                8'h15: switches[7] <= ~switches[7]; //Q
+                8'h1d: switches[6] <= ~switches[6]; //W
+                8'h24: switches[5] <= ~switches[5]; //E
+                8'h2d: switches[4] <= ~switches[4]; //R
+                8'h2c: switches[3] <= ~switches[3]; //T
+                8'h35: switches[2] <= ~switches[2]; //Y
+                8'h3c: switches[1] <= ~switches[1]; //U
+                8'h43: switches[0] <= ~switches[0]; //I
             endcase
         end
     end
