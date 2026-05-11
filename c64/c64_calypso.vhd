@@ -95,7 +95,8 @@ port
    SPDIF_O    : out   std_logic;
 
    AUDIO_IN   : in    std_logic;
-
+   AUDIO_MCU_IN : in std_logic;
+   CAS_MOTOR_OUT : out std_logic;
    -- SPI interface to io controller
    SPI_SCK    : in    std_logic;
    SPI_DO     : inout std_logic;
@@ -188,7 +189,8 @@ constant CONF_STR : string :=
 	"F2,CRTPRGTAPREU,Load;"& --2
 	"F3,ROM,Load;"& --3
 	"F4pIDX,IDX,Open;"& --2
-	SEP&
+    "P3pTAP,TAP,C64,Tape Player;"&
+    "Oq,Audio In,EAR,MCU;"&
 	"TH,Play/Stop TAP;"&
 	SEP&
 	"P1,Video & Audio;"&
@@ -533,7 +535,7 @@ end component sync_shifter;
 	signal joyA_fire_o : std_logic;
 	signal joyB_fire_o : std_logic;
 
-	signal conf_str_addr : std_logic_vector(9 downto 0);
+	signal conf_str_addr : std_logic_vector(10 downto 0);
 	signal conf_str_char : std_logic_vector(7 downto 0);
 
 	signal status         : std_logic_vector(63 downto 0);
@@ -563,6 +565,7 @@ end component sync_shifter;
 	signal st_reset            : std_logic;                    -- status(0)
     signal st_hpos             : std_logic_vector(3 downto 0); -- status(47 downto 44)
     signal st_vpos             : std_logic_vector(3 downto 0); -- status(51 downto 44)
+    signal st_audio_in         : std_logic;                    -- status(52)
 	signal sd_lba         : std_logic_vector(31 downto 0);
 	signal sd_rd          : std_logic_vector(DRIVE_N-1 downto 0);
 	signal sd_wr          : std_logic_vector(DRIVE_N-1 downto 0);
@@ -662,7 +665,9 @@ end component sync_shifter;
 
 	signal cass_motor  : std_logic;
 	signal cass_write  : std_logic;
-	signal cass_sense  : std_logic;
+	signal cass_sense_c1530  : std_logic;
+    signal cass_sense_in : std_logic;
+    signal cass_sense: std_logic;
 	signal cass_read   : std_logic;
 	signal cass_run    : std_logic;
 	signal ear_input   : std_logic;
@@ -697,6 +702,7 @@ end component sync_shifter;
 	signal uart_rxD         : std_logic_vector(3 downto 0);
 	signal uart_rx_filtered : std_logic;
 
+    signal audio_in_c       : std_logic;
     signal audio_in_d       : std_logic_vector(1 downto 0);
 	-- DMA/REU
 	signal reu_enable       : std_logic;
@@ -726,6 +732,8 @@ begin
 	-- use iec and the first set of idle cycles for mist access
 	mist_cycle <= '1' when ces = "1011" or idle0 = '1' else '0'; 
 
+    CAS_MOTOR_OUT <= cass_motor;
+    
 	-- reu uses the iec cycle (mutually exclusive with io-controller access)
 	reu_cycle <= '1' when ces ="1011" else '0';
 
@@ -801,6 +809,7 @@ begin
 		mouse_flags => mouse_flags,
 		mouse_strobe => mouse_strobe
 	);
+    st_audio_in         <= status(52);
     st_vpos             <= status(51 downto 48);
     st_hpos             <= status(47 downto 44);
 	st_drive(3)         <= status(43 downto 42);
@@ -1104,14 +1113,24 @@ begin
 		end if;
 	end process;
 
+    audio_in_c <= AUDIO_MCU_IN when st_audio_in = '1' else AUDIO_IN;
+    
     -- Audio IN synchronizer
-    process(clk_c64)
+    process(clk_c64, reset_n)
     begin
-        if rising_edge(clk_c64) then
-            audio_in_d <= audio_in_d(0) & AUDIO_IN;
+        if reset_n = '0' then
+            audio_in_d <= "00";
+            cass_sense_in <= '1';
+        elsif rising_edge(clk_c64) then
+            audio_in_d <= audio_in_d(0) & audio_in_c;
+            if audio_in_d(1) /= audio_in_d(0) then 
+                cass_sense_in <= '0';
+            end if;
         end if;
     end process;
 
+    cass_sense <= cass_sense_c1530 and cass_sense_in;
+    
 	-- PLL Reconfig
 	process(clk32, pll_locked)
 	begin
@@ -1488,8 +1507,7 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 		cass_motor => cass_motor,
 		cass_write => cass_write,
 		cass_read  => cass_read,
-		cass_sense => cass_sense,
-
+        cass_sense => cass_sense,
 		tap_playstop_key => tap_playstop_key,
 		reset_key => reset_key
 	);
@@ -1830,7 +1848,7 @@ c64_clk_rate <= 31500000 when st_ntsc = '0' else 32720000;
 		cass_read  => cass_read,
 		cass_write => cass_write,
 		cass_motor => cass_motor,
-		cass_sense => cass_sense,
+		cass_sense => cass_sense_c1530,
 		cass_run => cass_run,
 		osd_play_stop_toggle => st_tap_play_btn or tap_playstop_key,
         osd_play_stop_reset => not reset_n,

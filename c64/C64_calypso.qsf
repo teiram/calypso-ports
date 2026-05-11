@@ -112,6 +112,8 @@ set_location_assignment PIN_N16 -to SPI_SS2
 set_location_assignment PIN_F15 -to SPI_SS3
 set_location_assignment PIN_R14 -to SPI_SS4
 
+set_location_assignment PIN_F13 -to MCU_AUDIO_IN
+set_location_assignment PIN_F16 -to MCU_MOTOR_OUT
 
 
 #######

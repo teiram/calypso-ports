@@ -91,8 +91,10 @@ module c64_calypso_top(
 	output        MIDI_OUT,
 `endif
 	input         UART_RX,
-	output        UART_TX
-
+	output        UART_TX,
+    
+    input MCU_AUDIO_IN,
+    output MCU_MOTOR_OUT
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -223,6 +225,8 @@ c64_calypso (
 `ifdef USE_AUDIO_IN
 	.AUDIO_IN(AUDIO_IN),
 `endif
+    .AUDIO_MCU_IN(MCU_AUDIO_IN),
+    .CAS_MOTOR_OUT(MCU_MOTOR_OUT),
 `ifdef USE_MIDI_PINS
 	.MIDI_IN(MIDI_IN),
 	.MIDI_OUT(MIDI_OUT),

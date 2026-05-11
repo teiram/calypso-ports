@@ -19,4 +19,5 @@ A C64.ROM file must be at the root of the SD Card. The ROM format is basic+kerna
 - 0.5. Sync with upstream (IDX file support, Neos mouse,...)
 - 0.6. Sync audio in with system clock (seems to fix tape loads)
 - 0.7. Proper pll rom definitions (should switch to NTSC and back properly)
+- 0.8. Experimental TAPE Player and auto sense on external audio
 
