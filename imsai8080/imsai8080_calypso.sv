@@ -256,7 +256,8 @@ sdram sdram(
 
 
 
-wire [22:0] psram_addr = rom_download == 1'b1 ? ioctl_addr[22:0] : {7'd0, extram_addr[15:0]};
+// Place the ROM at F800 initially
+wire [22:0] psram_addr = rom_download == 1'b1 ? {7'd0, 5'b11111, ioctl_addr[10:0]} : {7'd0, extram_addr[15:0]};
 wire psram_rd = rom_download == 1'b1 ? 1'b0 : extram_rd;
 wire psram_we = rom_download == 1'b1 ? ioctl_wr : extram_we;
 wire psram_ready;
@@ -349,6 +350,12 @@ panel panel(
 
 wire pixel_terminal;
 
+wire sio_rd;
+wire sio_we;
+wire sio_addr;
+wire [7:0] sio_in;
+wire [7:0] sio_out;
+
 terminal terminal(
     .clk36m(clk36m),
     .reset(reset),
@@ -361,6 +368,12 @@ terminal terminal(
     .key_code(key_code),
     .key_strobe(key_strobe),
     .key_extended(key_extended),
+    
+    .sio_we(sio_we),
+    .sio_rd(sio_rd),
+    .sio_addr(sio_addr),
+    .sio_in(sio_in),
+    .sio_out(sio_out),
     
     .vout(pixel_terminal)
 );
@@ -394,9 +407,10 @@ imsai8080 core(
     .mem_wr_n(cpu_leds[1]),
     .interrupt_ack(cpu_leds[0]),
 
-    .inte_o(status_leds[3]),
-    .wait_o(status_leds[1]),
-    .hlda_o(status_leds[0]),
+    .cpu_inte_o(status_leds[3]),
+    .cpu_wait_o(status_leds[1]),
+    .cpu_hlda_o(status_leds[0]),
+    .run_o(status_leds[2]),
     
     .data_leds(data_leds),
     .addr_leds(addr_leds),
@@ -420,6 +434,12 @@ imsai8080 core(
     .extram_data_out(extram_dout),
     .extram_rd(extram_rd),
     .extram_we(extram_we),
+    
+    .sio_addr(sio_addr),
+    .sio_rd(sio_rd),
+    .sio_we(sio_we),
+    .sio_in(sio_in),
+    .sio_out(sio_out),
 
     .debug_leds(LED)
 );

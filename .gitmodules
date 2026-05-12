@@ -274,3 +274,6 @@
 [submodule "tk2000/TK-2000"]
 	path = tk2000/TK-2000
 	url = https://github.com/frubem/TK-2000.git
+[submodule "c64/verilog-mos-sid"]
+	path = c64/verilog-mos-sid
+	url = https://github.com/teiram/verilog-mos-sid.git

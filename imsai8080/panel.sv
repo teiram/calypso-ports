@@ -216,8 +216,9 @@ end
 always @(posedge clk36m) begin
     if (reset == 1'b1) begin
         switches <= 'd0;
+//        m_switches <= 'd0;
     end
-    if (key_strobe == 1'b1) begin
+    else if (key_strobe == 1'b1) begin
         case (key_code)
             8'h1a: m_switches[0] <= key_pressed; //Z
             8'h1c: m_switches[1] <= key_pressed; //A

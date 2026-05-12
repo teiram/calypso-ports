@@ -245,6 +245,7 @@ always @(negedge clk) begin
             end else begin
                 PSRAM_CE <= 1'b1;
                 ready <= 1'b1;
+                dout <= latched_din;
                 phase <= PHASE_IDLE;
             end
         end

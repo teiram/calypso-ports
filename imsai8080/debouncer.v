@@ -4,7 +4,7 @@ module debouncer(
     output reg o_state,
     output o_ondn,
     output o_onup
-    );
+);
 
     // sync with clock and combat metastability
     reg sync_0, sync_1;
