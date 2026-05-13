@@ -117,7 +117,6 @@ entity fpga64_sid_iec is
 		audio_data_r: out std_logic_vector(17 downto 0);
 		extfilter_en: in  std_logic;
 		sid_mode    : in  std_logic_vector(2 downto 0);
-
 		-- IEC
 		iec_data_o	: out std_logic;
 		iec_data_i	: in  std_logic;
@@ -224,6 +223,7 @@ architecture rtl of fpga64_sid_iec is
 	
 	-- SID signals
 	signal sid_do : std_logic_vector(7 downto 0);
+
 	signal sid1_do : std_logic_vector(7 downto 0);
 	signal sid2_do : std_logic_vector(7 downto 0);
 	signal second_sid_en: std_logic;
@@ -304,56 +304,49 @@ architecture rtl of fpga64_sid_iec is
 	signal cd4066_sigD  : std_logic_vector(7 downto 0);
 
 	signal clk_1MHz     : std_logic_vector(31 downto 0);
-	signal voice_sid1   : signed(17 downto 0);
-	signal voice_sid2   : signed(17 downto 0);
+   signal voice_sid1   : std_logic_vector(17 downto 0);
+   signal voice_sid2   : std_logic_vector(17 downto 0);
 	signal pot_x        : std_logic_vector(7 downto 0);
 	signal pot_y        : std_logic_vector(7 downto 0);
 	signal audio_8580_l : std_logic_vector(15 downto 0);
 	signal audio_8580_r : std_logic_vector(15 downto 0);
 
-    component cbm_sid
-		port (
-			reset    : in std_logic;
-			clk32    : in std_logic;
-			clk_1MHz : in std_logic;
+	signal voice_sid1_r : std_logic_vector(17 downto 0);
+	signal voice_sid2_r : std_logic_vector(17 downto 0);
 
-			sid1_cs       : in std_logic;
-		   sid2_cs       : in std_logic;
-			sid1_we       : in std_logic;
-			sid2_we       : in std_logic;
-			sid1_addr     : in unsigned(4 downto 0);
-			sid2_addr     : in unsigned(4 downto 0);
-			sid1_din      : in unsigned(7 downto 0);
-			sid2_din      : in unsigned(7 downto 0);
-			sid1_dout     : out unsigned(7 downto 0);
-			sid2_dout     : out unsigned(7 downto 0);
-			sid1_pot_x    : in unsigned(7 downto 0);
-			sid2_pot_x    : in unsigned(7 downto 0);
-			sid1_pot_y    : in unsigned(7 downto 0);
-			sid2_pot_y    : in unsigned(7 downto 0);
-			sid1_mode     : in std_logic;
-			sid2_mode     : in std_logic;
-			sid1_audio_data: out signed(17 downto 0);
-			sid2_audio_data: out signed(17 downto 0)
-	  );
-	end component cbm_sid;
-    
-	component sid8580
+	component sid_top
+		generic (
+			MULTI_FILTERS : integer := 1;
+			DUAL          : integer := 1
+		);
 		port (
-			reset    : in std_logic;
-			cs       : in std_logic;
-			clk32    : in std_logic;
-			clk_1MHz : in std_logic;
-			we       : in std_logic;
-			addr     : in std_logic_vector(4 downto 0);
-			data_in  : in std_logic_vector(7 downto 0);
-			data_out : out std_logic_vector(7 downto 0);
-			pot_x    : in std_logic_vector(7 downto 0);
-			pot_y    : in std_logic_vector(7 downto 0);
-			audio_data   : out std_logic_vector(15 downto 0);
-			extfilter_en : in std_logic
-	  );
-	end component sid8580;
+			reset       : in  std_logic;
+			clk         : in  std_logic;
+			ce_1m       : in  std_logic;
+			cs          : in  std_logic_vector(1 downto 0);
+			we          : in  std_logic;
+			addr        : in  std_logic_vector(4 downto 0);
+			data_in     : in  std_logic_vector(7 downto 0);
+			data_out    : out std_logic_vector(7 downto 0);
+			fc_offset_l : in  std_logic_vector(12 downto 0);
+			pot_x_l     : in  std_logic_vector(7 downto 0);
+			pot_y_l     : in  std_logic_vector(7 downto 0);
+			ext_in_l    : in  std_logic_vector(17 downto 0);
+			audio_l     : out std_logic_vector(17 downto 0);
+			fc_offset_r : in  std_logic_vector(12 downto 0);
+			pot_x_r     : in  std_logic_vector(7 downto 0);
+			pot_y_r     : in  std_logic_vector(7 downto 0);
+			ext_in_r    : in  std_logic_vector(17 downto 0);
+			audio_r     : out std_logic_vector(17 downto 0);
+			filter_en   : in  std_logic_vector(1 downto 0);
+			mode        : in  std_logic_vector(1 downto 0);
+			cfg         : in  std_logic_vector(3 downto 0);
+			ld_clk      : in  std_logic;
+			ld_addr     : in  std_logic_vector(11 downto 0);
+			ld_data     : in  std_logic_vector(15 downto 0);
+			ld_wr       : in  std_logic
+		);
+	end component sid_top;
 
 begin
 -- -----------------------------------------------------------------------
@@ -690,9 +683,8 @@ div1m: process(clk32)				-- this process divides 32 MHz to 1MHz (for the SID)
 		end if;
 	end process;
 
-	audio_data_l <= std_logic_vector(voice_sid1);
-	audio_data_r <= std_logic_vector(voice_sid1) when sid_mode(0) = '0' else std_logic_vector(voice_sid2);
-	sid_do <= sid1_do when second_sid_en = '0' else sid2_do;
+	audio_data_l <= voice_sid1;
+	audio_data_r <= voice_sid2 when sid_mode(0) = '0' else voice_sid1_r;
 
 	-- CD4066 analogue switch
 	cd4066_sigA <= x"FF" when cia1_pao(7) = '0' else potA_x;
@@ -710,31 +702,38 @@ div1m: process(clk32)				-- this process divides 32 MHz to 1MHz (for the SID)
 	                 '0';
 
   -- SID
-    sid_6581: cbm_sid
-    port map(
-        clk32 => clk32,
-        clk_1Mhz => clk_1MHz(31),
-        reset => reset,
-        sid1_cs => cs_sid and not second_sid_en,
-        sid1_we => pulseWrRam and phi0_cpu,
-        sid1_addr => unsigned(busAddr(4 downto 0)),
-        sid1_pot_x => unsigned(pot_x),
-        sid1_pot_y => unsigned(pot_y),
-        sid1_din => busDo,
-        unsigned(sid1_dout) => sid1_do,
-        sid1_mode => sid_mode(1),
-        sid1_audio_data => voice_sid1,
-
-        sid2_cs => cs_sid and second_sid_en,
-        sid2_we => pulseWrRam and phi0_cpu,
-        sid2_addr => unsigned(busAddr(4 downto 0)),
-        sid2_pot_x => unsigned(pot_x),
-        sid2_pot_y => unsigned(pot_y),
-        sid2_din => busDo,
-        unsigned(sid2_dout) => sid2_do,
-        sid2_mode => sid_mode(1),
-        sid2_audio_data => voice_sid2
-    );
+	sid_6581_r: sid_top
+   	generic map (
+		MULTI_FILTERS => 1,
+		DUAL          => 1
+	)
+	port map (
+		reset       => reset,
+		clk         => clk32,
+		ce_1m       => clk_1MHz(31),
+		cs          => (cs_sid and second_sid_en) & (cs_sid and not second_sid_en),
+		we          => pulseWrRam and phi0_cpu,
+		addr        => std_logic_vector(busAddr(4 downto 0)),
+		data_in     => std_logic_vector(busDo),
+		data_out    => sid_do,
+		fc_offset_l => (others => '0'),
+		pot_x_l     => pot_x,
+		pot_y_l     => pot_y,
+		ext_in_l    => (others => '0'),
+		audio_l     => voice_sid1,
+		fc_offset_r => (others => '0'),
+		pot_x_r     => pot_x,
+		pot_y_r     => pot_y,
+		ext_in_r    => (others => '0'),
+		audio_r     => voice_sid2,
+		filter_en   => "11",
+		mode        => sid_mode(1) & sid_mode(1),
+		cfg         => (others => '0'),
+		ld_clk      => '0',
+		ld_addr     => (others => '0'),
+		ld_data     => (others => '0'),
+		ld_wr       => '0'
+	);
 
 -- -----------------------------------------------------------------------
 -- CIAs

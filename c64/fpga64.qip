@@ -29,5 +29,5 @@ set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c64_calyps
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c64/rtl mist/sigma_delta_dac.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sdram.v]
 set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) c64/rtl T65/T65.qip]
-set_global_assignment -name QIP_FILE cbm_sid/cbm_sid.qip
+set_global_assignment -name QIP_FILE verilog-mos-sid/sid.qip
 set_global_assignment -name VHDL_FILE fpga64_sid_iec.vhd
