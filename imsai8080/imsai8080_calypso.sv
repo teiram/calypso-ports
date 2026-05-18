@@ -149,8 +149,6 @@ end
 wire [31:0] status;
 wire [1:0] buttons;
 
-wire [31:0] joy0, joy1;
-
 wire ioctl_download /* synthesis keep */;
 wire [7:0] ioctl_index;
 wire ioctl_wr /* synthesis keep */;
@@ -189,10 +187,7 @@ user_io(
     .key_strobe(key_strobe),
     .key_code(key_code),
     .key_pressed(key_pressed),
-    .key_extended(key_extended),
-
-    .joystick_0(joy0),
-    .joystick_1(joy1)
+    .key_extended(key_extended)
 );
 
 
@@ -217,12 +212,10 @@ data_io data_io(
     .ioctl_dout(ioctl_dout)
 );
 
-/////////////////  RESET  /////////////////////////
 wire reset =  status[0] | buttons[1] | ioctl_download | ~pll_locked;
 
-/////////////////  Memory  ////////////////////////
-wire rom_download = ioctl_download && ioctl_index == 8'd1;
 wire panel_download = ioctl_download && ioctl_index == 8'd0;
+wire rom_download = ioctl_download && ioctl_index == 8'd1;
 
 assign SDRAM_CLK = clk72m;
 assign SDRAM_CKE = 1'b1;
@@ -291,14 +284,9 @@ wire hsync, vsync;
 wire [10:0] col /* synthesis keep */;
 wire [9:0] row /* synthesis keep */;
 
-wire [31:0] joya = status[3] ? joy1 : joy0;
-wire [31:0] joyb = status[3] ? joy0 : joy1;
-
 wire [16:2] vid_ram_addr;
 wire [31:0] ram_value;
 
-////////////////////////////////////////////
-// CORE
 
 vga vga(
     .clk36m(clk36m),
@@ -311,6 +299,30 @@ vga vga(
     .hblank(hblank),
     .vblank(vblank)
 );
+
+
+
+// Keyboard will be routed to panel or console based on this flag
+// Control + F1 to toggle
+
+reg console_active = 1'b0;
+always @(posedge clk36m) begin
+    reg ctrl = 1'b0;
+
+    if (reset == 1'b1) begin
+        console_active <= 1'b0;
+        ctrl <= 1'b0;
+    end
+    else if (key_strobe == 1'b1) begin
+        casez ({ctrl, key_code})
+            {1'b1, 8'h05}: if (key_pressed == 1'b1) console_active <= ~console_active;
+            {1'b?, 8'h14}: ctrl <= key_pressed;
+        endcase
+    end
+end
+
+localparam [9:0] PANEL_WIDTH = 10'd800;
+localparam [7:0] PANEL_HEIGHT = 8'd240;
 
 wire [3:0] r_panel;
 wire [3:0] g_panel;
@@ -340,13 +352,14 @@ panel panel(
     
     .key_pressed(key_pressed),
     .key_code(key_code),
-    .key_strobe(key_strobe & ~console_ena),
+    .key_strobe(key_strobe & ~console_active),
     .key_extended(key_extended),
 
     .r(r_panel),
     .g(g_panel),
     .b(b_panel)
 );
+
 
 wire pixel_terminal;
 
@@ -360,13 +373,13 @@ terminal terminal(
     .clk36m(clk36m),
     .reset(reset),
     .col(col),
-    .row(row - 11'd240),
+    .row(row - PANEL_HEIGHT),
     .hblank(hblank),
     .vblank(vblank),
     
     .key_pressed(key_pressed),
     .key_code(key_code),
-    .key_strobe(key_strobe & console_ena),
+    .key_strobe(key_strobe & console_active),
     .key_extended(key_extended),
     
     .sio_we(sio_we),
@@ -378,13 +391,13 @@ terminal terminal(
     .vout(pixel_terminal)
 );
 
-wire cpu_sync;
-
 wire [15:0] extram_addr;
 wire [7:0] extram_din;
 wire [7:0] extram_dout;
 wire extram_rd;
 wire extram_we;
+
+wire cpu_sync;
 
 imsai8080 core(
     .clk(clk36m),
@@ -444,24 +457,9 @@ imsai8080 core(
     .debug_leds(LED)
 );
 
-assign R = row < 10'd240 ? r_panel : console_ena ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
-assign G = row < 10'd240 ? g_panel : console_ena ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
-assign B = row < 10'd240 ? b_panel : console_ena ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
-
-reg console_ena = 1'b0;
-reg ctrl = 1'b0;
-
-always @(posedge clk36m) begin
-    if (reset == 1'b1) begin
-        console_ena <= 1'b0;
-    end
-    else if (key_strobe == 1'b1) begin
-        casez ({ctrl, key_code})
-            {1'b1, 8'h05}:  if (key_pressed == 1'b1) console_ena <= ~console_ena;
-            {1'b?, 8'h14}: ctrl <= key_pressed;
-        endcase
-    end
-end
+assign R = row < PANEL_HEIGHT ? r_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+assign G = row < PANEL_HEIGHT ? g_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+assign B = row < PANEL_HEIGHT ? b_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
 
 ////////////////////////////////////////////
 

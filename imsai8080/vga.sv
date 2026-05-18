@@ -2,18 +2,22 @@ module vga(
     input clk36m,
     input reset,
 
-    output reg [10:0] col,
-    output reg [9:0] row,
-    output reg hsync,
-    output reg vsync,
-    output reg hblank,
-    output reg vblank
+    output reg [10:0] col = 'd0,
+    output reg [9:0] row = 'd0,
+    output reg hsync = 'd0,
+    output reg vsync = 'd0,
+    output reg hblank = 'd1,
+    output reg vblank = 'd1
 );
 
 always @(posedge clk36m) begin
     if (reset == 1'b1) begin
         col <= 11'd0;
         row <= 10'd0;
+        hsync <= 1'b0;
+        vsync <= 1'b0;
+        hblank <= 1'b0;
+        vblank <= 1'b0;
     end
     else begin
         if (col == 11'd1023) begin
