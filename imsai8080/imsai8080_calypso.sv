@@ -340,7 +340,7 @@ panel panel(
     
     .key_pressed(key_pressed),
     .key_code(key_code),
-    .key_strobe(key_strobe),
+    .key_strobe(key_strobe & ~console_ena),
     .key_extended(key_extended),
 
     .r(r_panel),
@@ -366,7 +366,7 @@ terminal terminal(
     
     .key_pressed(key_pressed),
     .key_code(key_code),
-    .key_strobe(key_strobe),
+    .key_strobe(key_strobe & console_ena),
     .key_extended(key_extended),
     
     .sio_we(sio_we),
@@ -444,9 +444,24 @@ imsai8080 core(
     .debug_leds(LED)
 );
 
-assign R = row < 10'd240 ? r_panel : {4{pixel_terminal}};
-assign G = row < 10'd240 ? g_panel : {4{pixel_terminal}};
-assign B = row < 10'd240 ? b_panel : {4{pixel_terminal}};
+assign R = row < 10'd240 ? r_panel : console_ena ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+assign G = row < 10'd240 ? g_panel : console_ena ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+assign B = row < 10'd240 ? b_panel : console_ena ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+
+reg console_ena = 1'b0;
+reg ctrl = 1'b0;
+
+always @(posedge clk36m) begin
+    if (reset == 1'b1) begin
+        console_ena <= 1'b0;
+    end
+    else if (key_strobe == 1'b1) begin
+        casez ({ctrl, key_code})
+            {1'b1, 8'h05}:  if (key_pressed == 1'b1) console_ena <= ~console_ena;
+            {1'b?, 8'h14}: ctrl <= key_pressed;
+        endcase
+    end
+end
 
 ////////////////////////////////////////////
 
