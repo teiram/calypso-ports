@@ -72,7 +72,7 @@ always @(posedge clk36m) begin
                 pixels <= video_val;
             end
             vout <= 1'b0;
-        end else if (col < (H_OFFSET + V_SIZE)) begin
+        end else if (col < (H_OFFSET + H_SIZE)) begin
             pixels <= {pixels[6:0], 1'b0};
             vout <= pixels[7];
             if (col[2:0] == 3'd1) begin
@@ -102,7 +102,7 @@ wire buffered_key = kbd_buffer_rdpos != kbd_buffer_wrpos;
 reg [11:0] video_wr_addr = 'd0;
 reg [11:0] video_wr_addr_end = 'd0;
 
-wire [11:0] video_cursor_addr /* synthesis keep */ = {cursor_y, cursor_x[6:0]}; //128 bytes per line
+wire [11:0] video_cursor_addr /* synthesis keep */ = {cursor_y + video_start_row, cursor_x[6:0]}; //128 bytes per line
 reg [7:0] video_data;
 reg video_we;
 
@@ -178,7 +178,6 @@ always @(posedge clk36m) begin
             video_wr_addr_end <= {video_start_row + 1'd1, 7'd0};
             if (video_start_row < MAX_Y) video_start_row <= video_start_row + 1'd1;
             else video_start_row <= 5'd0;
-            cursor_y <= 'd0;
         end
         else cursor_y <= cursor_y + 1'd1;
     end
@@ -260,8 +259,8 @@ always @(posedge clk36m) begin
             {3'b011, 8'h5d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h7c; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // |
 
             {3'b??1, 9'h058}: capslock <= ~capslock;
-            {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41 | {3'd0, ~(capslock ^ shift), 4'd0}; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
-//            {2'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
+//            {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41 | {3'd0, ~(capslock ^ shift), 4'd0}; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
+            {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
             {3'b0?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h53; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // S
             {3'b1?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h13; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-S Pause transmission
             {3'b0?1, 8'h23}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h44; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // D
@@ -279,13 +278,9 @@ always @(posedge clk36m) begin
             {3'b001, 8'h52}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h27; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // '
             {3'b011, 8'h52}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h22; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // "
 
-            {3'b??1, 8'h5a}: begin
-                kbd_buffer[kbd_buffer_wrpos] <= 8'd13;
-                kbd_buffer[kbd_buffer_wrpos + 1'd1] <= 8'd10;
-                kbd_buffer_wrpos <= kbd_buffer_wrpos + 2'd2;
-            end
+            {3'b??1, 8'h5a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'd13; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'd1; end     // Enter
             
-            {3'b???, 9'h012}: shift <= key_pressed;
+            {3'b???, 8'h12}: shift <= key_pressed;
             {3'b0?1, 8'h1a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h5a; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Z
             {3'b0?1, 8'h22}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h58; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // X
             {3'b0?1, 8'h21}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h43; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // C
@@ -300,7 +295,7 @@ always @(posedge clk36m) begin
             {3'b011, 8'h49}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h3e; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // >
             {3'b001, 8'h4a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h2f; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // /
             {3'b011, 8'h4a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h3f; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // ?
-            {3'b???, 9'h059}: shift <= key_pressed;
+            {3'b???, 8'h59}: shift <= key_pressed;
         endcase
     end
 end
