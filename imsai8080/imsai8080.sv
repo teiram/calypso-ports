@@ -63,8 +63,6 @@ module imsai8080(
     wire [7:0] odata;
 
 
-    ////////////////////   STEP & GO   ////////////////////
-    reg onestep;
     wire cpu_ce /* synthesis keep */;
     wire sio_clk;
     wire f1, f2;
@@ -80,12 +78,6 @@ module imsai8080(
         .clk_out(sio_clk),
         .rst(reset)
     );
-
-    always @(posedge clk) begin
-        reg step_switch_last;
-        step_switch_last <= step_switch;
-        onestep <= step_switch_last & ~step_switch;
-    end
 
     reg [7:0] sysctl;
     reg xrdy = 1'b0;
@@ -129,7 +121,6 @@ module imsai8080(
     
     wire [7:0] examine_out;
     wire [7:0] examine_next_out;
-//    wire [7:0] deposit_next_out;
     wire [7:0] reset_out;
     wire [7:0] sense_sw_out;
     wire [7:0] turnmon_out;
@@ -154,7 +145,6 @@ module imsai8080(
     wire reset_switch_down;
     wire reset_ce /* synthesis keep */;
     wire step_switch_down;
-
 
     reg wr_rammain;
 

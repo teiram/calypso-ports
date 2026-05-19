@@ -13,9 +13,9 @@ module psram64(
    output reg ready = 1'b0
 );
 
-parameter MHZ = 133;
+parameter [7:0] MHZ = 133;
 
-localparam startup_cycles = MHZ * 150;            // 150 us delay
+localparam [15:0] startup_cycles = MHZ * 8'd150;            // 150 us delay
 
 // PSRAM commands
 localparam CMD_RESET = 8'h99;

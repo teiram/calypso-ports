@@ -18,11 +18,9 @@
 
 module imsai8080_calypso(
     input CLK12M,
-`ifdef USE_CLOCK_50
-    input CLOCK_50,
-`endif
 
     output [7:0] LED,
+    
     output [VGA_BITS-1:0] VGA_R,
     output [VGA_BITS-1:0] VGA_G,
     output [VGA_BITS-1:0] VGA_B,
@@ -35,7 +33,6 @@ module imsai8080_calypso(
     input SPI_SS2,
     input SPI_SS3,
     input CONF_DATA0,
-
 `ifndef NO_DIRECT_UPLOAD
     input SPI_SS4,
 `endif
@@ -105,10 +102,10 @@ localparam bit BIG_OSD = 0;
 
 `ifdef USE_AUDIO_IN
 localparam bit USE_AUDIO_IN = 1;
-wire TAPE_SOUND=AUDIO_IN;
+wire TAPE_SOUND = AUDIO_IN;
 `else
 localparam bit USE_AUDIO_IN = 0;
-wire TAPE_SOUND=UART_RX;
+wire TAPE_SOUND = UART_RX;
 `endif
 
 `include "build_id.v"
@@ -124,7 +121,6 @@ parameter CONF_STR = {
 };
 
 /////////////////  CLOCKS  ////////////////////////
-
 wire clk36m;
 wire clk72m /* synthesis keep */;
 wire pll_locked;
@@ -145,7 +141,6 @@ always @(posedge clk72m) begin
 end
 
 /////////////////  IO  ///////////////////////////
-
 wire [31:0] status;
 wire [1:0] buttons;
 
@@ -162,8 +157,6 @@ wire key_pressed;
 wire [7:0] key_code;
 wire key_strobe;
 wire key_extended;
-
-wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
@@ -212,10 +205,25 @@ data_io data_io(
     .ioctl_dout(ioctl_dout)
 );
 
-wire reset =  status[0] | buttons[1] | ioctl_download | ~pll_locked;
+wire reset =  status[0] | buttons[1] | ioctl_download | ~pll_locked | ~panel_ready | ~rom_ready;
 
 wire panel_download = ioctl_download && ioctl_index == 8'd0;
 wire rom_download = ioctl_download && ioctl_index == 8'd1;
+
+reg panel_ready = 1'b0;
+reg rom_ready = 1'b0;
+
+always @(posedge clk36m) begin
+    reg panel_download_last = 1'b0;
+    reg rom_download_last = 1'b0;
+    panel_download_last <= panel_download;
+    rom_download_last <= rom_download;
+    if (~panel_download_last & panel_download) panel_ready <= 1'b0;
+    if (~rom_download_last & rom_download) rom_ready <= 1'b0;
+
+    if (panel_download_last & ~panel_download) panel_ready <= 1'b1;
+    if (rom_download_last & ~rom_download) rom_ready <= 1'b1;
+end
 
 assign SDRAM_CLK = clk72m;
 assign SDRAM_CKE = 1'b1;
@@ -278,7 +286,7 @@ psram64 psram(
 
 wire [13:0] audio;
 
-wire [3:0] R /* synthesis keep */,G /* synthesis keep */,B /* synthesis keep */;
+wire [3:0] R, G, B;
 wire hblank, vblank;
 wire hsync, vsync;
 wire [10:0] col /* synthesis keep */;
@@ -299,8 +307,6 @@ vga vga(
     .hblank(hblank),
     .vblank(vblank)
 );
-
-
 
 // Keyboard will be routed to panel or console based on this flag
 // Control + F1 to toggle
@@ -372,8 +378,8 @@ wire [7:0] sio_out;
 terminal terminal(
     .clk36m(clk36m),
     .reset(reset),
-    .col(col),
-    .row(row - PANEL_HEIGHT),
+    .xpos(col),
+    .ypos(row - PANEL_HEIGHT),
     .hblank(hblank),
     .vblank(vblank),
     
@@ -401,7 +407,6 @@ wire cpu_sync;
 
 imsai8080 core(
     .clk(clk36m),
-    .pauseModeSW(),
     .reset(reset),
     
     .rx(),

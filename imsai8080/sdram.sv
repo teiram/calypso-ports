@@ -38,20 +38,20 @@ module sdram (
 	input             clk,        // sdram clock
 	input             clkref,
 
-	input             port1_req /* synthesis keep */,
-	output reg        port1_ack /* synthesis keep */,
-	input             port1_we /* synthesis keep */,
-	input      [22:1] port1_a /* synthesis keep */,
+	input             port1_req,
+	output reg        port1_ack,
+	input             port1_we,
+	input      [22:1] port1_a,
 	input       [1:0] port1_ds,
-	input      [15:0] port1_d /* synthesis keep */,
+	input      [15:0] port1_d,
 	output     [31:0] port1_q,
 
-	input      [22:2] cpu1_addr /* synthesis keep */,
-	output reg [31:0] cpu1_q /* synthesis keep */,
-	input             cpu1_oe /* synthesis keep */
+	input      [22:2] cpu1_addr,
+	output reg [31:0] cpu1_q,
+	input             cpu1_oe
 );
 
-parameter MHZ = 72;
+parameter [7:0] MHZ = 72;
 
 localparam RASCAS_DELAY   = 3'd2;   // tRCD=20ns -> 2 cycles@<100MHz
 localparam BURST_LENGTH   = 3'b001; // 000=1, 001=2, 010=4, 011=8
@@ -64,7 +64,7 @@ localparam MODE = { 2'b00, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, BU
 
 // 64ms/4096 rows = 15.6us
 localparam RFRSH_CYCLES = 16'd156*MHZ/10;
-localparam RST_COUNT = 11'd10 + 11'd25 * MHZ;
+localparam [10:0] RST_COUNT = 11'd10 + 11'd25 * MHZ;
 
 // ---------------------------------------------------------------------
 // ------------------------ cycle state machine ------------------------

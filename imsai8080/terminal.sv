@@ -2,8 +2,8 @@ module terminal(
     input clk36m,
     input reset,
 
-    input [10:0] col,
-    input [9:0] row,
+    input [10:0] xpos,
+    input [9:0] ypos,
     input hblank,
     input vblank,
     
@@ -54,32 +54,32 @@ localparam [6:0] V_OFFSET = 7'd80;
 localparam [6:0] H_OFFSET = 7'd80;
 localparam [9:0] H_SIZE = 640;
 localparam [8:0] V_SIZE = 200;
-localparam [6:0] MAX_X = 7'd79;
-localparam [4:0] MAX_Y = 5'd24;
+localparam [6:0] MAX_COL = 7'd79;
+localparam [4:0] MAX_ROW = 5'd24;
 
-wire [9:0] vrow = row - V_OFFSET;
-wire [6:0] wrow = (vrow[9:3] + video_start_row) < 5'd25 ?
-    vrow[9:3] + video_start_row :
-    vrow[9:3] + video_start_row - 5'd25;
+wire [9:0] v_ypos = ypos - V_OFFSET;
+wire [6:0] w_ypos = (v_ypos[9:3] + video_start_row) <= MAX_ROW ?
+    v_ypos[9:3] + video_start_row :
+    v_ypos[9:3] + video_start_row - MAX_ROW - 1'd1;
 
 always @(posedge clk36m) begin
-    if (row >= V_OFFSET && row < (V_SIZE + V_OFFSET)) begin
-        if (col < H_OFFSET) begin
-            video_addr <= {wrow[4:0], 7'd0};
-            if (col[2:0] == 3'd1) begin
-                char_addr <= {char_code, row[2:0]};
-            end else if (col[2:0] == 3'd7) begin
+    if (ypos >= V_OFFSET && ypos < (V_SIZE + V_OFFSET)) begin
+        if (xpos < H_OFFSET) begin
+            video_addr <= {w_ypos[4:0], 7'd0};
+            if (xpos[2:0] == 3'd1) begin
+                char_addr <= {char_code, ypos[2:0]};
+            end else if (xpos[2:0] == 3'd7) begin
                 pixels <= video_val;
             end
             vout <= 1'b0;
-        end else if (col < (H_OFFSET + H_SIZE)) begin
+        end else if (xpos < (H_OFFSET + H_SIZE)) begin
             pixels <= {pixels[6:0], 1'b0};
             vout <= pixels[7];
-            if (col[2:0] == 3'd1) begin
+            if (xpos[2:0] == 3'd1) begin
                 video_addr <= video_addr + 1'd1;
-            end else if (col[2:0] == 3'd4) begin
-                char_addr <= {char_code, row[2:0]};
-            end else if (col[2:0] == 3'd7) begin
+            end else if (xpos[2:0] == 3'd4) begin
+                char_addr <= {char_code, ypos[2:0]};
+            end else if (xpos[2:0] == 3'd7) begin
                 pixels <= video_val;
             end
         end else begin
@@ -92,17 +92,17 @@ always @(posedge clk36m) begin
 end
 
 
-reg [6:0] cursor_x = 7'd0;
-reg [4:0] cursor_y = 5'd0;
+reg [6:0] cursor_col = 7'd0;
+reg [4:0] cursor_row = 5'd0;
 
 reg [7:0] kbd_buffer[8];
 reg [2:0] kbd_buffer_rdpos = 3'd0;
 reg [2:0] kbd_buffer_wrpos = 3'd0;
-wire buffered_key = kbd_buffer_rdpos != kbd_buffer_wrpos;
+wire has_buffered_key = kbd_buffer_rdpos != kbd_buffer_wrpos;
 reg [11:0] video_wr_addr = 'd0;
 reg [11:0] video_wr_addr_end = 'd0;
 
-wire [11:0] video_cursor_addr /* synthesis keep */ = {cursor_y + video_start_row, cursor_x[6:0]}; //128 bytes per line
+wire [11:0] video_cursor_addr /* synthesis keep */ = {cursor_row + video_start_row, cursor_col[6:0]}; //128 bytes per line
 reg [7:0] video_data;
 reg video_we;
 
@@ -110,7 +110,7 @@ always @(posedge clk36m) begin
     
     reg sio_rd_last = 1'b0;
     reg sio_we_last = 1'b0;
-    reg written = 1'b0;
+    reg update_cursor_pos = 1'b0;
     reg clear = 1'b0;
     reg lf = 1'b0;
     reg wr_toggle = 1'b0;
@@ -122,10 +122,10 @@ always @(posedge clk36m) begin
     if (reset == 1'b1) begin
         sio_rd_last <= 1'b0;
         sio_we_last <= 1'b0;
-        cursor_x <= 'd0;
-        cursor_y <= 'd0;
+        cursor_col <= 'd0;
+        cursor_row <= 'd0;
         kbd_buffer_rdpos <= 1'b0;
-        written <= 1'b0;
+        update_cursor_pos <= 1'b0;
         clear <= 1'b1;
         lf <= 1'b0;
         wr_toggle <= 1'b0;
@@ -137,7 +137,7 @@ always @(posedge clk36m) begin
         if (sio_addr == 1'b0) begin           // CDATA
             case (sio_in)
                 8'd13: begin                  // CR
-                    cursor_x <= 'd0;
+                    cursor_col <= 'd0;
                 end
                 8'd10: begin                  // LF
                     lf <= 1'b1;
@@ -146,14 +146,14 @@ always @(posedge clk36m) begin
                     video_wr_addr <= video_cursor_addr;
                     video_data <= sio_in;
                     video_we <= 1'b1;
-                    written <= 1'b1;
+                    update_cursor_pos <= 1'b1;
                 end
             endcase
         end
     end
     else if (~sio_rd_last & sio_rd) begin
         if (sio_addr == 1'b1) begin          // CSTAT
-            sio_out <= {6'd0, buffered_key, 1'b1}; // bit1: Ready to send, bit0: Ready to receive
+            sio_out <= {6'd0, has_buffered_key, ~(clear | lf | update_cursor_pos)}; // bit1: Ready to send, bit0: Ready to receive
         end
         else                                 // CDATA
         begin
@@ -161,27 +161,27 @@ always @(posedge clk36m) begin
             kbd_buffer_rdpos <= kbd_buffer_rdpos + 1'd1;
         end
     end
-    if (written == 1'b1) begin
-        written <= 1'b0;
-        if (cursor_x == MAX_X) begin
-            cursor_x <= 'd0;
+    else if (update_cursor_pos == 1'b1) begin
+        update_cursor_pos <= 1'b0;
+        if (cursor_col == MAX_COL) begin
+            cursor_col <= 'd0;
             lf <= 1'b1;
         end
-        else cursor_x <= cursor_x + 1'd1;
+        else cursor_col <= cursor_col + 1'd1;
     end
-    if (lf == 1'b1) begin
+    else if (lf == 1'b1) begin
         lf <= 1'b0;
-        if (cursor_y == MAX_Y) begin
+        if (cursor_row == MAX_ROW) begin
             clear <= 1'b1;
             wr_toggle <= 1'b0;
-            video_wr_addr <= {video_start_row, 7'd0};
-            video_wr_addr_end <= {video_start_row + 1'd1, 7'd0};
-            if (video_start_row < MAX_Y) video_start_row <= video_start_row + 1'd1;
+            video_wr_addr <= {video_start_row, 7'h00};
+            video_wr_addr_end <= {video_start_row , 7'h7f};
+            if (video_start_row < MAX_ROW) video_start_row <= video_start_row + 1'd1;
             else video_start_row <= 5'd0;
         end
-        else cursor_y <= cursor_y + 1'd1;
+        else cursor_row <= cursor_row + 1'd1;
     end
-    if (clear == 1'b1) begin
+    else if (clear == 1'b1) begin
         wr_toggle <= ~wr_toggle;
         if (wr_toggle == 1'b0) begin
             video_we <= 1'b1;
@@ -235,7 +235,7 @@ always @(posedge clk36m) begin
             {3'b011, 8'h3d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h26; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // &
             {3'b011, 8'h3e}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h2a; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // *
             {3'b011, 8'h46}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h28; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // (
-            {3'b011, 8'h45}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h29; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // )   
+            {3'b011, 8'h45}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h29; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // )
             {3'b011, 8'h4e}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h5f; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // _
             {3'b011, 8'h55}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h2b; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // +
 
@@ -259,8 +259,8 @@ always @(posedge clk36m) begin
             {3'b011, 8'h5d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h7c; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // |
 
             {3'b??1, 9'h058}: capslock <= ~capslock;
-//            {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41 | {3'd0, ~(capslock ^ shift), 4'd0}; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
-            {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
+            {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41 | {2'd0, ~(capslock ^ shift), 5'd0}; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
+//            {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
             {3'b0?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h53; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // S
             {3'b1?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h13; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-S Pause transmission
             {3'b0?1, 8'h23}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h44; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // D

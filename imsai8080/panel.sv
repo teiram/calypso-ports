@@ -44,7 +44,7 @@ module panel(
 // BE,C1,BD
 // FF,FF,FF
 
-//                                        LED OFF
+// Indexed palette
 reg [3:0] red[16]   = '{4'h0, 4'h0, 4'h0, 4'h4, 4'h0, 4'h6, 4'hb, 4'h2, 4'h4, 4'h7, 4'h8, 4'h9, 4'ha, 4'ha, 4'hb, 4'hf};
 reg [3:0] green[16] = '{4'h0, 4'h0, 4'h0, 4'h0, 4'h0, 4'h0, 4'h0, 4'h2, 4'h5, 4'h7, 4'h8, 4'h9, 4'ha, 4'hb, 4'hc, 4'hf};
 reg [3:0] blue[16]  = '{4'h0, 4'h1, 4'h4, 4'h0, 4'h7, 4'h0, 4'h0, 4'h2, 4'h4, 4'h7, 4'h8, 4'h9, 4'ha, 4'ha, 4'hb, 4'hf};
@@ -88,8 +88,10 @@ localparam SWITCH_COUNT = 16;
 
 localparam M_SWITCH_COUNT = 5;
 
+// Holds 8 pixels, 4 bpp, taken in each memory read
 reg [31:0] pixel_value = 32'd0;
 
+// Pixel packing adjustments
 wire [3:0] pixel_values[8] = '{
     pixel_value[7:4],
     pixel_value[3:0],
@@ -113,6 +115,7 @@ wire [1:0] m_switches_p[M_SWITCH_COUNT] = '{
     {m_switches[8], m_switches[9]}
 };
 
+// To avoid flickering and painting LEDs on several states at once
 reg [43:0] leds_latched;
 
 always @(posedge clk36m) begin
@@ -133,6 +136,8 @@ always @(posedge clk36m) begin
         r <= red[pixel_values[col[2:0]]];
         g <= green[pixel_values[col[2:0]]];
         b <= blue[pixel_values[col[2:0]]];
+        
+        // Replace LED color in enabled LEDs
         for (led_index = 0; led_index < LED_COUNT; led_index = led_index + 1) begin
             if (col > led_cols[led_index_cols[led_index]] && 
                 col < led_cols[led_index_cols[led_index]] + LED_WIDTH &&
@@ -145,6 +150,8 @@ always @(posedge clk36m) begin
                 b <= 4'h0;
             end
         end
+        
+        //Draw the bar in switches on and off
         for (switch_index = 0; switch_index < SWITCH_COUNT; switch_index = switch_index + 1) begin
             if (col > switch_cols[switch_index] + 4'd8 && 
                 col < switch_cols[switch_index] + SWITCH_WIDTH + 4'd8 &&
@@ -167,6 +174,8 @@ always @(posedge clk36m) begin
                 b <= 4'hb;
             end
         end
+        
+        //Draw the bar on momentary switches
         for (m_switch_index = 0; m_switch_index < M_SWITCH_COUNT; m_switch_index = m_switch_index + 1) begin
            if (col > m_switch_cols[m_switch_index] + 4'd8 && 
                 col < m_switch_cols[m_switch_index] + SWITCH_WIDTH + 4'd8 &&
@@ -210,7 +219,7 @@ end
 always @(posedge clk36m) begin
     if (reset == 1'b1) begin
         switches <= 'd0;
-//        m_switches <= 'd0;
+        m_switches <= 'd0;
     end
     else if (key_strobe == 1'b1) begin
         case (key_code)
