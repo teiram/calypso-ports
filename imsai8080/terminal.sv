@@ -102,7 +102,11 @@ wire has_buffered_key = kbd_buffer_rdpos != kbd_buffer_wrpos;
 reg [11:0] video_wr_addr = 'd0;
 reg [11:0] video_wr_addr_end = 'd0;
 
-wire [11:0] video_cursor_addr /* synthesis keep */ = {cursor_row + video_start_row, cursor_col[6:0]}; //128 bytes per line
+wire [5:0] base_cursor_address = ({1'b0, cursor_row} + {1'b0, video_start_row}) <= MAX_ROW ?
+    cursor_row + video_start_row :
+    {1'b0, cursor_row} + {1'b0, video_start_row} - MAX_ROW - 1'd1;
+
+wire [11:0] video_cursor_addr /* synthesis keep */ = {base_cursor_address[4:0], cursor_col[6:0]}; //128 bytes per line
 reg [7:0] video_data;
 reg video_we;
 
@@ -262,7 +266,6 @@ always @(posedge clk36m) begin
 
             {3'b??1, 9'h058}: capslock <= ~capslock;
             {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
-//            {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
             {3'b0?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h53 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // S
             {3'b1?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h13; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-S Pause transmission
             {3'b0?1, 8'h23}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h44 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // D
