@@ -16,11 +16,7 @@ set_global_assignment -name VERILOG_FILE reset.v
 set_global_assignment -name VERILOG_FILE sense_switch.v
 set_global_assignment -name VERILOG_FILE frequency_divider.v
 set_global_assignment -name VERILOG_FILE bram.v
-
-set_global_assignment -name VERILOG_FILE mc6850.v
-set_global_assignment -name VERILOG_FILE simpleuart.v
-
-
+set_global_assignment -name SYSTEMVERILOG_FILE wd1793.sv
 set_global_assignment -name QIP_FILE font_rom.qip
 set_global_assignment -name QIP_FILE videoram.qip
 set_global_assignment -name QIP_FILE pll.qip

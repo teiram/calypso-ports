@@ -116,6 +116,8 @@ parameter CONF_STR = {
     `SEP
     "F1,ROM,Load ROM;",
     `SEP
+    "S0U,DSK,Load Floppy 1;",
+    "S1U,DSK,Load Floppy 2;",
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
@@ -144,6 +146,18 @@ end
 wire [31:0] status;
 wire [1:0] buttons;
 
+wire [31:0] sd_lba;
+reg [1:0] sd_rd;
+reg [1:0] sd_wr;
+reg [1:0] sd_ack;
+wire [8:0] sd_buff_addr;
+wire [7:0] sd_buff_dout;
+wire [7:0] sd_buff_din;
+wire sd_buff_wr;
+
+wire [1:0] img_mounted;
+wire [63:0] img_size;
+
 wire ioctl_download /* synthesis keep */;
 wire [7:0] ioctl_index;
 wire ioctl_wr /* synthesis keep */;
@@ -160,7 +174,7 @@ wire key_extended;
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
-    .SD_IMAGES(1'b1),
+    .SD_IMAGES(2),
     .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
 user_io(
     .clk_sys(clk36m),
@@ -172,6 +186,19 @@ user_io(
 
     .conf_str(CONF_STR),
     .status(status),
+
+    .sd_sdhc(1),
+    .sd_lba(sd_lba),
+    .sd_rd(sd_rd),
+    .sd_wr(sd_wr),
+    .sd_ack(sd_ack),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_dout(sd_buff_dout),
+    .sd_din(sd_buff_din),
+    .sd_dout_strobe(sd_buff_wr),
+
+    .img_mounted(img_mounted),
+    .img_size(img_size),
     
     .ypbpr(ypbpr),
     .no_csync(no_csync),
@@ -462,11 +489,42 @@ imsai8080 core(
     .debug_leds(LED)
 );
 
-assign R = row < PANEL_HEIGHT ? r_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
-assign G = row < PANEL_HEIGHT ? g_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
-assign B = row < PANEL_HEIGHT ? b_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+wd1793 #(1) fdd1(
+    .clk_sys(clk36m),
+    .ce(f1),
+    .reset(reset),
+    .io_en(fdd1_io & fdd1_ready),
+    .rd(~nRD),
+    .wr(~nWR),
+    .addr(addr[1:0]),
+    .din(cpu_dout),
+    .dout(fdd1_dout),
 
-////////////////////////////////////////////
+    .img_mounted(img_mounted[0]),
+    .img_size(img_size[19:0]),
+    .sd_lba(fdd1_lba),
+    .sd_rd(sd_rd[0]),
+    .sd_wr(sd_wr[0]),
+    .sd_ack(sd_ack),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_buff_dout(sd_buff_dout),
+    .sd_buff_din(fdd1_buf_dout),
+    .sd_buff_wr(sd_buff_wr),
+
+    .wp(~status[4]),
+
+    .size_code(4),
+    .layout(ioctl_index[7:6] == 2),
+    .side(fdd1_side),
+    .ready(fdd1_ready),
+    .prepare(fdd1_busy),
+
+    .input_active(0),
+    .input_addr(0),
+    .input_data(0),
+    .input_wr(0),
+    .buff_din(0)
+);
 
 `ifdef I2S_AUDIO
 i2s i2s (
@@ -482,6 +540,10 @@ i2s i2s (
     .right_chan({~audio[13], audio[12:0], 2'b0})
 );
 `endif
+
+assign R = row < PANEL_HEIGHT ? r_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+assign G = row < PANEL_HEIGHT ? g_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+assign B = row < PANEL_HEIGHT ? b_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
 
 mist_video #(
     .COLOR_DEPTH(4),
