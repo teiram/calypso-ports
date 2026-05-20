@@ -1,6 +1,8 @@
 
 module imsai8080(
     input clk,
+    input f1,
+    input f2,
     input reset,
     
     input hold_in,
@@ -19,9 +21,12 @@ module imsai8080(
     output cpu_hlda_o,
     output cpu_wait_o,
     output run_o,
+    
+    output reg [7:0] fdc_data_in,
+    output reg [15:0] cpu_addr,
+    input [7:0] fdc_data_out,
+    
     output reg [7:0] data_leds,
-    output reg [15:0] addr_leds,
-
     output [7:0] programmed_output_leds,
     
     input [7:0] data_addr_in,
@@ -65,13 +70,7 @@ module imsai8080(
 
     wire cpu_ce /* synthesis keep */;
     wire sio_clk;
-    wire f1, f2;
-    frequency_divider #(.N(25), .WIDTH(20)) freq_cpu(
-        .clk_in(clk),
-        .clk_out(f1),
-        .rst(reset)
-    );
-    assign f2 = ~f1;
+
     
     frequency_divider #(.N(25),.WIDTH(20)) freq_sio(
         .clk_in(clk),
@@ -177,22 +176,23 @@ module imsai8080(
             reset_ce,
             addr[15:8]})
             // Deposit Next
-            {6'b000010,8'bxxxxxxxx}: begin idata = deposit_next_in; end             // any address
+            {6'b000010,8'bxxxxxxxx}: begin idata = deposit_next_in; end
             // Examine
-            {6'b001000,8'bxxxxxxxx}: begin idata = examine_out; end                 // any address
+            {6'b001000,8'bxxxxxxxx}: begin idata = examine_out; end
             // Examine Next
-            {6'b000100,8'bxxxxxxxx}: begin idata = examine_next_out; end            // any address
+            {6'b000100,8'bxxxxxxxx}: begin idata = examine_next_out; end
             // Reset
-            {6'b000001,8'bxxxxxxxx}: begin idata = reset_out; end                   // any address
+            {6'b000001,8'bxxxxxxxx}: begin idata = reset_out; end
             // MEM MAP
-            {6'b000000,8'bxxxxxxxx}: begin idata = rammain_out; rd_rammain = rd; end     // 0x0000-0xffff
+            {6'b000000,8'bxxxxxxxx}: begin idata = rammain_out; rd_rammain = rd; end
             default: begin idata = 8'h00; end
         endcase
 
         casex ({io_rd, examine_ce, examine_next_ce, reset_ce, addr[7:0]})
             // I/O MAP - addr[15:8] == addr[7:0] for this section
-            {4'b1000,8'b00xx00xx}: begin idata = sio_out; sio_rd = rd; end                             // 0x00-0x01 0x10-0x11 
-            {4'b1000,8'b11111111}: begin idata = sense_sw_out; rd_sense = rd; end                      // sense switch port at 0xff
+            {4'b1000,8'b00xx00xx}: begin idata = sio_out; sio_rd = rd; end
+            {4'b1000,8'b11111111}: begin idata = sense_sw_out; rd_sense = rd; end       // sense switch port at 0xff
+            {4'b1000,8'b01100xxx}: begin idata = fdc_data_out; end                      // Versafloppy port 60h-67h
             default: begin end
         endcase
 
@@ -204,6 +204,7 @@ module imsai8080(
         wr_rammain = 0;
         rammain_in = 8'b0;
         sio_in = 8'b0;
+        fdc_data_in = 8'b0;
 
         casex ({io_wr,
             examine_ce,
@@ -214,7 +215,7 @@ module imsai8080(
             addr[15:8]})
         
             // MEM MAP
-            {6'b000000,8'bxxxxxxxx}: begin rammain_in = odata; wr_rammain = ~wr_n; end      // 0x0000-0xffff
+            {6'b000000,8'bxxxxxxxx}: begin rammain_in = odata; wr_rammain = ~wr_n; end
             {6'b000100,8'bxxxxxxxx}: begin rammain_in = deposit_in; wr_rammain = 1; end
             {6'b000010,8'bxxxxxxxx}: begin rammain_in = deposit_next_in; wr_rammain = 1; end
             default: begin end // Add this default case
@@ -222,7 +223,8 @@ module imsai8080(
         casex ({io_wr, examine_ce, examine_next_ce, addr[7:0]})
             // I/O MAP - addr[15:8] == addr[7:0] for this section
             {3'b100,8'b11111111}: begin programmed_output_leds = ~odata; end
-            {3'b100,8'b00xx00xx}: begin sio_in = odata; sio_we = ~wr_n; end                 // 0x00-0x01 0x10-0x11 
+            {3'b100,8'b00xx00xx}: begin sio_in = odata; sio_we = ~wr_n; end
+            {3'b100,8'b01100xxx}: begin fdc_data_in = odata; end                    // Versafloppy port 60h-67h
             default: begin end // Add this default case
         endcase
     end
@@ -268,7 +270,7 @@ module imsai8080(
         debug_leds[6] <= sio_rd;
         debug_leds[7] <= sio_we;
 
-        addr_leds <= addr;
+        cpu_addr <= addr;
         data_leds <= rammain_out;
         rst_n = (rcnt == 8'hFF);
   
