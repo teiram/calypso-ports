@@ -434,8 +434,13 @@ wire io_rd;
 wire io_wr;
 wire cpu_sync;
 wire [15:0] cpu_addr;
+wire fdc_we;
 wire [7:0] fdc_data_in;
 wire [7:0] fdc_data_out = fdd1_sel ? fdc1_data_out : fdc2_data_out;
+wire fdc1_int;
+wire fdc2_int;
+wire fdc_int = fdd1_sel ? fdc1_int : fdd2_sel ? fdc2_int: 1'b0;
+
 
 frequency_divider #(.N(25), .WIDTH(20)) freq_cpu(
     .clk_in(clk36m),
@@ -452,6 +457,7 @@ imsai8080 core(
     .f2(f2),
     .reset(reset),
     
+    .intr_in(fdc_int),
     .rx(),
     .hold_in(1'b0),
     .ready_in(1'b1),
@@ -475,6 +481,7 @@ imsai8080 core(
 
     .cpu_addr(cpu_addr),
     .fdc_data_in(fdc_data_in),
+    .fdc_we(fdc_we),
     .fdc_data_out(fdc_data_out),
     
     .data_leds(data_leds),
@@ -505,7 +512,7 @@ imsai8080 core(
     .sio_in(sio_in),
     .sio_out(sio_out),
 
-    .debug_leds(LED)
+    .debug_leds()
 );
 
 wire fdd1_ready;
@@ -521,6 +528,13 @@ reg fdd2_side = 1'b0;
 wire [31:0] fdd2_lba;
 wire [7:0] fdd2_buf_din;
 wire [7:0] fdc2_data_out;
+
+assign LED[0] = fdd1_ready;
+assign LED[1] = fdd2_ready;
+assign LED[2] = fdd1_sel;
+assign LED[3] = fdd2_sel;
+assign LED[4] = io_rd;
+assign LED[5] = io_wr;
 
 always @(posedge clk36m) begin
     reg [1:0] old_mounted;
@@ -553,16 +567,16 @@ end
 //VINTEN    equ 10000000b   ;Interrupt Enable
 
 always @(posedge clk36m) begin
-    reg last_io_wr = 1'b0;
+    reg last_fdc_we = 1'b0;
     if (reset) begin
-        last_io_wr <= 1'b0;
+        last_fdc_we <= 1'b0;
     end else begin
-        last_io_wr <= io_wr;
+        last_fdc_we <= fdc_we;
         
-        if (~last_io_wr & io_wr) begin
+        if (~last_fdc_we & fdc_we & io_wr) begin
             if (cpu_addr[7:0] == 8'h63) begin
-                {fdd1_side, fdd1_sel} <= {fdc_data_in[4], fdc_data_in[0]};
-                {fdd2_side, fdd2_sel} <= {fdc_data_in[4], fdc_data_in[1]};
+                {fdd1_side, fdd1_sel} <= {~fdc_data_in[4], ~fdc_data_in[0]};
+                {fdd2_side, fdd2_sel} <= {~fdc_data_in[4], ~fdc_data_in[1]};
             end
         end
     end
@@ -579,13 +593,15 @@ always @(posedge clk36m) begin
     end
 end
 
-wd1793 #(1) fdd1(
+wd1793 #(.RWMODE(1), .EDSK(1)) fdd1(
     .clk_sys(clk36m),
     .ce(f1),
     .reset(reset),
-    .io_en(fdd1_sel & fdd1_ready),
-    .rd(~io_rd),
-    .wr(~io_wr),
+    .io_en(fdd1_sel & fdd1_ready & cpu_addr[2]),
+    .intrq(fdc1_int),
+    
+    .rd(io_rd),
+    .wr(io_wr),
     .addr(cpu_addr[1:0]),
     .din(fdc_data_in),
     .dout(fdc1_data_out),
@@ -616,13 +632,14 @@ wd1793 #(1) fdd1(
     .buff_din()
 );
 
-wd1793 #(1) fdd2(
+wd1793 #(.RWMODE(1)) fdd2(
     .clk_sys(clk36m),
     .ce(f1),
     .reset(reset),
-    .io_en(fdd2_sel & fdd2_ready),
-    .rd(~io_rd),
-    .wr(~io_wr),
+    .io_en(fdd2_sel & fdd2_ready & cpu_addr[2]),
+    .intrq(fdc2_int),
+    .rd(io_rd),
+    .wr(io_wr),
     .addr(cpu_addr[1:0]),
     .din(fdc_data_in),
     .dout(fdc2_data_out),

@@ -7,6 +7,7 @@ module imsai8080(
     
     input hold_in,
     input ready_in,
+    input intr_in,
     
     output cpu_sync,
     output reg interrupt_ack,
@@ -23,6 +24,7 @@ module imsai8080(
     output run_o,
     
     output reg [7:0] fdc_data_in,
+    output reg fdc_we,
     output reg [15:0] cpu_addr,
     input [7:0] fdc_data_out,
     
@@ -205,6 +207,7 @@ module imsai8080(
         rammain_in = 8'b0;
         sio_in = 8'b0;
         fdc_data_in = 8'b0;
+        fdc_we = 0;
 
         casex ({io_wr,
             examine_ce,
@@ -224,7 +227,7 @@ module imsai8080(
             // I/O MAP - addr[15:8] == addr[7:0] for this section
             {3'b100,8'b11111111}: begin programmed_output_leds = ~odata; end
             {3'b100,8'b00xx00xx}: begin sio_in = odata; sio_we = ~wr_n; end
-            {3'b100,8'b01100xxx}: begin fdc_data_in = odata; end                    // Versafloppy port 60h-67h
+            {3'b100,8'b01100xxx}: begin fdc_data_in = odata; fdc_we = ~wr_n; end                    // Versafloppy port 60h-67h
             default: begin end // Add this default case
         endcase
     end
@@ -295,7 +298,7 @@ module imsai8080(
         .pin_din(idata),
         .pin_hold(hold_in),
         .pin_ready(xrdy),
-        .pin_int(intr),
+        .pin_int(intr_in),
         .pin_wr_n(wr_n),
         .pin_dbin(rd),
         .pin_inte(cpu_inte_o),
