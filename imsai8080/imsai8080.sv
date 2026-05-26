@@ -105,7 +105,7 @@ module imsai8080(
     end
 
     always @(posedge clk) begin
-        if (run) xrdy <= 1'b1;
+        if (run) xrdy <= ready_in;
         else begin
             if (xrdy) begin
                 if (~sync_last & cpu_sync) xrdy <= 1'b0;

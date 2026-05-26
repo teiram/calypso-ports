@@ -134,12 +134,12 @@ pll pll(
     .locked(pll_locked)
 );
 
-reg [2:0] ce_counter;
-wire mem_clkref /* synthesis keep */ = ce_counter == 3'b000;
-always @(posedge clk72m) begin
-    if (reset) ce_counter <= 3'd0;
+reg [1:0] ce_counter;
+wire mem_clkref /* synthesis keep */ = ce_counter == 2'b00;
+always @(posedge clk36m) begin
+    if (reset) ce_counter <= 2'd0;
     
-    ce_counter <= ce_counter + 3'd1;
+    ce_counter <= ce_counter + 1'd1;
 end
 
 /////////////////  IO  ///////////////////////////
@@ -147,9 +147,9 @@ wire [31:0] status;
 wire [1:0] buttons;
 
 wire [31:0] sd_lba;
-reg [1:0] sd_rd;
-reg [1:0] sd_wr;
-reg [1:0] sd_ack;
+wire [1:0] sd_rd;
+wire [1:0] sd_wr;
+wire sd_ack;
 wire [8:0] sd_buff_addr;
 wire [7:0] sd_buff_dout;
 wire [7:0] sd_buff_din;
@@ -191,7 +191,7 @@ user_io(
     .sd_lba(sd_lba),
     .sd_rd(sd_rd),
     .sd_wr(sd_wr),
-    .sd_ack_x(sd_ack),
+    .sd_ack(sd_ack),
     .sd_buff_addr(sd_buff_addr),
     .sd_dout(sd_buff_dout),
     .sd_din(sd_buff_din),
@@ -429,25 +429,35 @@ wire [7:0] extram_dout;
 wire extram_rd;
 wire extram_we;
 
-wire f1, f2;
 wire io_rd;
 wire io_wr;
 wire cpu_sync;
 wire [15:0] cpu_addr;
 wire fdc_we;
-wire [7:0] fdc_data_in;
-wire [7:0] fdc_data_out = fdd1_sel ? fdc1_data_out : fdc2_data_out;
-wire fdc1_int;
-wire fdc2_int;
-wire fdc_int = fdd1_sel ? fdc1_int : fdd2_sel ? fdc2_int: 1'b0;
+wire [7:0] io_data_in;
+wire [7:0] fdc_data_out;
+wire [7:0] io_data_out = cpu_addr[7:0] == 8'h63 ? vdrsel : fdc_data_out;
+wire fdc_int;
 
+reg [4:0] cnt = 3'd0;
 
+always @(posedge clk36m) begin
+    if (cnt == 5'd17) cnt <= 3'd0;
+    else cnt <= cnt + 1'd1;
+end
+
+wire f1 = cnt == 5'd0;
+wire f2 = cnt == 5'd9;
+
+/*
 frequency_divider #(.N(25), .WIDTH(20)) freq_cpu(
     .clk_in(clk36m),
     .clk_out(f1),
     .rst(reset)
 );
-assign f2 = ~f1;
+*/
+//assign f2 = ~f1;
+
 assign cpu_leds[6] = io_rd;
 assign cpu_leds[4] = io_wr;
 
@@ -457,11 +467,9 @@ imsai8080 core(
     .f2(f2),
     .reset(reset),
     
-    .intr_in(fdc_int),
-    .rx(),
+    .intr_in(1'b0),
     .hold_in(1'b0),
-    .ready_in(1'b1),
-    .tx(),
+    .ready_in(fdc_cpu_ready),
     
     .cpu_sync(cpu_sync),
     
@@ -480,9 +488,9 @@ imsai8080 core(
     .run_o(status_leds[2]),
 
     .cpu_addr(cpu_addr),
-    .fdc_data_in(fdc_data_in),
+    .fdc_data_in(io_data_in),
     .fdc_we(fdc_we),
-    .fdc_data_out(fdc_data_out),
+    .fdc_data_out(io_data_out),
     
     .data_leds(data_leds),
     .programmed_output_leds(port_leds),
@@ -515,56 +523,76 @@ imsai8080 core(
     .debug_leds()
 );
 
-wire fdd1_ready;
-reg fdd1_sel = 1'b0;
-reg fdd1_side = 1'b0;
-wire [31:0] fdd1_lba;
-wire [7:0] fdd1_buf_din;
-wire [7:0] fdc1_data_out;
+reg [7:0] vdrsel = 8'd0;
 
-wire fdd2_ready;
-reg fdd2_sel = 1'b0;
-reg fdd2_side = 1'b0;
-wire [31:0] fdd2_lba;
-wire [7:0] fdd2_buf_din;
-wire [7:0] fdc2_data_out;
+reg fdd1_ready = 1'b0;
+wire fdd1_sel = vdrsel[0];
+wire fdd_side = vdrsel[4];
+reg fdd2_ready = 1'b0;
+wire fdd2_sel = vdrsel[1];
+wire busy;
+wire drq;
+wire prepare;
+wire fdd_ready = (fdd1_ready & fdd1_sel) | (fdd2_ready & fdd2_sel);
+wire fdd_io_ena = cpu_addr[2] & fdd_ready;
+//wire fdd_cpu_ready = ~(~drq & ~fdc_int & (io_rd | io_wr) & fdd_io_ena & vdrsel[7] & cpu_addr[7:0] == 8'h67);
+reg fdc_cpu_ready = 1'b1;
 
-assign LED[0] = fdd1_ready;
-assign LED[1] = fdd2_ready;
-assign LED[2] = fdd1_sel;
-assign LED[3] = fdd2_sel;
-assign LED[4] = io_rd;
-assign LED[5] = io_wr;
+always @(posedge clk36m) begin
+    if (reset) begin
+        fdc_cpu_ready <= 1'b1;
+    end else begin
+        if (vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready == 1'b1 && busy == 1'b1) begin
+            fdc_cpu_ready <= drq;
+        end
+        else if (fdc_cpu_ready == 1'b0) begin
+            if (fdc_int == 1'b1 || drq == 1'b1 || busy == 1'b0) fdc_cpu_ready <= 1'b1;
+        end
+    end
+end
+
+
+assign LED[0] = fdd_ready;
+assign LED[1] = io_rd;
+assign LED[2] = io_wr;
+//assign LED[3] = ;
+assign LED[4] = prepare;
+assign LED[5] = busy;
+assign LED[6] = fdc_int;
+assign LED[7] = drq;
+wire fdd_sd_rd /* synthesis keep */;
+wire fdd_sd_wr /* synthesis keep */;
+assign sd_rd = {fdd2_ready & fdd_sd_rd, fdd1_ready & fdd_sd_rd};
+assign sd_wr = {fdd2_ready & fdd_sd_wr, fdd2_ready & fdd_sd_wr};
 
 always @(posedge clk36m) begin
     reg [1:0] old_mounted;
     old_mounted <= img_mounted;
-    if (reset == 1'b1) begin
-        fdd1_ready <= 1'b0;
-        fdd2_ready <= 1'b0;
-    end
-    else if (~old_mounted[0] & img_mounted[0]) fdd1_ready <= 1'b1;
-    else if (~old_mounted[1] & img_mounted[1]) fdd2_ready <= 1'b1;
+
+    if (~old_mounted[0] & img_mounted[0]) fdd1_ready <= 1'b1;
+    if (~old_mounted[1] & img_mounted[1]) fdd2_ready <= 1'b1;
+    
 end
 
-//For a Versafloppy controller
+//For a Versafloppy II controller
 //With DIBASE 60H
-//VDRSEL    equ     DIBASE + 3    ;Drive select port
-//VDCOM     equ     DIBASE + 4    ;WD1793 Command port
-//VDSTAT    equ     DIBASE + 4    ;WD1793 Status port
-//VTRACK    equ     DIBASE + 5    ;WD1793 Track port
-//VSECT     equ     DIBASE + 6    ;WD1793 Sector Register
-//VDDATA    equ     DIBASE + 7    ;WD1793 Data Register
-//
-//Versafloppy VDRSEL bit assignments (all active-low)
-//VDSEL0N   equ 00000001b   ;select drive 0
-//VDSEL1N   equ 00000010b   ;select drive 1
-//VDSEL2N   equ 00000100b   ;select drive 2
-//VDSEL3N   equ 00001000b   ;select drive 3
-//VSIDE1N   equ 00010000b   ;Select side 1
-//VRSTORN   equ 00100000b   ;optional Restore
-//VWAITN    equ 01000000b   ;Enable auto-wait circuit
-//VINTEN    equ 10000000b   ;Interrupt Enable
+// VDRSEL   equ     DIBASE+3    ;Drive select port
+// VDCOM    equ     DIBASE+4    ;WD1793 Command port
+// VDSTAT   equ     DIBASE+4    ;WD1793 Status port
+// VTRACK   equ     DIBASE+5    ;WD1793 Track port
+// VSECT    equ     DIBASE+6    ;WD1793 Sector Register
+// VDDATA   equ     DIBASE+7    ;WD1793 Data Register
+
+// Versafloppy II VDRSEL bit assignments (all active-high)
+
+// VDSEL0   equ     00000001b   ;select drive 0
+// VDSEL1   equ     00000010b   ;select drive 1
+// VDSEL2   equ     00000100b   ;select drive 2
+// VDSEL3   equ     00001000b   ;select drive 3
+// VSIDE1   equ     00010000b   ;Select side 1
+// VMINI    equ     00100000b   ;Set up for minidisk
+// VDDEN    equ     01000000b   ;Enable double-density
+// VWAIT    equ     10000000b   ;Enable auto-wait circuit
 
 always @(posedge clk36m) begin
     reg last_fdc_we = 1'b0;
@@ -575,93 +603,45 @@ always @(posedge clk36m) begin
         
         if (~last_fdc_we & fdc_we & io_wr) begin
             if (cpu_addr[7:0] == 8'h63) begin
-                {fdd1_side, fdd1_sel} <= {~fdc_data_in[4], ~fdc_data_in[0]};
-                {fdd2_side, fdd2_sel} <= {~fdc_data_in[4], ~fdc_data_in[1]};
+                vdrsel <= io_data_in;
             end
         end
     end
 end
 
-always @(posedge clk36m) begin
-    if (sd_rd[0] == 1'b1 || sd_wr[0] == 1'b1) begin
-        sd_lba <= fdd1_lba;
-        sd_buff_din <= fdd1_buf_din;
-    end
-    else if (sd_rd[1] == 1'b1 || sd_wr[1] == 1'b1) begin
-        sd_lba <= fdd2_lba;
-        sd_buff_din <= fdd2_buf_din;
-    end
-end
-
-wd1793 #(.RWMODE(1), .EDSK(1)) fdd1(
+wd1793 #(.RWMODE(1), .EDSK(1)) versafloppy_fdc(
     .clk_sys(clk36m),
     .ce(f1),
     .reset(reset),
-    .io_en(fdd1_sel & fdd1_ready & cpu_addr[2]),
-    .intrq(fdc1_int),
+    .io_en(fdd_io_ena),
+    .intrq(fdc_int),
+    .drq(drq),
+    .busy(busy),
     
     .rd(io_rd),
-    .wr(io_wr),
+    .wr(io_wr & fdc_we),
     .addr(cpu_addr[1:0]),
-    .din(fdc_data_in),
-    .dout(fdc1_data_out),
+    .din(io_data_in),
+    .dout(fdc_data_out),
 
-    .img_mounted(img_mounted[0]),
+    .img_mounted(img_mounted[0]), //Can we switch between A and B with this?
     .img_size(img_size[19:0]),
-    .sd_lba(fdd1_lba),
-    .sd_rd(sd_rd[0]),
-    .sd_wr(sd_wr[0]),
+    .sd_lba(sd_lba),
+    .sd_rd(fdd_sd_rd),
+    .sd_wr(fdd_sd_wr),
     .sd_ack(sd_ack),
     .sd_buff_addr(sd_buff_addr),
     .sd_buff_dout(sd_buff_dout),
-    .sd_buff_din(fdd1_buf_din),
+    .sd_buff_din(sd_buff_din),
     .sd_buff_wr(sd_buff_wr),
 
     .wp(1'b0),
 
-    .size_code(3'd1),
+    .size_code(3'd0), // 26 sectors per track x 128 bytes per sector  = 3.3KB
     .layout(0),
-    .side(fdd1_side),
-    .ready(fdd1_ready),
-    .prepare(),
-
-    .input_active(),
-    .input_addr(),
-    .input_data(),
-    .input_wr(),
-    .buff_din()
-);
-
-wd1793 #(.RWMODE(1)) fdd2(
-    .clk_sys(clk36m),
-    .ce(f1),
-    .reset(reset),
-    .io_en(fdd2_sel & fdd2_ready & cpu_addr[2]),
-    .intrq(fdc2_int),
-    .rd(io_rd),
-    .wr(io_wr),
-    .addr(cpu_addr[1:0]),
-    .din(fdc_data_in),
-    .dout(fdc2_data_out),
-
-    .img_mounted(img_mounted[1]),
-    .img_size(img_size[19:0]),
-    .sd_lba(fdd2_lba),
-    .sd_rd(sd_rd[1]),
-    .sd_wr(sd_wr[1]),
-    .sd_ack(sd_ack),
-    .sd_buff_addr(sd_buff_addr),
-    .sd_buff_dout(sd_buff_dout),
-    .sd_buff_din(fdd2_buf_din),
-    .sd_buff_wr(sd_buff_wr),
-
-    .wp(1'b0),
-
-    .size_code(3'd1),
-    .layout(0),
-    .side(fdd2_side),
-    .ready(fdd2_ready),
-    .prepare(),
+    .side(fdd_side),
+    .ready(fdd_ready),
+    .prepare(prepare),
 
     .input_active(),
     .input_addr(),

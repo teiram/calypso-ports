@@ -119,100 +119,105 @@ wire [1:0] m_switches_p[M_SWITCH_COUNT] = '{
 reg [43:0] leds_latched;
 
 always @(posedge clk36m) begin
-    if (row == 11'd624) begin
+    if (reset) begin
         ram_addr <= 15'd0;
-        leds_latched <= leds;
-    end
-    if (row == 11'd624 && col == 11'd1020) begin
-        pixel_value <= ram_value;
-    end
-    
-    else if (~vblank & ~hblank & row < 10'd240) begin
-        if (col[2:0] == 3'd0) begin
-            ram_addr <= ram_addr + 15'd1;
-        end else if (col[2:0] == 3'd7) begin
-            pixel_value <= ram_value;
-        end
-        r <= red[pixel_values[col[2:0]]];
-        g <= green[pixel_values[col[2:0]]];
-        b <= blue[pixel_values[col[2:0]]];
-        
-        // Replace LED color in enabled LEDs
-        for (led_index = 0; led_index < LED_COUNT; led_index = led_index + 1) begin
-            if (col > led_cols[led_index_cols[led_index]] && 
-                col < led_cols[led_index_cols[led_index]] + LED_WIDTH &&
-                row > led_rows[led_index_rows[led_index]] &&
-                row < led_rows[led_index_rows[led_index]] + LED_HEIGHT &&
-                leds_latched[led_index] == 1'b1 &&
-                pixel_values[col[2:0]] == 4'd3) begin
-                r <= 4'hf;
-                g <= 4'h0;
-                b <= 4'h0;
-            end
-        end
-        
-        //Draw the bar in switches on and off
-        for (switch_index = 0; switch_index < SWITCH_COUNT; switch_index = switch_index + 1) begin
-            if (col > switch_cols[switch_index] + 4'd8 && 
-                col < switch_cols[switch_index] + SWITCH_WIDTH + 4'd8 &&
-                row > SWITCH_ROW_ON &&
-                row < SWITCH_ROW_ON + SWITCH_NOTCH_HEIGHT &&
-                pixel_values[col[2:0]] != 4'd0 &&
-                switches[switch_index] == 1'b1) begin
-                r <= 4'hb;
-                g <= 4'hb;
-                b <= 4'hb;
-            end
-            else if (col > switch_cols[switch_index] + 4'd8 && 
-                col < switch_cols[switch_index] + SWITCH_WIDTH + 4'd8 &&
-                row > SWITCH_ROW_OFF &&
-                row < SWITCH_ROW_OFF + SWITCH_NOTCH_HEIGHT &&
-                pixel_values[col[2:0]] != 4'd0 &&
-                switches[switch_index] == 1'b0) begin
-                r <= 4'hb;
-                g <= 4'hb;
-                b <= 4'hb;
-            end
-        end
-        
-        //Draw the bar on momentary switches
-        for (m_switch_index = 0; m_switch_index < M_SWITCH_COUNT; m_switch_index = m_switch_index + 1) begin
-           if (col > m_switch_cols[m_switch_index] + 4'd8 && 
-                col < m_switch_cols[m_switch_index] + SWITCH_WIDTH + 4'd8 &&
-                row > SWITCH_ROW_ON &&
-                row < SWITCH_ROW_ON + SWITCH_NOTCH_HEIGHT &&
-                pixel_values[col[2:0]] != 4'd0 &&
-                m_switches_p[m_switch_index][0] == 1'b1) begin
-                r <= 4'hb;
-                g <= 4'hb;
-                b <= 4'hb;
-            end
-            else if (col > m_switch_cols[m_switch_index] + 4'd8 && 
-                col < m_switch_cols[m_switch_index] + SWITCH_WIDTH + 4'd8 &&
-                row > SWITCH_ROW_OFF &&
-                row < SWITCH_ROW_OFF + SWITCH_NOTCH_HEIGHT &&
-                pixel_values[col[2:0]] != 4'd0 &&
-                m_switches_p[m_switch_index][1] == 1'b1) begin
-                r <= 4'hb;
-                g <= 4'hb;
-                b <= 4'hb;
-            end
-            else if (col > m_switch_cols[m_switch_index] + 4'd8 && 
-                col < m_switch_cols[m_switch_index] + SWITCH_WIDTH + 4'd8 &&
-                row > M_SWITCH_ROW_IDLE &&
-                row < M_SWITCH_ROW_IDLE + SWITCH_NOTCH_HEIGHT &&
-                pixel_values[col[2:0]] != 4'd0 &&
-                m_switches_p[m_switch_index] == 2'b00) begin
-                r <= 4'hb;
-                g <= 4'hb;
-                b <= 4'hb;
-            end
-        end
     end
     else begin
-        r <= 4'd0;
-        g <= 4'd0;
-        b <= 4'd0;
+        if (row == 11'd624) begin
+            ram_addr <= 15'd0;
+            leds_latched <= leds;
+        end
+        if (row == 11'd624 && col == 11'd1020) begin
+            pixel_value <= ram_value;
+        end
+        
+        else if (~vblank & ~hblank & row < 10'd240) begin
+            if (col[2:0] == 3'd0) begin
+                ram_addr <= ram_addr + 15'd1;
+            end else if (col[2:0] == 3'd7) begin
+                pixel_value <= ram_value;
+            end
+            r <= red[pixel_values[col[2:0]]];
+            g <= green[pixel_values[col[2:0]]];
+            b <= blue[pixel_values[col[2:0]]];
+            
+            // Replace LED color in enabled LEDs
+            for (led_index = 0; led_index < LED_COUNT; led_index = led_index + 1) begin
+                if (col > led_cols[led_index_cols[led_index]] && 
+                    col < led_cols[led_index_cols[led_index]] + LED_WIDTH &&
+                    row > led_rows[led_index_rows[led_index]] &&
+                    row < led_rows[led_index_rows[led_index]] + LED_HEIGHT &&
+                    leds_latched[led_index] == 1'b1 &&
+                    pixel_values[col[2:0]] == 4'd3) begin
+                    r <= 4'hf;
+                    g <= 4'h0;
+                    b <= 4'h0;
+                end
+            end
+            
+            //Draw the bar in switches on and off
+            for (switch_index = 0; switch_index < SWITCH_COUNT; switch_index = switch_index + 1) begin
+                if (col > switch_cols[switch_index] + 4'd8 && 
+                    col < switch_cols[switch_index] + SWITCH_WIDTH + 4'd8 &&
+                    row > SWITCH_ROW_ON &&
+                    row < SWITCH_ROW_ON + SWITCH_NOTCH_HEIGHT &&
+                    pixel_values[col[2:0]] != 4'd0 &&
+                    switches[switch_index] == 1'b1) begin
+                    r <= 4'hb;
+                    g <= 4'hb;
+                    b <= 4'hb;
+                end
+                else if (col > switch_cols[switch_index] + 4'd8 && 
+                    col < switch_cols[switch_index] + SWITCH_WIDTH + 4'd8 &&
+                    row > SWITCH_ROW_OFF &&
+                    row < SWITCH_ROW_OFF + SWITCH_NOTCH_HEIGHT &&
+                    pixel_values[col[2:0]] != 4'd0 &&
+                    switches[switch_index] == 1'b0) begin
+                    r <= 4'hb;
+                    g <= 4'hb;
+                    b <= 4'hb;
+                end
+            end
+            
+            //Draw the bar on momentary switches
+            for (m_switch_index = 0; m_switch_index < M_SWITCH_COUNT; m_switch_index = m_switch_index + 1) begin
+               if (col > m_switch_cols[m_switch_index] + 4'd8 && 
+                    col < m_switch_cols[m_switch_index] + SWITCH_WIDTH + 4'd8 &&
+                    row > SWITCH_ROW_ON &&
+                    row < SWITCH_ROW_ON + SWITCH_NOTCH_HEIGHT &&
+                    pixel_values[col[2:0]] != 4'd0 &&
+                    m_switches_p[m_switch_index][0] == 1'b1) begin
+                    r <= 4'hb;
+                    g <= 4'hb;
+                    b <= 4'hb;
+                end
+                else if (col > m_switch_cols[m_switch_index] + 4'd8 && 
+                    col < m_switch_cols[m_switch_index] + SWITCH_WIDTH + 4'd8 &&
+                    row > SWITCH_ROW_OFF &&
+                    row < SWITCH_ROW_OFF + SWITCH_NOTCH_HEIGHT &&
+                    pixel_values[col[2:0]] != 4'd0 &&
+                    m_switches_p[m_switch_index][1] == 1'b1) begin
+                    r <= 4'hb;
+                    g <= 4'hb;
+                    b <= 4'hb;
+                end
+                else if (col > m_switch_cols[m_switch_index] + 4'd8 && 
+                    col < m_switch_cols[m_switch_index] + SWITCH_WIDTH + 4'd8 &&
+                    row > M_SWITCH_ROW_IDLE &&
+                    row < M_SWITCH_ROW_IDLE + SWITCH_NOTCH_HEIGHT &&
+                    pixel_values[col[2:0]] != 4'd0 &&
+                    m_switches_p[m_switch_index] == 2'b00) begin
+                    r <= 4'hb;
+                    g <= 4'hb;
+                    b <= 4'hb;
+                end
+            end
+        end
+        else begin
+            r <= 4'd0;
+            g <= 4'd0;
+            b <= 4'd0;
+        end
     end
 end
 
