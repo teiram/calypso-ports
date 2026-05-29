@@ -81,8 +81,8 @@ module imsai8080(
     );
 
     reg [7:0] sysctl;
-    reg xrdy = 1'b0;
-    reg run = 1'b0;
+    reg xrdy = 1'b0 /* synthesis keep */;
+    reg run = 1'b0 /* synthesis keep */;
     assign run_o = run;
     
     reg sync_last;

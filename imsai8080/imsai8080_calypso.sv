@@ -535,9 +535,9 @@ wire drq;
 wire prepare;
 wire fdd_ready = (fdd1_ready & fdd1_sel) | (fdd2_ready & fdd2_sel);
 wire fdd_io_ena = cpu_addr[2] & fdd_ready;
-//wire fdd_cpu_ready = ~(~drq & ~fdc_int & (io_rd | io_wr) & fdd_io_ena & vdrsel[7] & cpu_addr[7:0] == 8'h67);
-reg fdc_cpu_ready = 1'b1;
-
+//reg fdc_cpu_ready = 1'b1;
+wire fdc_cpu_ready = ~(vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready == 1'b1 && drq == 1'b0 && (io_rd | io_wr));
+/*
 always @(posedge clk36m) begin
     if (reset) begin
         fdc_cpu_ready <= 1'b1;
@@ -550,12 +550,11 @@ always @(posedge clk36m) begin
         end
     end
 end
-
+*/
 
 assign LED[0] = fdd_ready;
 assign LED[1] = io_rd;
 assign LED[2] = io_wr;
-//assign LED[3] = ;
 assign LED[4] = prepare;
 assign LED[5] = busy;
 assign LED[6] = fdc_int;
@@ -563,7 +562,7 @@ assign LED[7] = drq;
 wire fdd_sd_rd /* synthesis keep */;
 wire fdd_sd_wr /* synthesis keep */;
 assign sd_rd = {fdd2_ready & fdd_sd_rd, fdd1_ready & fdd_sd_rd};
-assign sd_wr = {fdd2_ready & fdd_sd_wr, fdd2_ready & fdd_sd_wr};
+assign sd_wr = {fdd2_ready & fdd_sd_wr, fdd1_ready & fdd_sd_wr};
 
 always @(posedge clk36m) begin
     reg [1:0] old_mounted;

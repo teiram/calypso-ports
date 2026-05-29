@@ -217,7 +217,7 @@ reg         s_intrq;
 reg   [7:0] wdreg_track;
 reg   [7:0] wdreg_sector;
 reg   [7:0] wdreg_data;
-wire  [7:0] wdreg_status = cmd_mode == 0 ?
+wire  [7:0] wdreg_status /* synthesis keep */ = cmd_mode == 0 ?
 	{~ready, s_readonly, s_headloaded, s_seekerr | ~ready, s_crcerr, !disk_track, s_index, s_busy}:
 	{~ready, s_readonly, s_wrfault,    s_seekerr | ~ready, s_crcerr, s_lostdata,  s_drq,   s_busy};
 
@@ -624,7 +624,7 @@ always @(posedge clk_sys) begin
 									// set real track to datareg
 									disk_track <= wdreg_data;
 									s_headloaded <= din[3];
-
+                                    wdreg_track <= wdreg_data;
 									// get busy
 									s_drq_busy <= 2'b01;
 									state <= STATE_WAIT;
