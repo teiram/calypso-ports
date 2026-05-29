@@ -58,9 +58,12 @@ localparam [6:0] MAX_COL = 7'd79;
 localparam [4:0] MAX_ROW = 5'd24;
 
 wire [9:0] v_ypos = ypos - V_OFFSET;
+wire [10:0] v_xpos = xpos - H_OFFSET;
 wire [6:0] w_ypos = (v_ypos[9:3] + video_start_row) <= MAX_ROW ?
     v_ypos[9:3] + video_start_row :
     v_ypos[9:3] + video_start_row - MAX_ROW - 1'd1;
+
+wire cursor_enable = v_ypos[7:3] == cursor_row && v_xpos[9:3] == cursor_col;
 
 always @(posedge clk36m) begin
     if (ypos >= V_OFFSET && ypos < (V_SIZE + V_OFFSET)) begin
@@ -74,7 +77,7 @@ always @(posedge clk36m) begin
             vout <= 1'b0;
         end else if (xpos < (H_OFFSET + H_SIZE)) begin
             pixels <= {pixels[6:0], 1'b0};
-            vout <= pixels[7];
+            vout <= pixels[7] | cursor_enable;
             if (xpos[2:0] == 3'd1) begin
                 video_addr <= video_addr + 1'd1;
             end else if (xpos[2:0] == 3'd4) begin
@@ -140,6 +143,9 @@ always @(posedge clk36m) begin
     else if (~sio_we_last & sio_we) begin
         if (sio_addr == 1'b0) begin           // CDATA
             case (sio_in)
+                8'd8: begin
+                    if (|cursor_col) cursor_col <= cursor_col - 1'd1;
+                end
                 8'd13: begin                  // CR
                     cursor_col <= 'd0;
                 end

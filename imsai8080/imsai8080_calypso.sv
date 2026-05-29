@@ -535,22 +535,7 @@ wire drq;
 wire prepare;
 wire fdd_ready = (fdd1_ready & fdd1_sel) | (fdd2_ready & fdd2_sel);
 wire fdd_io_ena = cpu_addr[2] & fdd_ready;
-//reg fdc_cpu_ready = 1'b1;
 wire fdc_cpu_ready = ~(vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready == 1'b1 && drq == 1'b0 && (io_rd | io_wr));
-/*
-always @(posedge clk36m) begin
-    if (reset) begin
-        fdc_cpu_ready <= 1'b1;
-    end else begin
-        if (vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready == 1'b1 && busy == 1'b1) begin
-            fdc_cpu_ready <= drq;
-        end
-        else if (fdc_cpu_ready == 1'b0) begin
-            if (fdc_int == 1'b1 || drq == 1'b1 || busy == 1'b0) fdc_cpu_ready <= 1'b1;
-        end
-    end
-end
-*/
 
 assign LED[0] = fdd_ready;
 assign LED[1] = io_rd;
