@@ -120,6 +120,8 @@ always @(posedge clk36m) begin
     reg update_cursor_pos = 1'b0;
     reg clear = 1'b0;
     reg lf = 1'b0;
+    reg escape = 1'b0;
+    reg [1:0] escape_y = 2'b00;
     reg wr_toggle = 1'b0;
     video_we <= 1'b0;
     
@@ -139,26 +141,75 @@ always @(posedge clk36m) begin
         video_wr_addr <= 'd0;
         video_wr_addr_end <= 'd3200;
         video_start_row <= 'd0;
+        escape_y <= 2'b00;
     end
     else if (~sio_we_last & sio_we) begin
         if (sio_addr == 1'b0) begin           // CDATA
-            case (sio_in)
-                8'd8: begin
-                    if (|cursor_col) cursor_col <= cursor_col - 1'd1;
+            if (escape == 1'b0) begin
+                case (sio_in)
+                    8'd8: begin                   // BACKSPACE
+                        if (|cursor_col) cursor_col <= cursor_col - 1'd1;
+                    end
+                    8'd13: begin                  // CR
+                        cursor_col <= 'd0;
+                    end
+                    8'd10: begin                  // LF
+                        lf <= 1'b1;
+                    end
+                    8'd27: escape <= 1'b1;
+                    default: begin
+                        video_wr_addr <= video_cursor_addr;
+                        video_data <= sio_in;
+                        video_we <= 1'b1;
+                        update_cursor_pos <= 1'b1;
+                    end
+                endcase
+            end
+            else begin
+                if (escape_y == 2'b00) begin
+                    case (sio_in)
+                        "A": begin                   // CURSOR UP
+                            if (|cursor_row) cursor_row <= cursor_row - 1'd1;
+                            escape <= 1'b0;
+                        end
+                        "B": begin                   // CURSOR DOWN
+                            if (cursor_row < MAX_ROW) cursor_row <= cursor_row + 1'd1;
+                            escape <= 1'b0;
+                        end
+                        "C": begin                   // CURSOR RIGHT
+                            if (cursor_col < MAX_COL) cursor_col <= cursor_col + 1'd1;
+                            escape <= 1'b0;
+                        end
+                        "D": begin                   // CURSOR LEFT
+                            if (|cursor_col) cursor_col <= cursor_col - 1'd1;
+                            escape <= 1'b0;
+                        end
+                        "H": begin                   // CURSOR HOME
+                            cursor_col <= 'd0;
+                            cursor_row <= 'd0;
+                            escape <= 1'b0;
+                        end
+                        "I": begin                   // REVERSE LINE FEED
+                            if (|cursor_row) cursor_row <= cursor_row - 1'd1;
+                            // TODO, Implement scroll down 
+                            escape <= 1'b0;
+                        end
+                        "Y": begin
+                            escape_y <= 2'b01;
+                        end
+                        default: escape <= 1'b0;
+                    endcase
+                end 
+                else if (escape_y == 2'b01) begin
+                    cursor_row <= sio_in - 8'd32;
+                    escape_y <= 2'b10;
                 end
-                8'd13: begin                  // CR
-                    cursor_col <= 'd0;
+                else if (escape_y == 2'b10) begin
+                    cursor_col <= sio_in - 8'd32;
+                    escape_y <= 2'b00;
+                    escape <= 1'b0;
                 end
-                8'd10: begin                  // LF
-                    lf <= 1'b1;
-                end
-                default: begin
-                    video_wr_addr <= video_cursor_addr;
-                    video_data <= sio_in;
-                    video_we <= 1'b1;
-                    update_cursor_pos <= 1'b1;
-                end
-            endcase
+            end
         end
     end
     else if (~sio_rd_last & sio_rd) begin
