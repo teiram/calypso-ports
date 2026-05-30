@@ -21,6 +21,8 @@ module terminal(
     output reg vout /* synthesis keep */
 );
 
+// Terminal emulation tries to implement Zenith H19, sort of extended VT52
+// Supported in Wordstar
 /*
     To ease video wrapping implementation we need a power of 2 line length
     For 80 chars, we need to go to the next power of 2: 128 = 80h
@@ -55,24 +57,28 @@ localparam [6:0] H_OFFSET = 7'd80;
 localparam [9:0] H_SIZE = 640;
 localparam [8:0] V_SIZE = 200;
 localparam [6:0] MAX_COL = 7'd79;
-localparam [4:0] MAX_ROW = 5'd24;
+localparam [4:0] MAX_ROW = 5'd23;
 
 wire [9:0] v_ypos = ypos - V_OFFSET;
 wire [10:0] v_xpos = xpos - H_OFFSET;
-wire [6:0] w_ypos = (v_ypos[9:3] + video_start_row) <= MAX_ROW ?
-    v_ypos[9:3] + video_start_row :
-    v_ypos[9:3] + video_start_row - MAX_ROW - 1'd1;
+wire [6:0] w_ypos = v_ypos[9:3] == MAX_ROW + 1 ? v_ypos[9:3] :
+    (v_ypos[9:3] + video_start_row) <= MAX_ROW ?
+     v_ypos[9:3] + video_start_row :
+     v_ypos[9:3] + video_start_row - MAX_ROW - 1'd1;
 
-wire cursor_enable = v_ypos[7:3] == cursor_row && v_xpos[9:3] == cursor_col;
+wire cursor_enable = cursor_on == 1'b1 &&
+    v_ypos[7:3] == cursor_row &&
+    v_xpos[9:3] == cursor_col &&
+    (cursor_block == 1'b1 || v_ypos[2:1] == 2'b11); 
 
 always @(posedge clk36m) begin
     if (ypos >= V_OFFSET && ypos < (V_SIZE + V_OFFSET)) begin
         if (xpos < H_OFFSET) begin
             video_addr <= {w_ypos[4:0], 7'd0};
             if (xpos[2:0] == 3'd1) begin
-                char_addr <= {char_code, ypos[2:0]};
+                char_addr <= {1'b0, char_code[6:0], ypos[2:0]};
             end else if (xpos[2:0] == 3'd7) begin
-                pixels <= video_val;
+                pixels <= char_code[7] ? ~video_val : video_val;
             end
             vout <= 1'b0;
         end else if (xpos < (H_OFFSET + H_SIZE)) begin
@@ -81,9 +87,9 @@ always @(posedge clk36m) begin
             if (xpos[2:0] == 3'd1) begin
                 video_addr <= video_addr + 1'd1;
             end else if (xpos[2:0] == 3'd4) begin
-                char_addr <= {char_code, ypos[2:0]};
+                char_addr <= {1'b0, char_code[6:0], ypos[2:0]};
             end else if (xpos[2:0] == 3'd7) begin
-                pixels <= video_val;
+                pixels <= char_code[7] ? ~video_val : video_val;
             end
         end else begin
             vout <= 1'b0;
@@ -94,6 +100,9 @@ always @(posedge clk36m) begin
     end
 end
 
+reg cursor_on = 1'b1;
+reg cursor_block = 1'b1;
+reg l25_enabled = 1'b0;
 
 reg [6:0] cursor_col = 7'd0;
 reg [4:0] cursor_row = 5'd0;
@@ -123,8 +132,12 @@ always @(posedge clk36m) begin
     reg escape = 1'b0;
     reg [1:0] escape_y = 2'b00;
     reg wr_toggle = 1'b0;
-    video_we <= 1'b0;
+    reg reverse_mode = 1'b0;
+    reg escape_sx = 1'b0;
+    reg escape_ry = 1'b0;
     
+    video_we <= 1'b0;
+
     sio_rd_last <= sio_rd;
     sio_we_last <= sio_we;
     
@@ -142,6 +155,12 @@ always @(posedge clk36m) begin
         video_wr_addr_end <= 'd3200;
         video_start_row <= 'd0;
         escape_y <= 2'b00;
+        reverse_mode <= 1'b0;
+        escape_sx <= 1'b0;
+        escape_ry <= 1'b0;
+        l25_enabled <= 1'b0;
+        cursor_on <= 1'b1;
+        cursor_block <= 1'b1;
     end
     else if (~sio_we_last & sio_we) begin
         if (sio_addr == 1'b0) begin           // CDATA
@@ -159,14 +178,14 @@ always @(posedge clk36m) begin
                     8'd27: escape <= 1'b1;
                     default: begin
                         video_wr_addr <= video_cursor_addr;
-                        video_data <= sio_in;
+                        video_data <= {reverse_mode, sio_in[6:0]};
                         video_we <= 1'b1;
                         update_cursor_pos <= 1'b1;
                     end
                 endcase
             end
             else begin
-                if (escape_y == 2'b00) begin
+                if (escape_y == 2'b00 && escape_sx == 1'b0 && escape_ry == 1'b0) begin
                     case (sio_in)
                         "A": begin                   // CURSOR UP
                             if (|cursor_row) cursor_row <= cursor_row - 1'd1;
@@ -184,6 +203,20 @@ always @(posedge clk36m) begin
                             if (|cursor_col) cursor_col <= cursor_col - 1'd1;
                             escape <= 1'b0;
                         end
+                        "E": begin                   // ERASE SCREEN
+                            clear <= 1'b1;
+                            video_wr_addr <= 'd0;
+                            video_wr_addr_end <= 'd3200;
+                            cursor_col <= 'd0;
+                            cursor_row <= 'd0;
+                            escape <= 1'b0;
+                        end
+                        "F": begin                   // ENTER GRAPHICS MODE (TODO)
+                            escape <= 1'b0;
+                        end
+                        "G": begin                   // EXIT GRAPHICS MODE
+                            escape <= 1'b0;
+                        end
                         "H": begin                   // CURSOR HOME
                             cursor_col <= 'd0;
                             cursor_row <= 'd0;
@@ -194,12 +227,86 @@ always @(posedge clk36m) begin
                             // TODO, Implement scroll down 
                             escape <= 1'b0;
                         end
+                        "K": begin                  // ERASE TO THE END OF THE LINE
+                            video_wr_addr <= video_cursor_addr;
+                            video_wr_addr_end <= {base_cursor_address[4:0], 7'h7f};
+                            {clear, wr_toggle} <= 2'b10;
+                            escape <= 1'b0;
+                        end
                         "Y": begin
                             escape_y <= 2'b01;
                         end
-                        default: escape <= 1'b0;
+                        "b": begin                  // ERASE BEGINNING OF DISPLAY
+                            video_wr_addr <= 'd0;
+                            video_wr_addr_end <= video_cursor_addr;
+                            {clear, wr_toggle} <= 2'b10;
+                            escape <= 1'b0;
+                        end
+                        "l": begin                  // ERASE CURSOR ENTIRE LINE
+                            video_wr_addr <= {base_cursor_address[4:0], 7'd0};
+                            video_wr_addr_end <= {base_cursor_address[4:0], 7'h7f};
+                            {clear, wr_toggle} <= 2'b10;
+                            escape <= 1'b0;
+                        end
+                        "o": begin                 // ERASE FROM BEGINNING OF LINE TO CURSOR
+                            video_wr_addr <= {base_cursor_address[4:0], 7'd0};
+                            video_wr_addr_end <= video_cursor_addr;
+                            {clear, wr_toggle} <= 2'b10;
+                            escape <= 1'b0;
+                        end
+                        "p": begin
+                            reverse_mode <= 1'b1;
+                            escape <= 1'b0;
+                        end
+                        "q": begin
+                            reverse_mode <= 1'b0;
+                            escape <= 1'b0;
+                        end
+                        "x": begin
+                            escape_sx <= 1'b1;
+                        end
+                        "y": begin
+                            escape_ry <= 1'b1;
+                        end
+                        default: begin
+                            escape <= 1'b0;
+                            video_wr_addr <= video_cursor_addr;
+                            video_data <= {1'b0, sio_in[6:0]};
+                            video_we <= 1'b1;
+                            update_cursor_pos <= 1'b1;
+                        end
                     endcase
-                end 
+                end
+                else if (escape_sx == 1'b1) begin
+                    escape <= 1'b0;
+                    escape_sx <= 1'b0;
+                    case (sio_in)
+                        "1": begin
+                            l25_enabled <= 1'b1;
+                        end
+                        "4": begin
+                            cursor_block <= 1'b1;
+                        end
+                        "5": begin
+                            cursor_on <= 1'b0;
+                        end
+                    endcase
+                end
+                else if (escape_ry == 1'b1) begin
+                    escape <= 1'b0;
+                    escape_ry <= 1'b0;
+                    case (sio_in)
+                        "1": begin
+                            l25_enabled <= 1'b0;
+                        end
+                        "4": begin
+                            cursor_block <= 1'b0;
+                        end
+                        "5": begin
+                            cursor_on <= 1'b1;
+                        end
+                    endcase
+                end
                 else if (escape_y == 2'b01) begin
                     cursor_row <= sio_in - 8'd32;
                     escape_y <= 2'b10;
@@ -233,8 +340,7 @@ always @(posedge clk36m) begin
     else if (lf == 1'b1) begin
         lf <= 1'b0;
         if (cursor_row == MAX_ROW) begin
-            clear <= 1'b1;
-            wr_toggle <= 1'b0;
+            {clear, wr_toggle} <= 2'b10;
             video_wr_addr <= {video_start_row, 7'h00};
             video_wr_addr_end <= {video_start_row , 7'h7f};
             if (video_start_row < MAX_ROW) video_start_row <= video_start_row + 1'd1;
@@ -306,7 +412,9 @@ always @(posedge clk36m) begin
             {3'b0?1, 8'h15}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h51 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Q
             {3'b1?1, 8'h15}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h11; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-Q Continue transmission
             {3'b0?1, 8'h1d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h57 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // W
+            {3'b1?1, 8'h1d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h17; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-W
             {3'b0?1, 8'h24}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h45 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // E
+            {3'b1?1, 8'h24}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h05; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-E
             {3'b0?1, 8'h2d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h52 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // R
             {3'b0?1, 8'h2c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h54 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // T
             {3'b0?1, 8'h35}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h59 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Y
@@ -345,6 +453,7 @@ always @(posedge clk36m) begin
             {3'b???, 8'h12}: shift <= key_pressed;
             {3'b0?1, 8'h1a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h5a | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Z
             {3'b0?1, 8'h22}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h58 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // X
+            {3'b1?1, 8'h22}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h18; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Control-X
             {3'b0?1, 8'h21}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h43 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // C
             {3'b1?1, 8'h21}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h03; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Control-C
             {3'b0?1, 8'h2a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h56 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // V
