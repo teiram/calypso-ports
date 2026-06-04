@@ -37,8 +37,8 @@ module terminal(
 wire [11:0] raster_addr /* synthesis keep */;
 reg [10:0] char_addr /* synthesis keep */;
 wire [7:0] char_code /* synthesis keep */;
-wire [7:0] video_val /* synthesis keep */;
-reg [7:0] pixels /* synthesis keep */;
+wire [9:0] video_val /* synthesis keep */;
+reg [9:0] pixels /* synthesis keep */;
 
 font_rom font(
     .clock(clk36m),
@@ -60,10 +60,10 @@ videoram ram(
     .q_b(char_code)
 );
 
-localparam [6:0] V_OFFSET = 7'd80;
-localparam [6:0] H_OFFSET = 7'd80;
-localparam [9:0] H_SIZE = 640;
-localparam [8:0] V_SIZE = 200;
+localparam [6:0] V_OFFSET = 7'd0;
+localparam [6:0] H_OFFSET = 7'd0;
+localparam [9:0] H_SIZE = 800;
+localparam [8:0] V_SIZE = 300;
 localparam [6:0] MAX_COL = 7'd79;
 localparam [4:0] MAX_ROW = 5'd23;
 
@@ -74,33 +74,53 @@ wire cursor_enable = cursor_on == 1'b1 &&
     v_ypos[7:3] == cursor_row &&
     v_xpos[9:3] == cursor_col &&
     (cursor_block == 1'b1 || v_ypos[2:1] == 2'b11); 
+wire [6:0] char_codebase = char_code < 7'd32 ? 7'd0 : char_code[6:0] - 7'd32;
+wire [10:0] char_addr_base = char_codebase[6:2] + char_codebase[6:2] + char_codebase[6:2];
 
 always @(posedge clk36m) begin
+    reg [3:0] x;
+    reg [4:0] y;
+    reg [9:0] last_ypos;
+    reg [4:0] row;
+    last_ypos <= ypos;
+    
+    if (last_ypos != ypos) begin
+        if (y < 5'd12) y <= y + 1'd1;
+        else begin 
+            y <= 5'd0;
+            row <= row + 1'd1;
+        end
+    end
     if (ypos >= V_OFFSET && ypos < (V_SIZE + V_OFFSET)) begin
-        if (xpos < H_OFFSET) begin
-            raster_addr <= {v_ypos[9:3], 7'd0};
+        if (xpos > H_SIZE) begin
+            raster_addr <= {row, 7'd0};
             if (xpos[2:0] == 3'd1) begin
-                char_addr <= {1'b0, char_code[6:0], ypos[2:0]};
+                char_addr <= char_addr_base + y;
             end else if (xpos[2:0] == 3'd7) begin
                 pixels <= char_code[7] ? ~video_val : video_val;
             end
             vout <= 1'b0;
-        end else if (xpos < (H_OFFSET + H_SIZE)) begin
-            pixels <= {pixels[6:0], 1'b0};
-            vout <= pixels[7] | cursor_enable;
-            if (xpos[2:0] == 3'd1) begin
+            x <= 4'd0;
+        end else if (xpos < H_SIZE) begin
+            pixels <= {pixels[8:0], 1'b0};
+            vout <= pixels[9] | cursor_enable;
+            if (x == 4'd1) begin
                 raster_addr <= raster_addr + 1'd1;
-            end else if (xpos[2:0] == 3'd4) begin
-                char_addr <= {1'b0, char_code[6:0], ypos[2:0]};
-            end else if (xpos[2:0] == 3'd7) begin
+            end else if (x == 4'd4) begin
+                char_addr <= char_addr_base + y;
+            end else if (x == 4'd9) begin
                 pixels <= char_code[7] ? ~video_val : video_val;
             end
+            if (x == 4'd9) x <= 4'd0;
+            else x <= x + 1'd1;
         end else begin
             vout <= 1'b0;
         end
     end else begin
         raster_addr <= 'd0;
         vout <= 1'b0;
+        y <= 5'd0;
+        row <= 5'd0;
     end
 end
 
