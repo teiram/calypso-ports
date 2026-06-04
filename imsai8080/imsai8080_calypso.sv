@@ -146,13 +146,13 @@ end
 wire [31:0] status;
 wire [1:0] buttons;
 
-wire [31:0] sd_lba;
+wire [31:0] sd_lba_mux;
 wire [1:0] sd_rd;
 wire [1:0] sd_wr;
-wire sd_ack;
+wire [1:0] sd_ack;
 wire [8:0] sd_buff_addr;
 wire [7:0] sd_buff_dout;
-wire [7:0] sd_buff_din;
+wire [7:0] sd_buff_din_mux;
 wire sd_buff_wr;
 
 wire [1:0] img_mounted;
@@ -173,6 +173,7 @@ wire key_strobe;
 wire key_extended;
 
 user_io #(
+    .SERIAL_CHANNEL(3'd2),
     .STRLEN($size(CONF_STR)>>3),
     .SD_IMAGES(2),
     .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
@@ -188,13 +189,13 @@ user_io(
     .status(status),
 
     .sd_sdhc(1),
-    .sd_lba(sd_lba),
+    .sd_lba(sd_lba_mux),
     .sd_rd(sd_rd),
     .sd_wr(sd_wr),
-    .sd_ack(sd_ack),
+    .sd_ack_x(sd_ack),
     .sd_buff_addr(sd_buff_addr),
     .sd_dout(sd_buff_dout),
-    .sd_din(sd_buff_din),
+    .sd_din(sd_buff_din_mux),
     .sd_dout_strobe(sd_buff_wr),
 
     .img_mounted(img_mounted),
@@ -207,7 +208,10 @@ user_io(
     .key_strobe(key_strobe),
     .key_code(key_code),
     .key_pressed(key_pressed),
-    .key_extended(key_extended)
+    .key_extended(key_extended),
+    
+    .serial_data(serial_data),
+    .serial_strobe(serial_strobe)
 );
 
 
@@ -401,6 +405,9 @@ wire sio_addr;
 wire [7:0] sio_in;
 wire [7:0] sio_out;
 
+wire [7:0] serial_data;
+wire serial_strobe;
+
 terminal terminal(
     .clk36m(clk36m),
     .reset(reset),
@@ -420,7 +427,10 @@ terminal terminal(
     .sio_in(sio_in),
     .sio_out(sio_out),
     
-    .vout(pixel_terminal)
+    .vout(pixel_terminal),
+
+    .serial_echo(serial_data),
+    .serial_echo_strobe(serial_strobe)
 );
 
 wire [15:0] extram_addr;
@@ -435,9 +445,10 @@ wire cpu_sync;
 wire [15:0] cpu_addr;
 wire fdc_we;
 wire [7:0] io_data_in;
-wire [7:0] fdc_data_out;
-wire [7:0] io_data_out = cpu_addr[7:0] == 8'h63 ? vdrsel : fdc_data_out;
-wire fdc_int;
+wire [7:0] io_data_out = cpu_addr[7:0] == 8'h63 ? vdrsel : 
+    fdd_sel[0] ? fdc_data_out[0] :
+    fdd_sel[1] ? fdc_data_out[1] :
+    8'h00;
 
 reg [4:0] cnt = 3'd0;
 
@@ -448,15 +459,6 @@ end
 
 wire f1 = cnt == 5'd0;
 wire f2 = cnt == 5'd9;
-
-/*
-frequency_divider #(.N(25), .WIDTH(20)) freq_cpu(
-    .clk_in(clk36m),
-    .clk_out(f1),
-    .rst(reset)
-);
-*/
-//assign f2 = ~f1;
 
 assign cpu_leds[6] = io_rd;
 assign cpu_leds[4] = io_wr;
@@ -525,37 +527,37 @@ imsai8080 core(
 
 reg [7:0] vdrsel = 8'd0;
 
-reg fdd1_ready = 1'b0;
-wire fdd1_sel = vdrsel[0];
+reg [1:0] fdd_ready = 2'b00;
+wire [1:0] fdd_sel = {vdrsel[1], vdrsel[0]};
 wire fdd_side = vdrsel[4];
-reg fdd2_ready = 1'b0;
-wire fdd2_sel = vdrsel[1];
-wire busy;
-wire drq;
-wire prepare;
-wire fdd_ready = (fdd1_ready & fdd1_sel) | (fdd2_ready & fdd2_sel);
-wire fdd_io_ena = cpu_addr[2] & fdd_ready;
-wire fdc_cpu_ready = ~(vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready == 1'b1 && drq == 1'b0 && (io_rd | io_wr));
+wire [7:0] fdc_data_out[2];
+wire [31:0] sd_lba[2];
+wire [7:0] sd_buff_din[2];
+wire [1:0] drq;
+wire [1:0] fdd_io_ena = {cpu_addr[2] & fdd_ready[1] & fdd_sel[1], cpu_addr[2] & fdd_ready[0] & fdd_sel[0]};
 
-assign LED[0] = fdd_ready;
-assign LED[1] = io_rd;
-assign LED[2] = io_wr;
-assign LED[4] = prepare;
-assign LED[5] = busy;
-assign LED[6] = fdc_int;
-assign LED[7] = drq;
-wire fdd_sd_rd /* synthesis keep */;
-wire fdd_sd_wr /* synthesis keep */;
-assign sd_rd = {fdd2_ready & fdd_sd_rd, fdd1_ready & fdd_sd_rd};
-assign sd_wr = {fdd2_ready & fdd_sd_wr, fdd1_ready & fdd_sd_wr};
+wire fdc1_cpu_ready = ~(vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready[0] == 1'b1 && fdd_sel[0] == 1'b1 && drq[0] == 1'b0 && (io_rd | io_wr));
+wire fdc2_cpu_ready = ~(vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready[1] == 1'b1 && fdd_sel[1] == 1'b1 && drq[1] == 1'b0 && (io_rd | io_wr));
+wire fdc_cpu_ready = fdc1_cpu_ready & fdc2_cpu_ready;
 
 always @(posedge clk36m) begin
     reg [1:0] old_mounted;
     old_mounted <= img_mounted;
 
-    if (~old_mounted[0] & img_mounted[0]) fdd1_ready <= 1'b1;
-    if (~old_mounted[1] & img_mounted[1]) fdd2_ready <= 1'b1;
+    if (~old_mounted[0] & img_mounted[0]) fdd_ready[0] <= |img_size;
+    if (~old_mounted[1] & img_mounted[1]) fdd_ready[1] <= |img_size;
     
+end
+
+always @(posedge clk36m) begin
+    if (sd_rd[0] || sd_wr[0]) begin
+        sd_lba_mux <= sd_lba[0];
+        sd_buff_din_mux <= sd_buff_din[0];
+    end
+    if (sd_rd[1] || sd_wr[1]) begin
+        sd_lba_mux <= sd_lba[1];
+        sd_buff_din_mux <= sd_buff_din[1];
+    end
 end
 
 //For a Versafloppy II controller
@@ -593,30 +595,30 @@ always @(posedge clk36m) begin
     end
 end
 
-wd1793 #(.RWMODE(1), .EDSK(1)) versafloppy_fdc(
+wd1793 #(.RWMODE(1), .EDSK(1)) fdc1(
     .clk_sys(clk36m),
     .ce(f1),
     .reset(reset),
-    .io_en(fdd_io_ena),
-    .intrq(fdc_int),
-    .drq(drq),
-    .busy(busy),
+    .io_en(fdd_io_ena[0]),
+    .intrq(),
+    .drq(drq[0]),
+    .busy(),
     
     .rd(io_rd),
     .wr(io_wr & fdc_we),
     .addr(cpu_addr[1:0]),
     .din(io_data_in),
-    .dout(fdc_data_out),
+    .dout(fdc_data_out[0]),
 
     .img_mounted(img_mounted[0]), //Can we switch between A and B with this?
     .img_size(img_size[19:0]),
-    .sd_lba(sd_lba),
-    .sd_rd(fdd_sd_rd),
-    .sd_wr(fdd_sd_wr),
-    .sd_ack(sd_ack),
+    .sd_lba(sd_lba[0]),
+    .sd_rd(sd_rd[0]),
+    .sd_wr(sd_wr[0]),
+    .sd_ack(sd_ack[0]),
     .sd_buff_addr(sd_buff_addr),
     .sd_buff_dout(sd_buff_dout),
-    .sd_buff_din(sd_buff_din),
+    .sd_buff_din(sd_buff_din[0]),
     .sd_buff_wr(sd_buff_wr),
 
     .wp(1'b0),
@@ -624,8 +626,8 @@ wd1793 #(.RWMODE(1), .EDSK(1)) versafloppy_fdc(
     .size_code(3'd0), // 26 sectors per track x 128 bytes per sector  = 3.3KB
     .layout(0),
     .side(fdd_side),
-    .ready(fdd_ready),
-    .prepare(prepare),
+    .ready(fdd_ready[0]),
+    .prepare(),
 
     .input_active(),
     .input_addr(),
@@ -633,6 +635,49 @@ wd1793 #(.RWMODE(1), .EDSK(1)) versafloppy_fdc(
     .input_wr(),
     .buff_din()
 );
+
+/*
+wd1793 #(.RWMODE(1), .EDSK(1)) fdc2(
+    .clk_sys(clk36m),
+    .ce(f1),
+    .reset(reset),
+    .io_en(fdd_io_ena[1]),
+    .intrq(),
+    .drq(drq[1]),
+    .busy(),
+    
+    .rd(io_rd),
+    .wr(io_wr & fdc_we),
+    .addr(cpu_addr[1:0]),
+    .din(io_data_in),
+    .dout(fdc_data_out[1]),
+
+    .img_mounted(img_mounted[1]), //Can we switch between A and B with this?
+    .img_size(img_size[19:0]),
+    .sd_lba(sd_lba[1]),
+    .sd_rd(sd_rd[1]),
+    .sd_wr(sd_wr[1]),
+    .sd_ack(sd_ack[1]),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_buff_dout(sd_buff_dout),
+    .sd_buff_din(sd_buff_din[1]),
+    .sd_buff_wr(sd_buff_wr),
+
+    .wp(1'b0),
+
+    .size_code(3'd0), // 26 sectors per track x 128 bytes per sector  = 3.3KB
+    .layout(0),
+    .side(fdd_side),
+    .ready(fdd_ready[1]),
+    .prepare(),
+
+    .input_active(),
+    .input_addr(),
+    .input_data(),
+    .input_wr(),
+    .buff_din()
+);
+*/
 
 `ifdef I2S_AUDIO
 i2s i2s (
