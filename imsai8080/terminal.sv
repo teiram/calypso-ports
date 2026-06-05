@@ -26,13 +26,6 @@ module terminal(
 
 // Terminal emulation tries to implement Zenith H19, sort of extended VT52
 // Supported in Wordstar and other mainstream CP/M applications
-/*
-    To ease video address calculations we go for a power of 2 line length
-    For 80 chars, we need to go to the next power of 2: 128 = 80h
-    Total RAM for 25 lines of 80h = 3200 bytes
-    Line 25th is special and is addressed differently (by means of ESC Y positioning)
-    Wrap at: 80hx25 = c80h = addr[11:7] = 11001
-*/
 
 wire [11:0] raster_addr /* synthesis keep */;
 reg [10:0] char_addr /* synthesis keep */;
@@ -60,42 +53,48 @@ videoram ram(
     .q_b(char_code)
 );
 
-localparam [6:0] V_OFFSET = 7'd0;
-localparam [6:0] H_OFFSET = 7'd0;
 localparam [9:0] H_SIZE = 800;
 localparam [8:0] V_SIZE = 300;
 localparam [6:0] MAX_COL = 7'd79;
 localparam [4:0] MAX_ROW = 5'd23;
 
-wire [9:0] v_ypos = ypos - V_OFFSET;
-wire [10:0] v_xpos = xpos - H_OFFSET;
+wire [6:0] char_codebase = char_code < 7'h20 ? 7'd0 : char_code[6:0] - 7'h20;
+wire [10:0] char_addr_base /* synthesis keep */= 
+    {char_codebase[6:0], 2'd0} 
+    + {char_codebase[6:0], 2'd0} 
+    + {char_codebase[6:0], 2'd0};
+    
+// Tracking of the current raster position
+// Since our font dimension is not a power of 2
+reg [4:0] row; // Current raster row (0-24)
+reg [6:0] col; // Current raster col (0-79)
+reg [3:0] x;   // Raster x pixel position on char (0-9)
+reg [4:0] y;   // Raster y pixel position on char (0-11)
 
 wire cursor_enable = cursor_on == 1'b1 &&
-    v_ypos[7:3] == cursor_row &&
-    v_xpos[9:3] == cursor_col &&
-    (cursor_block == 1'b1 || v_ypos[2:1] == 2'b11); 
-wire [6:0] char_codebase = char_code < 7'd32 ? 7'd0 : char_code[6:0] - 7'd32;
-wire [10:0] char_addr_base = char_codebase[6:2] + char_codebase[6:2] + char_codebase[6:2];
+    row == cursor_row &&
+    col == cursor_col &&
+    (cursor_block == 1'b1 || y[3] == 1'b1);
 
 always @(posedge clk36m) begin
-    reg [3:0] x;
-    reg [4:0] y;
     reg [9:0] last_ypos;
-    reg [4:0] row;
+    
     last_ypos <= ypos;
     
     if (last_ypos != ypos) begin
-        if (y < 5'd12) y <= y + 1'd1;
-        else begin 
+        col <= 7'd0;
+        if (y < 5'd11) y <= y + 1'd1;
+        else begin
             y <= 5'd0;
             row <= row + 1'd1;
         end
     end
-    if (ypos >= V_OFFSET && ypos < (V_SIZE + V_OFFSET)) begin
+    if (ypos >= 10'd0 && ypos < V_SIZE) begin
         if (xpos > H_SIZE) begin
-            raster_addr <= {row, 7'd0};
+            //Prepare for next line
+            raster_addr <= {y < 5'd11 ? row : row + 1, 7'd0};
             if (xpos[2:0] == 3'd1) begin
-                char_addr <= char_addr_base + y;
+                char_addr <= char_addr_base + (y < 5'd11 ? y + 1'd1 : 5'd0);
             end else if (xpos[2:0] == 3'd7) begin
                 pixels <= char_code[7] ? ~video_val : video_val;
             end
@@ -111,7 +110,10 @@ always @(posedge clk36m) begin
             end else if (x == 4'd9) begin
                 pixels <= char_code[7] ? ~video_val : video_val;
             end
-            if (x == 4'd9) x <= 4'd0;
+            if (x == 4'd9) begin
+                x <= 4'd0;
+                col <= col + 1'd1;
+            end
             else x <= x + 1'd1;
         end else begin
             vout <= 1'b0;

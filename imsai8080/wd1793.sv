@@ -64,7 +64,10 @@ module wd1793 #(parameter RWMODE=0, EDSK=1)
 	input        input_wr,
 	output[19:0] buff_addr,	  // buffer RAM address
 	output       buff_read,	  // buffer RAM read enable
-	input  [7:0] buff_din     // buffer RAM data input
+	input  [7:0] buff_din,    // buffer RAM data input
+    
+    output track_zero,
+    output head_loaded
 );
 
 // Possible track configs:
@@ -198,6 +201,9 @@ typedef enum
 	STATE_ENDCOMMAND
 } io_state_t;
 
+
+assign track_zero = ~disk_track;
+assign head_loaded = s_headloaded;
 
 // common status bits
 wire        s_readonly = (wp | !RWMODE);

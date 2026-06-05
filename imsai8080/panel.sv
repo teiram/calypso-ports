@@ -10,6 +10,7 @@ module panel(
     input [31:0] ram_value,     //8 pixels (4 bits per pixel)
     
     input [43:0] leds,
+    input [7:0] disk_leds,
 
     output reg [15:0] switches,
 
@@ -53,7 +54,7 @@ reg [10:0] led_cols[20] = '{
     11'd37, 11'd68, 11'd99, 11'd130, 11'd161, 11'd191, 11'd222, 11'd253,
     11'd313, 11'd344, 11'd375, 11'd405, 11'd436, 11'd467, 11'd497, 11'd528, 
     11'd654, 11'd683, 11'd711, 11'd739};
-reg [10:0] led_rows[3] = '{11'd38, 11'd89, 11'd140};
+reg [10:0] led_rows[3] = '{11'd35, 11'd86, 11'd137};
 
 reg [4:0] led_index_cols[44] = '{
     5'd19, 5'd18, 5'd17, 5'd16,
@@ -71,22 +72,33 @@ reg [10:0] switch_cols[16] = '{
     11'd521, 11'd490, 11'd459, 11'd429, 11'd399, 11'd369, 11'd338, 11'd307,
     11'd246, 11'd215, 11'd184, 11'd154, 11'd125, 11'd94, 11'd63, 11'd32};
 
-
 reg [10:0] m_switch_cols[5] = '{
     11'd583, 11'd615, 11'd644, 11'd673, 11'd703};
 
+reg [10:0] disk_led_cols[4] = '{11'd445, 11'd472, 11'd624, 11'd719};
+reg [10:0] disk_led_rows[2] = '{11'd248, 11'd264};
+reg [1:0] disk_led_index_cols[8] = '{2'd0, 2'd0, 2'd1, 2'd1, 2'd2, 2'd2, 2'd3, 2'd3};
+reg disk_led_index_rows[8] = '{1'd0, 1'd1, 1'd0, 1'd1, 1'd0, 1'd1, 1'd0, 1'd1};
+ 
 localparam LED_WIDTH = 32;
 localparam LED_HEIGHT = 16;
 localparam LED_COUNT = 44;
 
-localparam SWITCH_ROW_ON = 200;
-localparam SWITCH_ROW_OFF = 222;
-localparam M_SWITCH_ROW_IDLE = 212;
+localparam DISK_LED_WIDTH = 26;
+localparam DISK_LED_HEIGHT = 10;
+localparam DISK_LED_COUNT = 8;
+
+localparam SWITCH_ROW_ON = 198;
+localparam SWITCH_ROW_OFF = 220;
+localparam M_SWITCH_ROW_IDLE = 210;
 localparam SWITCH_NOTCH_HEIGHT = 4;
 localparam SWITCH_WIDTH = 23;
 localparam SWITCH_COUNT = 16;
 
 localparam M_SWITCH_COUNT = 5;
+
+parameter [9:0] PANEL_WIDTH = 10'd800;
+parameter [8:0] PANEL_HEIGHT = 9'd280;
 
 // Holds 8 pixels, 4 bpp, taken in each memory read
 reg [31:0] pixel_value = 32'd0;
@@ -106,6 +118,7 @@ wire [3:0] pixel_values[8] = '{
 integer led_index;
 integer switch_index;
 integer m_switch_index;
+integer disk_led_index;
 
 wire [1:0] m_switches_p[M_SWITCH_COUNT] = '{
     {m_switches[0], m_switches[1]},
@@ -117,21 +130,23 @@ wire [1:0] m_switches_p[M_SWITCH_COUNT] = '{
 
 // To avoid flickering and painting LEDs on several states at once
 reg [43:0] leds_latched;
+reg [7:0] disk_leds_latched;
 
 always @(posedge clk36m) begin
     if (reset) begin
         ram_addr <= 15'd0;
     end
     else begin
-        if (row == 11'd624) begin
+        if (row == PANEL_HEIGHT) begin
             ram_addr <= 15'd0;
             leds_latched <= leds;
+            disk_leds_latched <= disk_leds;
         end
-        if (row == 11'd624 && col == 11'd1020) begin
+        if (row == PANEL_HEIGHT && col == PANEL_WIDTH) begin
             pixel_value <= ram_value;
         end
         
-        else if (~vblank & ~hblank & row < 10'd240) begin
+        else if (~vblank & ~hblank & row < PANEL_HEIGHT) begin
             if (col[2:0] == 3'd0) begin
                 ram_addr <= ram_addr + 15'd1;
             end else if (col[2:0] == 3'd7) begin
@@ -155,6 +170,20 @@ always @(posedge clk36m) begin
                 end
             end
             
+            // Disk LEDs
+            for (disk_led_index = 0; disk_led_index < DISK_LED_COUNT; disk_led_index = disk_led_index + 1) begin
+                if (col > disk_led_cols[disk_led_index_cols[disk_led_index]] && 
+                    col < disk_led_cols[disk_led_index_cols[disk_led_index]] + DISK_LED_WIDTH &&
+                    row > disk_led_rows[disk_led_index_rows[disk_led_index]] &&
+                    row < disk_led_rows[disk_led_index_rows[disk_led_index]] + DISK_LED_HEIGHT &&
+                    disk_leds_latched[disk_led_index] == 1'b1 &&
+                    pixel_values[col[2:0]] == 4'd3) begin
+                    r <= 4'hf;
+                    g <= 4'h0;
+                    b <= 4'h0;
+                end
+            end
+
             //Draw the bar in switches on and off
             for (switch_index = 0; switch_index < SWITCH_COUNT; switch_index = switch_index + 1) begin
                 if (col > switch_cols[switch_index] + 4'd8 && 

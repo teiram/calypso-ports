@@ -111,13 +111,16 @@ wire TAPE_SOUND = UART_RX;
 `include "build_id.v"
 parameter CONF_STR = {
     "IMSAI8080;;",
+    "S0U,DSK,Load Drive 0;",
+    "S1U,DSK,Load Drive 1;",
+    "O3,DSK Protect,Disable,Enable;",
     `SEP
-    "F0,ROM,Load Panel;",
+    "F0,ROM,Reload Panel;",
     `SEP
-    "F1,ROM,Load ROM;",
+    "F1,ROM,Reload ROM at F800;",
     `SEP
-    "S0U,DSK,Load Floppy 1;",
-    "S1U,DSK,Load Floppy 2;",
+    "O12,Console color,Cyan,White,Green,Yellow;",
+    `SEP
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
@@ -189,13 +192,13 @@ user_io(
     .status(status),
 
     .sd_sdhc(1),
-    .sd_lba(sd_lba_mux),
+    .sd_lba(sd_lba[0]),
     .sd_rd(sd_rd),
     .sd_wr(sd_wr),
     .sd_ack_x(sd_ack),
     .sd_buff_addr(sd_buff_addr),
     .sd_dout(sd_buff_dout),
-    .sd_din(sd_buff_din_mux),
+    .sd_din(sd_buff_din[0]),
     .sd_dout_strobe(sd_buff_wr),
 
     .img_mounted(img_mounted),
@@ -320,12 +323,11 @@ wire [13:0] audio;
 wire [3:0] R, G, B;
 wire hblank, vblank;
 wire hsync, vsync;
-wire [10:0] col /* synthesis keep */;
-wire [9:0] row /* synthesis keep */;
+wire [10:0] col;
+wire [9:0] row;
 
 wire [16:2] vid_ram_addr;
 wire [31:0] ram_value;
-
 
 vga vga(
     .clk36m(clk36m),
@@ -341,25 +343,29 @@ vga vga(
 
 // Keyboard will be routed to panel or console based on this flag
 // Control + F1 to toggle
+// Control + F2 to swap terminal and panel positions
 
-reg console_active = 1'b0;
+reg terminal_active = 1'b0;
+reg swapped_panels = 1'b0;
 always @(posedge clk36m) begin
     reg ctrl = 1'b0;
 
     if (reset == 1'b1) begin
-        console_active <= 1'b0;
+        terminal_active <= 1'b0;
         ctrl <= 1'b0;
     end
     else if (key_strobe == 1'b1) begin
         casez ({ctrl, key_code})
-            {1'b1, 8'h05}: if (key_pressed == 1'b1) console_active <= ~console_active;
+            {1'b1, 8'h05}: if (key_pressed == 1'b1) terminal_active <= ~terminal_active;
+            {1'b1, 8'h06}: if (key_pressed == 1'b1) swapped_panels <= ~swapped_panels;
             {1'b?, 8'h14}: ctrl <= key_pressed;
         endcase
     end
 end
 
 localparam [9:0] PANEL_WIDTH = 10'd800;
-localparam [7:0] PANEL_HEIGHT = 8'd240;
+localparam [8:0] PANEL_HEIGHT = 9'd280;
+localparam [8:0] TERMINAL_HEIGHT = 9'd300;
 
 wire [3:0] r_panel;
 wire [3:0] g_panel;
@@ -372,23 +378,36 @@ wire [7:0] data_leds;
 wire [7:0] cpu_leds;
 wire [3:0] status_leds;
 
+wire [7:0] disk_leds = {
+    fdd_sel[0],
+    fdd_ready[0],
+    fdd_sel[1],
+    fdd_ready[1],
+    ~status[3],
+    |sd_wr,
+    (head_loaded[0] & fdd_sel[0] & fdd_ready[0]) | (head_loaded[1] & fdd_sel[1] & fdd_ready[1]),
+    (track_zero[0] & fdd_sel[0] & fdd_ready[0]) | (track_zero[1] & fdd_sel[1] & fdd_ready[1])
+};
+    
 panel panel(
     .clk36m(clk36m),
     .reset(reset),
     .col(col),
-    .row(row),
+    .row(swapped_panels ? row - TERMINAL_HEIGHT : row),
     .hblank(hblank),
     .vblank(vblank),
     .ram_addr(vid_ram_addr),
     .ram_value(ram_value),
     
     .leds({port_leds, cpu_leds, data_leds, cpu_addr, status_leds}),
+    .disk_leds(disk_leds),
+
     .switches(panel_switches),
     .m_switches(panel_m_switches),
     
     .key_pressed(key_pressed),
     .key_code(key_code),
-    .key_strobe(key_strobe & ~console_active),
+    .key_strobe(key_strobe & ~terminal_active),
     .key_extended(key_extended),
 
     .r(r_panel),
@@ -412,13 +431,13 @@ terminal terminal(
     .clk36m(clk36m),
     .reset(reset),
     .xpos(col),
-    .ypos(row - PANEL_HEIGHT),
+    .ypos(swapped_panels ? row : row - PANEL_HEIGHT),
     .hblank(hblank),
     .vblank(vblank),
     
     .key_pressed(key_pressed),
     .key_code(key_code),
-    .key_strobe(key_strobe & console_active),
+    .key_strobe(key_strobe & terminal_active),
     .key_extended(key_extended),
     
     .sio_we(sio_we),
@@ -526,7 +545,8 @@ imsai8080 core(
 );
 
 reg [7:0] vdrsel = 8'd0;
-
+wire [1:0] head_loaded;
+wire [1:0] track_zero;
 reg [1:0] fdd_ready = 2'b00;
 wire [1:0] fdd_sel = {vdrsel[1], vdrsel[0]};
 wire fdd_side = vdrsel[4];
@@ -610,7 +630,7 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc1(
     .din(io_data_in),
     .dout(fdc_data_out[0]),
 
-    .img_mounted(img_mounted[0]), //Can we switch between A and B with this?
+    .img_mounted(img_mounted[0]),
     .img_size(img_size[19:0]),
     .sd_lba(sd_lba[0]),
     .sd_rd(sd_rd[0]),
@@ -621,7 +641,7 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc1(
     .sd_buff_din(sd_buff_din[0]),
     .sd_buff_wr(sd_buff_wr),
 
-    .wp(1'b0),
+    .wp(status[3]),
 
     .size_code(3'd0), // 26 sectors per track x 128 bytes per sector  = 3.3KB
     .layout(0),
@@ -633,7 +653,10 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc1(
     .input_addr(),
     .input_data(),
     .input_wr(),
-    .buff_din()
+    .buff_din(),
+    
+    .track_zero(track_zero[0]),
+    .head_loaded(head_loaded[0])
 );
 
 /*
@@ -652,7 +675,7 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc2(
     .din(io_data_in),
     .dout(fdc_data_out[1]),
 
-    .img_mounted(img_mounted[1]), //Can we switch between A and B with this?
+    .img_mounted(img_mounted[1]),
     .img_size(img_size[19:0]),
     .sd_lba(sd_lba[1]),
     .sd_rd(sd_rd[1]),
@@ -663,7 +686,7 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc2(
     .sd_buff_din(sd_buff_din[1]),
     .sd_buff_wr(sd_buff_wr),
 
-    .wp(1'b0),
+    .wp(status[3]),
 
     .size_code(3'd0), // 26 sectors per track x 128 bytes per sector  = 3.3KB
     .layout(0),
@@ -675,7 +698,10 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc2(
     .input_addr(),
     .input_data(),
     .input_wr(),
-    .buff_din()
+    .buff_din(),
+    
+    .track_zero(track_zero[1]),
+    .head_loaded(head_loaded[1])
 );
 */
 
@@ -694,9 +720,29 @@ i2s i2s (
 );
 `endif
 
-assign R = row < PANEL_HEIGHT ? r_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
-assign G = row < PANEL_HEIGHT ? g_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
-assign B = row < PANEL_HEIGHT ? b_panel : console_active ? {4{pixel_terminal}} : pixel_terminal == 1'b1 ? 4'd5 : 4'd0;
+wire [11:0] rgb_t_green = pixel_terminal == 1'b1 ? 12'h0e0 : 12'd0;
+wire [11:0] rgb_t_white = pixel_terminal == 1'b1 ? 12'heee : 12'd0;
+wire [11:0] rgb_t_cyan = pixel_terminal == 1'b1 ? 12'h7ee : 12'h111;
+wire [11:0] rgb_t_yellow = pixel_terminal == 1'b1 ? 12'hfe0 : 12'd0;
+wire [11:0] rgb_t_disabled = pixel_terminal == 1'b1 ? 12'h555 : 12'h111;
+
+wire [12:0] rgb_terminal = terminal_active ? 
+    status[2:1] == 2'b00 ? rgb_t_cyan :
+    status[2:1] == 2'b01 ? rgb_t_white :
+    status[2:1] == 2'b10 ? rgb_t_green :
+    rgb_t_yellow :
+    rgb_t_disabled;
+
+assign R = swapped_panels ?
+    (row < TERMINAL_HEIGHT ? rgb_terminal[11:8] : r_panel) :
+    (row < PANEL_HEIGHT ? r_panel : rgb_terminal[11:8]);
+assign G = swapped_panels ?
+    (row < TERMINAL_HEIGHT ? rgb_terminal[7:4] : g_panel) :
+    (row < PANEL_HEIGHT ? g_panel : rgb_terminal[7:4]);
+assign B = swapped_panels ?
+    (row < TERMINAL_HEIGHT ? rgb_terminal[3:0] : b_panel) :
+    (row < PANEL_HEIGHT ? b_panel : rgb_terminal[3:0]);
+
 
 mist_video #(
     .COLOR_DEPTH(4),
