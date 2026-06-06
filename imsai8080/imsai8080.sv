@@ -29,7 +29,7 @@ module imsai8080(
     input [7:0] fdc_data_out,
     
     output reg [7:0] data_leds,
-    output [7:0] programmed_output_leds,
+    output reg [7:0] programmed_output_leds = 8'd0,
     
     input [7:0] data_addr_in,
     input [7:0] addr_sense_in,
@@ -225,7 +225,7 @@ module imsai8080(
         endcase
         casex ({io_wr, examine_ce, examine_next_ce, addr[7:0]})
             // I/O MAP - addr[15:8] == addr[7:0] for this section
-            {3'b100,8'b11111111}: begin programmed_output_leds = ~odata; end
+            {3'b100,8'b11111111}: if (~wr_n) programmed_output_leds <= odata;
             {3'b100,8'b00xx00xx}: begin sio_in = odata; sio_we = ~wr_n; end
             {3'b100,8'b01100xxx}: begin fdc_data_in = odata; fdc_we = ~wr_n; end                    // Versafloppy port 60h-67h
             default: begin end // Add this default case
@@ -287,7 +287,6 @@ module imsai8080(
     end
 
 
-    ///////// CPU ////////////
     vm80a_core cpu(
         .pin_clk(clk),
         .pin_f1(f1),
@@ -307,22 +306,6 @@ module imsai8080(
         .pin_sync(cpu_sync)
     );
 
-
-    ///////// BOOT ROM TURN-KEY ////////////
-    reg enable_turn_mon = 1'b0;
-    
-    /*
-    jmp_boot boot_fsm(
-        .clk(clk),
-        .reset(~rst_n),
-        .rd(rd_boot),
-        .lo_addr(8'h00), // if turnmon use FD00
-        .hi_addr(enable_turn_mon ? 8'hfd : 8'h00), // if turnmon use FD00 else 0000
-        .data_out(boot_out),
-        .valid(boot)
-    );
-    */
-
     debouncer step_debouncer(
         .clk(clk),
         .i_btn(step_switch & ~run), 
@@ -331,7 +314,6 @@ module imsai8080(
         .o_onup()
     );
 
-    ///////// DEPOSIT ////////////
     debouncer deposit_debouncer(
         .clk(clk),
         .i_btn(deposit_switch & ~run), 
@@ -350,7 +332,6 @@ module imsai8080(
     );
 
 
-    ///////// DEPOSIT NEXT ////////////
     debouncer deposit_next_debouncer(
         .clk(clk), 
         .i_btn(deposit_next_switch & ~run), 
@@ -371,7 +352,6 @@ module imsai8080(
     );
 
   
-    ///////// EXAMINE ////////////
     debouncer examine_debouncer(
         .clk(clk), 
         .i_btn(examine_switch & ~run),
@@ -391,7 +371,6 @@ module imsai8080(
         .ce(examine_ce)
     );
   
-    ///////// EXAMINE NEXT ////////////
     debouncer examine_next_debouncer(
         .clk(clk), 
         .i_btn(examine_next_switch & ~run),
@@ -409,7 +388,6 @@ module imsai8080(
         .ce(examine_next_ce)
     );
   
-    ///////// RESET ////////////
     debouncer reset_debouncer(
         .clk(clk), 
         .i_btn(reset_switch & ~run),
@@ -427,31 +405,11 @@ module imsai8080(
         .ce(reset_ce)
     );
 
-    ///////// SENSE SWITCHES ////////////
     sense_switch sense_sw(
         .clk(clk),
         .rd(rd_sense),
         .data_out(sense_sw_out),
-        .switch_settings(addr_sense_in) // 0xFD for basic
+        .switch_settings(addr_sense_in)
     );
-
-    /////////SERIAL TERMINAL////////////
-    /*
-    mc6850 #(
-        .CLOCK(2000000),
-        .BAUD(19200))
-    sio(
-        .clk(sio_clk),
-        .reset(~rst_n),
-        .addr(addr[0]),
-        .data_in(sio_in),
-        .rd(rd_sio),
-        .we(wr_sio),
-        .data_out(sio_out),
-        .ce(0),
-        .rx(rx),
-        .tx(tx)
-    );
-    */
 
 endmodule
