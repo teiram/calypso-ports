@@ -1,5 +1,7 @@
 # Information
-IMSAI8080 calypso core
+IMSAI8080 calypso core.
+
+The core needs the Calypso powerpack psram to work.
 
 # Credits
 - Viacheslav Slavinsky and Sorgelig: WD1793 implementation.
@@ -56,5 +58,6 @@ The monitor ROM is currently loaded at F800, but it can be overwritten, for inst
 
 # Changelog
 - 0.1. First version.
+- 0.2. Fixed the issue with the panel offset
 
 

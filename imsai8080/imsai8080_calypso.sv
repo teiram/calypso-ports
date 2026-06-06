@@ -332,6 +332,7 @@ wire [31:0] ram_value;
 vga vga(
     .clk36m(clk36m),
     .reset(reset),
+    .clkref(~mem_clkref),
     
     .col(col),
     .row(row),
