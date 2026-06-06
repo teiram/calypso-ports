@@ -30,9 +30,9 @@ module panel(
 // GIMP Palette, divide by 16
 // 00,00,00  
 // 01,02,11
-// 01,0A,46
+// 13,17,00
 // 43,02,03
-// 00,0F,7E
+// 4A,B9,E0
 // 68,00,01
 // B6,00,00
 // 2C,2E,2C
@@ -46,9 +46,9 @@ module panel(
 // FF,FF,FF
 
 // Indexed palette
-reg [3:0] red[16]   = '{4'h0, 4'h0, 4'h0, 4'h4, 4'h0, 4'h6, 4'hb, 4'h2, 4'h4, 4'h7, 4'h8, 4'h9, 4'ha, 4'ha, 4'hb, 4'hf};
-reg [3:0] green[16] = '{4'h0, 4'h0, 4'h0, 4'h0, 4'h0, 4'h0, 4'h0, 4'h2, 4'h5, 4'h7, 4'h8, 4'h9, 4'ha, 4'hb, 4'hc, 4'hf};
-reg [3:0] blue[16]  = '{4'h0, 4'h1, 4'h4, 4'h0, 4'h7, 4'h0, 4'h0, 4'h2, 4'h4, 4'h7, 4'h8, 4'h9, 4'ha, 4'ha, 4'hb, 4'hf};
+reg [3:0] red[16]   = '{4'h0, 4'h0, 4'h1, 4'h4, 4'h3, 4'h6, 4'hb, 4'h2, 4'h4, 4'h7, 4'h8, 4'h9, 4'ha, 4'ha, 4'hb, 4'hf};
+reg [3:0] green[16] = '{4'h0, 4'h0, 4'h1, 4'h0, 4'ha, 4'h0, 4'h0, 4'h2, 4'h5, 4'h7, 4'h8, 4'h9, 4'ha, 4'hb, 4'hc, 4'hf};
+reg [3:0] blue[16]  = '{4'h0, 4'h1, 4'h0, 4'h0, 4'ha, 4'h0, 4'h0, 4'h2, 4'h4, 4'h7, 4'h8, 4'h9, 4'ha, 4'ha, 4'hb, 4'hf};
 
 reg [10:0] led_cols[20] = '{
     11'd37, 11'd68, 11'd99, 11'd130, 11'd161, 11'd191, 11'd222, 11'd253,
@@ -137,7 +137,7 @@ always @(posedge clk36m) begin
         ram_addr <= 15'd0;
     end
     else begin
-        if (row == PANEL_HEIGHT) begin
+        if (row == PANEL_HEIGHT && col == PANEL_WIDTH - 8) begin
             ram_addr <= 15'd0;
             leds_latched <= leds;
             disk_leds_latched <= disk_leds;
@@ -146,7 +146,7 @@ always @(posedge clk36m) begin
             pixel_value <= ram_value;
         end
         
-        else if (~vblank & ~hblank & row < PANEL_HEIGHT) begin
+        if (~vblank & ~hblank & row < PANEL_HEIGHT) begin
             if (col[2:0] == 3'd0) begin
                 ram_addr <= ram_addr + 15'd1;
             end else if (col[2:0] == 3'd7) begin
