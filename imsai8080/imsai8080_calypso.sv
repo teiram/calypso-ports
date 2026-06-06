@@ -192,13 +192,13 @@ user_io(
     .status(status),
 
     .sd_sdhc(1),
-    .sd_lba(sd_lba[0]),
+    .sd_lba(sd_lba_mux),
     .sd_rd(sd_rd),
     .sd_wr(sd_wr),
     .sd_ack_x(sd_ack),
     .sd_buff_addr(sd_buff_addr),
     .sd_dout(sd_buff_dout),
-    .sd_din(sd_buff_din[0]),
+    .sd_din(sd_buff_din_mux),
     .sd_dout_strobe(sd_buff_wr),
 
     .img_mounted(img_mounted),
@@ -569,16 +569,8 @@ always @(posedge clk36m) begin
     
 end
 
-always @(posedge clk36m) begin
-    if (sd_rd[0] || sd_wr[0]) begin
-        sd_lba_mux <= sd_lba[0];
-        sd_buff_din_mux <= sd_buff_din[0];
-    end
-    if (sd_rd[1] || sd_wr[1]) begin
-        sd_lba_mux <= sd_lba[1];
-        sd_buff_din_mux <= sd_buff_din[1];
-    end
-end
+assign sd_lba_mux = fdd_sel[1] ? sd_lba[1] : sd_lba[0];
+assign sd_buff_din_mux = fdd_sel[1] ? sd_buff_din[1] : sd_buff_din[0];
 
 //For a Versafloppy II controller
 //With DIBASE 60H
@@ -659,7 +651,7 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc1(
     .head_loaded(head_loaded[0])
 );
 
-/*
+
 wd1793 #(.RWMODE(1), .EDSK(1)) fdc2(
     .clk_sys(clk36m),
     .ce(f1),
@@ -703,7 +695,6 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc2(
     .track_zero(track_zero[1]),
     .head_loaded(head_loaded[1])
 );
-*/
 
 `ifdef I2S_AUDIO
 i2s i2s (
