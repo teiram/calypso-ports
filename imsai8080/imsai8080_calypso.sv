@@ -127,7 +127,7 @@ parameter CONF_STR = {
 
 /////////////////  CLOCKS  ////////////////////////
 wire clk36m;
-wire clk72m /* synthesis keep */;
+wire clk72m;
 wire pll_locked;
 
 pll pll(
@@ -138,7 +138,7 @@ pll pll(
 );
 
 reg [1:0] ce_counter;
-wire mem_clkref /* synthesis keep */ = ce_counter == 2'b00;
+wire mem_clkref = ce_counter == 2'b00;
 always @(posedge clk36m) begin
     if (reset) ce_counter <= 2'd0;
     
@@ -161,11 +161,11 @@ wire sd_buff_wr;
 wire [1:0] img_mounted;
 wire [63:0] img_size;
 
-wire ioctl_download /* synthesis keep */;
+wire ioctl_download;
 wire [7:0] ioctl_index;
-wire ioctl_wr /* synthesis keep */;
-wire [24:0] ioctl_addr /* synthesis keep */;
-wire [7:0] ioctl_dout /* synthesis keep */;
+wire ioctl_wr;
+wire [24:0] ioctl_addr;
+wire [7:0] ioctl_dout;
 
 wire no_csync;
 wire ypbpr;

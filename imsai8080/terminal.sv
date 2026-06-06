@@ -27,11 +27,11 @@ module terminal(
 // Terminal emulation tries to implement Zenith H19, sort of extended VT52
 // Supported in Wordstar and other mainstream CP/M applications
 
-wire [11:0] raster_addr /* synthesis keep */;
-reg [10:0] char_addr /* synthesis keep */;
-wire [7:0] char_code /* synthesis keep */;
-wire [9:0] video_val /* synthesis keep */;
-reg [9:0] pixels /* synthesis keep */;
+wire [11:0] raster_addr;
+reg [10:0] char_addr;
+wire [7:0] char_code;
+wire [9:0] video_val;
+reg [9:0] pixels;
 
 font_rom font(
     .clock(clk36m),
@@ -59,7 +59,7 @@ localparam [6:0] MAX_COL = 7'd79;
 localparam [4:0] MAX_ROW = 5'd23;
 
 wire [6:0] char_codebase = char_code < 7'h20 ? 7'd0 : char_code[6:0] - 7'h20;
-wire [10:0] char_addr_base /* synthesis keep */= 
+wire [10:0] char_addr_base = 
     {char_codebase[6:0], 2'd0} 
     + {char_codebase[6:0], 2'd0} 
     + {char_codebase[6:0], 2'd0};
@@ -161,7 +161,7 @@ reg [11:0] video_xfer_size = 'd0;
 reg [7:0] video_q;
 
 
-wire [11:0] video_cursor_addr /* synthesis keep */ = {cursor_row[4:0], cursor_col[6:0]}; //128 bytes per line
+wire [11:0] video_cursor_addr = {cursor_row[4:0], cursor_col[6:0]}; //128 bytes per line
 reg [7:0] video_data;
 reg video_we;
 

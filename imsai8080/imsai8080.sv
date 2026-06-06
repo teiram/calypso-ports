@@ -70,19 +70,11 @@ module imsai8080(
     wire [7:0] odata;
 
 
-    wire cpu_ce /* synthesis keep */;
-    wire sio_clk;
-
-    
-    frequency_divider #(.N(25),.WIDTH(20)) freq_sio(
-        .clk_in(clk),
-        .clk_out(sio_clk),
-        .rst(reset)
-    );
+    wire cpu_ce;
 
     reg [7:0] sysctl;
-    reg xrdy = 1'b0 /* synthesis keep */;
-    reg run = 1'b0 /* synthesis keep */;
+    reg xrdy = 1'b0;
+    reg run = 1'b0;
     assign run_o = run;
     
     reg sync_last;
@@ -132,19 +124,19 @@ module imsai8080(
     wire [7:0] deposit_next_in;
     reg [7:0] rammain_in;
 
-    wire boot /* synthesis keep */;
+    wire boot;
 
     wire deposit_switch_down;
-    wire deposit_we /* synthesis keep */;
+    wire deposit_we;
     wire deposit_next_switch_down;
-    wire deposit_next_ce /* synthesis keep */;
-    wire deposit_next_we /* synthesis keep */;
+    wire deposit_next_ce;
+    wire deposit_next_we;
     wire examine_switch_down;
-    wire examine_ce /* synthesis keep */;
+    wire examine_ce;
     wire examine_next_switch_down;
-    wire examine_next_ce /* synthesis keep */;
+    wire examine_next_ce;
     wire reset_switch_down;
-    wire reset_ce /* synthesis keep */;
+    wire reset_ce;
     wire step_switch_down;
 
     reg wr_rammain;

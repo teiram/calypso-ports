@@ -6,8 +6,8 @@ module panel(
     input [9:0] row,
     input hblank,
     input vblank,
-    output reg [16:2] ram_addr /* synthesis keep */, //32 bit address
-    input [31:0] ram_value,     //8 pixels (4 bits per pixel)
+    output reg [16:2] ram_addr, // 32 bit address
+    input [31:0] ram_value,     // 8 pixels (4 bits per pixel)
     
     input [43:0] leds,
     input [7:0] disk_leds,
