@@ -277,3 +277,6 @@
 [submodule "c64/verilog-mos-sid"]
 	path = c64/verilog-mos-sid
 	url = https://github.com/teiram/verilog-mos-sid.git
+[submodule "votrax/votrax-sc01a-vhdl"]
+	path = votrax/votrax-sc01a-vhdl
+	url = https://github.com/teiram/votrax-sc01a-vhdl

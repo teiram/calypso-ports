@@ -292,6 +292,8 @@ sdram sdram(
 
 
 // Place the ROM at F800 initially
+// TODO: Option to load arbitrary data on the address given by the programmed input switches
+//       Avoid wrapping by masking the bits o
 wire [22:0] psram_addr = rom_download == 1'b1 ? {7'd0, 5'b11111, ioctl_addr[10:0]} : {7'd0, extram_addr[15:0]};
 wire psram_rd = rom_download == 1'b1 ? 1'b0 : extram_rd;
 wire psram_we = rom_download == 1'b1 ? ioctl_wr : extram_we;
