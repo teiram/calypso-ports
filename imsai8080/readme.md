@@ -59,5 +59,6 @@ The monitor ROM is currently loaded at F800, but it can be overwritten, for inst
 # Changelog
 - 0.1. First version.
 - 0.2. Fixed the issue with the panel offset
+- 0.3. Votrax simulation
 
 

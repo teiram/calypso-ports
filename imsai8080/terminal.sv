@@ -582,6 +582,7 @@ always @(posedge clk36m) begin
             {3'b1?1, 8'h1d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h17; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-W
             {3'b0?1, 8'h24}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h45 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // E
             {3'b1?1, 8'h24}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h05; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-E
+            {3'b??1, 8'h75}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h05; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Cursor Up
             {3'b0?1, 8'h2d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h52 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // R
             {3'b1?1, 8'h2d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h12; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Control-R
             {3'b0?1, 8'h2c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h54 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // T
@@ -608,8 +609,10 @@ always @(posedge clk36m) begin
             {3'b1?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h01; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-A
             {3'b0?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h53 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // S
             {3'b1?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h13; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-S Pause transmission
+            {3'b??1, 8'h6b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h13; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Cursor left
             {3'b0?1, 8'h23}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h44 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // D
             {3'b1?1, 8'h23}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h04; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Ctrl-D
+            {3'b??1, 8'h74}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h04; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Cursor right
             {3'b0?1, 8'h2b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h46 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // F
             {3'b1?1, 8'h2b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h06; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Ctrl-F
             {3'b0?1, 8'h34}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h47 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // G
@@ -634,6 +637,7 @@ always @(posedge clk36m) begin
             {3'b1?1, 8'h1a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h1a; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Ctrl-Z
             {3'b0?1, 8'h22}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h58 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // X
             {3'b1?1, 8'h22}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h18; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Control-X
+            {3'b???, 8'h72}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h18; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Cursor down
             {3'b0?1, 8'h21}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h43 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // C
             {3'b1?1, 8'h21}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h03; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Control-C
             {3'b0?1, 8'h2a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h56 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // V

@@ -14,6 +14,13 @@ set_global_assignment -name VERILOG_FILE examine_next.v
 set_global_assignment -name VERILOG_FILE reset.v
 set_global_assignment -name VERILOG_FILE sense_switch.v
 set_global_assignment -name SYSTEMVERILOG_FILE wd1793.sv
+
+set_global_assignment -name VHDL_FILE cpu68.vhd
+set_global_assignment -name QIP_FILE votrax-sc01a.qip
+set_global_assignment -name QIP_FILE ram.qip
+set_global_assignment -name QIP_FILE rom.qip
+set_global_assignment -name SYSTEMVERILOG_FILE votrax.sv
+
 set_global_assignment -name QIP_FILE font_rom.qip
 set_global_assignment -name QIP_FILE videoram.qip
 set_global_assignment -name QIP_FILE pll.qip

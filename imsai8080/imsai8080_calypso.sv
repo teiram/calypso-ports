@@ -120,6 +120,7 @@ parameter CONF_STR = {
     "F1,ROM,Reload ROM at F800;",
     `SEP
     "O12,Console color,Cyan,White,Green,Yellow;",
+    "O4,Votrax,Disabled,Enabled;",
     `SEP
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -128,12 +129,14 @@ parameter CONF_STR = {
 /////////////////  CLOCKS  ////////////////////////
 wire clk36m;
 wire clk72m;
+wire clk2m5;
 wire pll_locked;
 
 pll pll(
     .inclk0(CLK12M),
     .c0(clk36m),
     .c1(clk72m),
+    .c2(clk2m5),
     .locked(pll_locked)
 );
 
@@ -320,8 +323,6 @@ psram64 psram(
     .ready(psram_ready)
 );
 
-wire [13:0] audio;
-
 wire [3:0] R, G, B;
 wire hblank, vblank;
 wire hsync, vsync;
@@ -391,7 +392,7 @@ wire [7:0] disk_leds = {
     (head_loaded[0] & fdd_sel[0] & fdd_ready[0]) | (head_loaded[1] & fdd_sel[1] & fdd_ready[1]),
     (track_zero[0] & fdd_sel[0] & fdd_ready[0]) | (track_zero[1] & fdd_sel[1] & fdd_ready[1])
 };
-    
+
 panel panel(
     .clk36m(clk36m),
     .reset(reset),
@@ -699,7 +700,26 @@ wd1793 #(.RWMODE(1), .EDSK(1)) fdc2(
     .head_loaded(head_loaded[1])
 );
 
-`ifdef I2S_AUDIO
+wire [17:0] votrax_audio;
+wire [7:0] acia_status;
+
+assign LED[0] = acia_status[0];
+votrax votrax(
+    .clk36m(clk36m),
+    .clk2m5(clk2m5),
+    .reset(reset),
+    
+    .serial_data(serial_data),
+    .serial_strobe(serial_strobe & status[4]),
+    
+    .audio(votrax_audio),
+    .audio_valid(),
+    
+    .acia_status(acia_status)
+);
+
+wire [15:0] audio = status[4] == 1'b1 ? votrax_audio[17:2] : 16'd0;
+
 i2s i2s (
     .reset(1'b0),
     .clk(clk36m),
@@ -709,10 +729,9 @@ i2s i2s (
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
 
-    .left_chan({~audio[13], audio[12:0], 2'b0}),
-    .right_chan({~audio[13], audio[12:0], 2'b0})
+    .left_chan(audio),
+    .right_chan(audio)
 );
-`endif
 
 wire [11:0] rgb_t_green = pixel_terminal == 1'b1 ? 12'h0e0 : 12'd0;
 wire [11:0] rgb_t_white = pixel_terminal == 1'b1 ? 12'heee : 12'd0;

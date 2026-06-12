@@ -280,3 +280,6 @@
 [submodule "votrax/votrax-sc01a-vhdl"]
 	path = votrax/votrax-sc01a-vhdl
 	url = https://github.com/teiram/votrax-sc01a-vhdl
+[submodule "imsai8080/votrax-sc01a-vhdl"]
+	path = imsai8080/votrax-sc01a-vhdl
+	url = https://github.com/teiram/votrax-sc01a-vhdl/
