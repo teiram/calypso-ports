@@ -183,7 +183,7 @@ user_io #(
     .SERIAL_CHANNEL(3'd2),
     .STRLEN($size(CONF_STR)>>3),
     .SD_IMAGES(2),
-    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
+    .FEATURES(32'h1000 | (BIG_OSD << 13) | (HDMI << 14)))
 user_io(
     .clk_sys(clk36m),
     .clk_sd(clk36m),
