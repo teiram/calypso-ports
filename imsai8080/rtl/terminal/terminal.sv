@@ -559,7 +559,7 @@ always @(posedge clk) begin
     else if (key_strobe == 1'b1) begin
         casex ({ctrl, shift, key_pressed, key_code})
         
-            {3'b???, 9'h?14}: ctrl <= key_pressed;
+            {3'b???, 8'h14}: ctrl <= key_pressed;
             {3'b??1, 8'h76}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h1b; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Escape
 
             {3'b001, 8'h0e}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h60; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // grave
@@ -620,7 +620,7 @@ always @(posedge clk) begin
             {3'b001, 8'h5d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h5c; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // backslash
             {3'b011, 8'h5d}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h7c; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // |
 
-            {3'b??1, 9'h058}: capslock <= ~capslock;
+            {3'b??1, 8'h58}: capslock <= ~capslock;
             {3'b0?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h41 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // A
             {3'b1?1, 8'h1c}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h01; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // Ctrl-A
             {3'b0?1, 8'h1b}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h53 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end   // S
