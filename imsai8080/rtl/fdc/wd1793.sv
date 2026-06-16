@@ -202,7 +202,7 @@ typedef enum
 } io_state_t;
 
 
-assign track_zero = ~disk_track;
+assign track_zero = ~|disk_track;
 assign head_loaded = s_headloaded;
 
 // common status bits

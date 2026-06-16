@@ -1,7 +1,10 @@
 module panel(
-    input clk36m,
+    input clk,
+    input f1,
+    input f2,
     input reset,
-
+    input ready_in,
+    
     input [10:0] col,
     input [9:0] row,
     input hblank,
@@ -9,13 +12,23 @@ module panel(
     output reg [16:2] ram_addr, // 32 bit address
     input [31:0] ram_value,     // 8 pixels (4 bits per pixel)
     
-    input [43:0] leds,
     input [7:0] disk_leds,
 
-    output reg [15:0] switches,
-
-    // EXAMINE, EXAMINE NEXT, DEPOSIT, DEPOSIT NEXT, RESET, EXT CLR, RUN, STOP, SINGLE STEP, SINGLE STEP
-    output reg [9:0] m_switches,
+    input [15:0] bus_addr,
+    input [7:0] bus_data_in,
+    input [7:0] bus_cpu_data_in,
+    output [7:0] bus_data_out,
+    input [7:0] bus_cpu_sysctl,
+    input bus_cpu_sync,
+    input bus_cpu_wait,
+    input bus_cpu_inte,
+    input bus_cpu_hlda,
+    input bus_cpu_rd,
+    input bus_cpu_wr_n,
+    
+    output reg bus_xrdy = 1'b0,
+    output panel_ce,
+    output panel_we,
     
     input key_pressed,
     input [7:0] key_code,
@@ -120,6 +133,10 @@ integer switch_index;
 integer m_switch_index;
 integer disk_led_index;
 
+reg [15:0] switches;
+// EXAMINE, EXAMINE NEXT, DEPOSIT, DEPOSIT NEXT, RESET, EXT CLR, RUN, STOP, SINGLE STEP, SINGLE STEP
+reg [9:0] m_switches;
+
 wire [1:0] m_switches_p[M_SWITCH_COUNT] = '{
     {m_switches[0], m_switches[1]},
     {m_switches[2], m_switches[3]},
@@ -127,12 +144,24 @@ wire [1:0] m_switches_p[M_SWITCH_COUNT] = '{
     {m_switches[6], m_switches[7]},
     {m_switches[8], m_switches[9]}
 };
+reg [7:0] programmed_output_leds;
+
+wire [43:0] leds = {
+    programmed_output_leds,
+    bus_cpu_sysctl,
+    bus_cpu_data_in,
+    bus_addr,
+    bus_cpu_inte,
+    run,
+    bus_cpu_wait,
+    bus_cpu_hlda
+};
 
 // To avoid flickering and painting LEDs on several states at once
 reg [43:0] leds_latched;
 reg [7:0] disk_leds_latched;
 
-always @(posedge clk36m) begin
+always @(posedge clk) begin
     if (reset) begin
         ram_addr <= 15'd0;
     end
@@ -250,7 +279,7 @@ always @(posedge clk36m) begin
     end
 end
 
-always @(posedge clk36m) begin
+always @(posedge clk) begin
     if (reset == 1'b1) begin
         switches <= 'd0;
         m_switches <= 'd0;
@@ -296,6 +325,223 @@ always @(posedge clk36m) begin
     end
 end
 
+wire [7:0] data_addr_switches = switches[7:0];
+wire [7:0] addr_sense_switches = switches[15:8];
+    
+wire step_switch = m_switches[8] | m_switches[9];
+wire step_switch_down;
 
+wire examine_switch = m_switches[1];
+wire examine_switch_down;
+wire examine_ce;
+wire [7:0] examine_out;
+
+wire examine_next_switch = m_switches[0];
+wire examine_next_switch_down;
+wire examine_next_ce;
+wire [7:0] examine_next_out;
+
+    
+wire deposit_switch = m_switches[3];
+wire deposit_switch_down;
+wire [7:0] deposit_out;
+wire deposit_we;
+
+wire deposit_next_switch = m_switches[2];
+wire deposit_next_switch_down;
+wire deposit_next_ce;
+wire deposit_next_we;
+wire [7:0] deposit_next_out;
+
+wire reset_switch = m_switches[5];
+wire reset_switch_down;
+wire reset_ce;
+wire [7:0] reset_out;
+
+wire [7:0] sense_sw_out;
+wire rd_sense;
+
+wire run_switch = m_switches[7];
+wire stop_switch = m_switches[6];
+
+wire io_wr = bus_cpu_sysctl[4];
+wire m1 = bus_cpu_sysctl[5];
+wire io_rd = bus_cpu_sysctl[6];
+
+reg run = 1'b0;
+
+always @(posedge clk) begin
+    reg last_f2 = 1'b0;
+    last_f2 <= f2;
+        
+    if (f2 & ~last_f2) begin
+        if (m1 & stop_switch) run <= 1'b0;
+        else if (run_switch) run <= 1'b1;
+    end
+end
+
+always @(posedge clk) begin
+    reg sync_last = 1'b0;
+    sync_last <= bus_cpu_sync;
+    
+    if (run) bus_xrdy <= ready_in;
+    else begin
+        if (bus_xrdy) begin
+            if (~sync_last & bus_cpu_sync) bus_xrdy <= 1'b0;
+        end
+        else begin
+            if (deposit_next_ce |
+                examine_ce |
+                examine_next_ce |
+                reset_ce |
+                step_switch_down) bus_xrdy <= 1'b1;
+        end
+    end
+end
+
+debouncer step_debouncer(
+    .clk(clk),
+    .i_btn(step_switch & ~run),
+    .o_state(),
+    .o_ondn(step_switch_down),
+    .o_onup()
+);
+
+debouncer deposit_debouncer(
+    .clk(clk),
+    .i_btn(deposit_switch & ~run),
+    .o_state(),
+    .o_ondn(deposit_switch_down),
+    .o_onup()
+);
+
+deposit deposit_fsm(
+    .clk(clk),
+    .reset(reset),
+    .deposit(deposit_switch_down),
+    .data_sw(data_addr_switches),
+    .data_out(deposit_out),
+    .we(deposit_we)
+);
+
+debouncer deposit_next_debouncer(
+    .clk(clk),
+    .i_btn(deposit_next_switch & ~run),
+    .o_state(),
+    .o_ondn(deposit_next_switch_down),
+    .o_onup()
+);
+
+deposit_next deposit_next_fsm(
+    .clk(clk),
+    .reset(reset),
+    .sync(bus_cpu_sync),
+    .deposit(deposit_next_switch_down),
+    .data_sw(data_addr_switches),
+    .ce(deposit_next_ce),
+    .we(deposit_next_we),
+    .data_out(deposit_next_out)
+);
+
+
+debouncer examine_debouncer(
+    .clk(clk),
+    .i_btn(examine_switch & ~run),
+    .o_state(),
+    .o_ondn(examine_switch_down),
+    .o_onup()
+);
+
+examine examine_fsm(
+    .clk(clk),
+    .reset(reset),
+    .sync(bus_cpu_sync),
+    .examine(examine_switch_down),
+    .data_out(examine_out),
+    .lo_addr(data_addr_switches),
+    .hi_addr(addr_sense_switches),
+    .ce(examine_ce)
+);
+
+debouncer examine_next_debouncer(
+    .clk(clk),
+    .i_btn(examine_next_switch & ~run),
+    .o_state(),
+    .o_ondn(examine_next_switch_down),
+    .o_onup()
+);
+
+examine_next examine_next_fsm(
+    .clk(clk),
+    .reset(reset),
+    .sync(bus_cpu_sync),
+    .examine(examine_next_switch_down),
+    .data_out(examine_next_out),
+    .ce(examine_next_ce)
+);
+
+debouncer reset_debouncer(
+    .clk(clk),
+    .i_btn(reset_switch & ~run),
+    .o_state(),
+    .o_ondn(reset_switch_down),
+    .o_onup()
+);
+
+reset reset_fsm(
+    .clk(clk),
+    .reset(reset),
+    .sync(bus_cpu_sync),
+    .reset_in(reset_switch_down),
+    .data_out(reset_out),
+    .ce(reset_ce)
+);
+
+sense_switch sense_sw(
+    .clk(clk),
+    .rd(rd_sense),
+    .data_out(sense_sw_out),
+    .switch_settings(addr_sense_switches)
+);
+
+// The panel takes over the data bus 
+assign panel_ce = examine_ce | examine_next_ce | deposit_next_ce | reset_ce | rd_sense;
+// The panel asserts the bus write signal and takes over the data bus
+assign panel_we = deposit_we | deposit_next_we;
+
+always @(*) begin
+    rd_sense = 1'b0;
+    casex ({io_rd,
+            examine_ce, examine_next_ce, deposit_next_ce, reset_ce,
+            deposit_we, deposit_next_we,
+            bus_addr[7:0]})
+        // Deposit (Write memory stage)
+        {15'bx_0000_10_xxxxxxxx}: bus_data_out = deposit_out;
+        // Deposit next (write memory stage)
+        {15'bx_0000_01_xxxxxxxx}: bus_data_out = deposit_next_out;
+        // Deposit Next
+        {15'bx_0010_00_xxxxxxxx}: bus_data_out = deposit_next_out;
+        // Examine
+        {15'bx_1000_00_xxxxxxxx}: bus_data_out = examine_out;
+        // Examine Next
+        {15'bx_0100_00_xxxxxxxx}: bus_data_out = examine_next_out;
+        // Reset
+        {15'bx_0001_00_xxxxxxxx}: bus_data_out = reset_out;
+        // Sense switches in
+        {15'b1_0000_00_11111111}: begin
+            bus_data_out = sense_sw_out;
+            rd_sense = bus_cpu_rd;
+        end
+        default: bus_data_out = 8'h00;
+    endcase
+end
+
+
+always @(posedge clk) begin
+    casex ({io_wr, examine_ce, examine_next_ce, bus_addr[7:0]})
+        {3'b100,8'b11111111}: if (~bus_cpu_wr_n) programmed_output_leds <= bus_data_in;
+        default: begin end // Add this default case
+    endcase
+end
 
 endmodule

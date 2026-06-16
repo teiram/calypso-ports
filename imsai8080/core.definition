@@ -1,6 +1,6 @@
 CORE_ID=imsai8080
 PROJECT_NAME=imsai8080
-VERSION=0.3
+VERSION=0.4
 BITSTREAM_FILE=output_files/imsai8080.rbf
 EXTRA_SUBMODULES=../common/mist-modules
 EXTRA_BINARIES=readme.md

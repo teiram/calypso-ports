@@ -1,5 +1,5 @@
 module terminal(
-    input clk36m,
+    input clk,
     input reset,
 
     input [10:0] xpos,
@@ -11,21 +11,29 @@ module terminal(
     input [7:0] key_code,
     input key_strobe,
     input key_extended,
-    
-    input sio_we,
-    input sio_rd,
-    input sio_addr,
-    input [7:0] sio_in,
-    output reg [7:0] sio_out,
+
+    input [7:0] bus_cpu_sysctl,
+    input bus_cpu_rd,
+    input bus_cpu_wr_n,
+    input [15:0] bus_addr,
+    input [7:0] bus_data_in,
+    output [7:0] bus_data_out,
     
     output reg vout,
     
-    output reg [7:0] serial_echo,
-    output reg serial_echo_strobe
+    output [7:0] serial_echo,
+    output serial_echo_strobe
 );
 
-// Terminal emulation tries to implement Zenith H19, sort of extended VT52
-// Supported in Wordstar and other mainstream CP/M applications
+parameter [3:0] CARD_ADDR = 4'd0;  // SIO2 Address 0000
+parameter [1:0] CARD_PORT = 2'b01; // SIO2 Port A
+
+// Terminal emulation aims to implement Heatkit H19/Zenith H19, 
+// sort of extended VT52 supported in Wordstar and other
+// mainstream CP/M applications
+
+// The font is 10x12 to make the most of the console area
+// what gives us 800x300 pixels. Enough room for a 80x25 console
 
 wire [11:0] raster_addr;
 reg [10:0] char_addr;
@@ -34,13 +42,13 @@ wire [9:0] video_val;
 reg [9:0] pixels;
 
 font_rom font(
-    .clock(clk36m),
+    .clock(clk),
     .address(char_addr),
     .q(video_val)
 );
 
 videoram ram(
-    .clock(clk36m),
+    .clock(clk),
     
     .address_a(video_addr),
     .wren_a(video_we),
@@ -76,7 +84,7 @@ wire cursor_enable = cursor_on == 1'b1 &&
     col == cursor_col &&
     (cursor_block == 1'b1 || y[3] == 1'b1);
 
-always @(posedge clk36m) begin
+always @(posedge clk) begin
     reg [9:0] last_ypos;
     
     last_ypos <= ypos;
@@ -150,7 +158,7 @@ localparam [2:0] CMD_SCR_UP = 3'd4;
 reg [2:0] cmd_buffer[4];
 reg [1:0] cmd_buffer_rdpos = 2'd0;
 reg [1:0] cmd_buffer_wrpos = 2'd0;
-wire has_cmd = cmd_buffer_rdpos != cmd_buffer_wrpos;
+wire has_cmd /* synthesis keep */= cmd_buffer_rdpos != cmd_buffer_wrpos;
 reg cmd_running = 1'b0;
 
 wire [11:0] video_addr = video_we ? video_wr_addr : video_rd_addr;
@@ -165,17 +173,45 @@ wire [11:0] video_cursor_addr = {cursor_row[4:0], cursor_col[6:0]}; //128 bytes 
 reg [7:0] video_data;
 reg video_we;
 
-always @(posedge clk36m) begin
+wire cts = ~(clear | xfer | xferr | lf  | update_cursor_pos | cmd_running | has_cmd); 
+wire rts = has_buffered_key;
+wire [7:0] serial_in = kbd_buffer[kbd_buffer_rdpos];
+wire serial_in_strobe;
+wire [7:0] serial_out;
+wire serial_out_strobe;
+assign serial_echo = serial_out;
+assign serial_echo_strobe = serial_out_strobe;
+
+sio2 #(
+    .CARD_ADDR(CARD_ADDR),
+    .CARD_PORT(CARD_PORT)
+    ) serial_port(
+        .clk(clk),
+        .reset(reset),
+        .bus_cpu_sysctl(bus_cpu_sysctl),
+        .bus_cpu_rd(bus_cpu_rd),
+        .bus_cpu_wr_n(bus_cpu_wr_n),
+        .bus_addr(bus_addr),
+        .bus_data_in(bus_data_in),
+        .bus_data_out(bus_data_out),
+
+       .cts(cts),
+       .rts(rts),
+       .serial_in(serial_in),
+       .serial_in_strobe(serial_in_strobe),
+       .serial_out(serial_out),
+       .serial_out_strobe(serial_out_strobe)
+);
+
+reg update_cursor_pos = 1'b0;
+reg clear = 1'b0;
+reg xfer = 1'b0;
+reg xferr = 1'b0;
+reg lf = 1'b0;
+
+always @(posedge clk) begin
     
-    reg sio_rd_last = 1'b0;
-    reg sio_we_last = 1'b0;
-    reg update_cursor_pos = 1'b0;
-    reg clear = 1'b0;
-    reg xfer = 1'b0;
-    reg xferr = 1'b0;
     reg [1:0] mem_status = 2'b00;
-    reg wr_toggle = 1'b0;
-    reg lf = 1'b0;
     reg escape = 1'b0;
     reg [1:0] escape_y = 2'b00;
     reg reverse_mode = 1'b0;
@@ -183,15 +219,8 @@ always @(posedge clk36m) begin
     reg escape_ry = 1'b0;
     
     video_we <= 1'b0;
-    serial_echo <= 8'd0;
-    serial_echo_strobe <= 1'b0;
-    
-    sio_rd_last <= sio_rd;
-    sio_we_last <= sio_we;
     
     if (reset == 1'b1) begin
-        sio_rd_last <= 1'b0;
-        sio_we_last <= 1'b0;
         cursor_col <= 'd0;
         cursor_row <= 'd0;
         saved_cursor_col <= 'd0;
@@ -212,8 +241,6 @@ always @(posedge clk36m) begin
         l25_enabled <= 1'b0;
         cursor_on <= 1'b1;
         cursor_block <= 1'b1;
-        serial_echo <= 8'd0;
-        serial_echo_strobe <= 1'b0;
     end
     else if (has_cmd == 1'b1 && cmd_running == 1'b0) begin
         case (cmd_buffer[cmd_buffer_rdpos])
@@ -248,212 +275,201 @@ always @(posedge clk36m) begin
         endcase
         cmd_buffer_rdpos <= cmd_buffer_rdpos + 1'd1;
     end
-    else if (~sio_rd_last & sio_rd) begin
-        if (sio_addr == 1'b1) begin          // CSTAT
-            sio_out <= {6'd0, has_buffered_key, ~(clear | xfer | lf | update_cursor_pos | cmd_running | has_cmd)}; // bit1: Ready to send, bit0: Ready to receive
-        end
-        else                                 // CDATA
-        begin
-            sio_out <= kbd_buffer[kbd_buffer_rdpos];
-            kbd_buffer_rdpos <= kbd_buffer_rdpos + 1'd1;
-        end
+    else if (serial_in_strobe == 1'b1) begin
+        kbd_buffer_rdpos <= kbd_buffer_rdpos + 1'd1;
     end
-    else if (~sio_we_last & sio_we) begin
-        if (sio_addr == 1'b0) begin           // CDATA
-            serial_echo <= sio_in;
-            serial_echo_strobe <= 1'b1;
-            if (escape == 1'b0) begin
-                case (sio_in)
-                    8'd8: begin                   // BACKSPACE
+    else if (serial_out_strobe == 1'b1) begin
+        if (escape == 1'b0) begin
+            case (serial_out)
+                8'd8: begin                   // BACKSPACE
+                    if (|cursor_col) cursor_col <= cursor_col - 1'd1;
+                end
+                8'd13: begin                  // CR
+                    cursor_col <= 'd0;
+                end
+                8'd10: begin                  // LF
+                    lf <= 1'b1;
+                end
+                8'd27: escape <= 1'b1;
+                default: begin
+                    video_wr_addr <= video_cursor_addr;
+                    video_data <= {reverse_mode, serial_out[6:0]};
+                    video_we <= 1'b1;
+                    update_cursor_pos <= 1'b1;
+                end
+            endcase
+        end
+        else begin
+            if (escape_y == 2'b00 && escape_sx == 1'b0 && escape_ry == 1'b0) begin
+                case (serial_out)
+                    "A": begin                   // CURSOR UP
+                        if (|cursor_row) cursor_row <= cursor_row - 1'd1;
+                        escape <= 1'b0;
+                    end
+                    "B": begin                   // CURSOR DOWN
+                        if (cursor_row < MAX_ROW) cursor_row <= cursor_row + 1'd1;
+                        escape <= 1'b0;
+                    end
+                    "C": begin                   // CURSOR RIGHT
+                        if (cursor_col < MAX_COL) cursor_col <= cursor_col + 1'd1;
+                        escape <= 1'b0;
+                    end
+                    "D": begin                   // CURSOR LEFT
                         if (|cursor_col) cursor_col <= cursor_col - 1'd1;
+                        escape <= 1'b0;
                     end
-                    8'd13: begin                  // CR
+                    "E": begin                   // ERASE SCREEN
+                        clear <= 1'b1;
+                        video_wr_addr <= 'd0;
+                        video_wr_addr_end <= 'd3200;
                         cursor_col <= 'd0;
+                        cursor_row <= 'd0;
+                        escape <= 1'b0;
                     end
-                    8'd10: begin                  // LF
-                        lf <= 1'b1;
+                    "F": begin                   // ENTER GRAPHICS MODE
+                        graphics_mode <= 1'b1;
+                        escape <= 1'b0;
                     end
-                    8'd27: escape <= 1'b1;
-                    default: begin
+                    "G": begin                   // EXIT GRAPHICS MODE
+                        graphics_mode <= 1'b0;
+                        escape <= 1'b0;
+                    end
+                    "H": begin                   // CURSOR HOME
+                        cursor_col <= 'd0;
+                        cursor_row <= 'd0;
+                        escape <= 1'b0;
+                    end
+                    "I": begin                   // REVERSE LINE FEED
+                        if (|cursor_row) cursor_row <= cursor_row - 1'd1;
+                        cmd_buffer[cmd_buffer_wrpos] <= CMD_INSERT_LINE;
+                        cmd_buffer_wrpos <= cmd_buffer_wrpos + 1'd1;
+                        escape <= 1'b0;
+                    end
+                    "J": begin                  // ERASE TO END OF PAGE
                         video_wr_addr <= video_cursor_addr;
-                        video_data <= {reverse_mode, sio_in[6:0]};
+                        video_wr_addr_end <= {MAX_ROW, 7'h7f};
+                        {clear, mem_status} <= 3'b100;
+                        escape <= 1'b0;
+                    end
+                    "K": begin                  // ERASE TO THE END OF THE LINE
+                        video_wr_addr <= video_cursor_addr;
+                        video_wr_addr_end <= {cursor_row[4:0], 7'h7f};
+                        {clear, mem_status} <= 3'b100;
+                        escape <= 1'b0;
+                    end
+                    "L": begin                  //L: OPEN ROW IN CURSOR
+                        cmd_buffer[cmd_buffer_wrpos] <= CMD_INSERT_LINE;
+                        cmd_buffer[cmd_buffer_wrpos + 1'd1] <= CMD_CLEAR_LINE;
+                        cmd_buffer_wrpos <= cmd_buffer_wrpos + 2'd2;
+                        cursor_col <= 'd0;
+                        escape <= 1'b0;
+                    end
+                    "M": begin                   // DELETE LINE
+                        cmd_buffer[cmd_buffer_wrpos] <= CMD_LINE_UP;
+                        cmd_buffer[cmd_buffer_wrpos + 1'd1] <= CMD_CLEAR_LINE24;
+                        cmd_buffer_wrpos <= cmd_buffer_wrpos + 2'd2;
+                        cursor_col <= 'd0;
+                        escape <= 1'b0;
+                    end
+                    "N": begin                   // DELETE CHAR
+                        video_wr_addr <= video_cursor_addr;
+                        video_rd_addr <= video_cursor_addr + 1'd1;
+                        video_xfer_size <= MAX_COL - cursor_col;
+                        {xfer, mem_status} <= 3'b100;
+                        escape <= 1'b0;
+                    end
+                    "Y": begin
+                        escape_y <= 2'b01;
+                    end
+                    "b": begin                  // ERASE BEGINNING OF DISPLAY
+                        video_wr_addr <= 'd0;
+                        video_wr_addr_end <= video_cursor_addr;
+                        {clear, mem_status} <= 3'b100;
+                        escape <= 1'b0;
+                    end
+                    "j": begin                  // SAVE CURSOR POSITION
+                        saved_cursor_row <= cursor_row;
+                        saved_cursor_col <= cursor_col;
+                        escape <= 1'b0;
+                    end
+                    "k": begin                  // RESTORE CURSOR POSITION
+                        cursor_row <= saved_cursor_row;
+                        cursor_col <= saved_cursor_col;
+                        escape <= 1'b0;
+                    end
+                    "l": begin                  // ERASE CURSOR ENTIRE LINE
+                        video_wr_addr <= {cursor_row[4:0], 7'd0};
+                        video_wr_addr_end <= {cursor_row[4:0], 7'h7f};
+                        {clear, mem_status} <= 3'b100;
+                        escape <= 1'b0;
+                    end
+                    "o": begin                 // ERASE FROM BEGINNING OF LINE TO CURSOR
+                        video_wr_addr <= {cursor_row[4:0], 7'd0};
+                        video_wr_addr_end <= video_cursor_addr;
+                        {clear, mem_status} <= 3'b100;
+                        escape <= 1'b0;
+                    end
+                    "p": begin
+                        reverse_mode <= 1'b1;
+                        escape <= 1'b0;
+                    end
+                    "q": begin
+                        reverse_mode <= 1'b0;
+                        escape <= 1'b0;
+                    end
+                    "x": begin
+                        escape_sx <= 1'b1;
+                    end
+                    "y": begin
+                        escape_ry <= 1'b1;
+                    end
+                    default: begin
+                        escape <= 1'b0;
+                        video_wr_addr <= video_cursor_addr;
+                        video_data <= {1'b0, serial_out[6:0]};
                         video_we <= 1'b1;
                         update_cursor_pos <= 1'b1;
                     end
                 endcase
             end
-            else begin
-                if (escape_y == 2'b00 && escape_sx == 1'b0 && escape_ry == 1'b0) begin
-                    case (sio_in)
-                        "A": begin                   // CURSOR UP
-                            if (|cursor_row) cursor_row <= cursor_row - 1'd1;
-                            escape <= 1'b0;
-                        end
-                        "B": begin                   // CURSOR DOWN
-                            if (cursor_row < MAX_ROW) cursor_row <= cursor_row + 1'd1;
-                            escape <= 1'b0;
-                        end
-                        "C": begin                   // CURSOR RIGHT
-                            if (cursor_col < MAX_COL) cursor_col <= cursor_col + 1'd1;
-                            escape <= 1'b0;
-                        end
-                        "D": begin                   // CURSOR LEFT
-                            if (|cursor_col) cursor_col <= cursor_col - 1'd1;
-                            escape <= 1'b0;
-                        end
-                        "E": begin                   // ERASE SCREEN
-                            clear <= 1'b1;
-                            video_wr_addr <= 'd0;
-                            video_wr_addr_end <= 'd3200;
-                            cursor_col <= 'd0;
-                            cursor_row <= 'd0;
-                            escape <= 1'b0;
-                        end
-                        "F": begin                   // ENTER GRAPHICS MODE
-                            graphics_mode <= 1'b1;
-                            escape <= 1'b0;
-                        end
-                        "G": begin                   // EXIT GRAPHICS MODE
-                            graphics_mode <= 1'b0;
-                            escape <= 1'b0;
-                        end
-                        "H": begin                   // CURSOR HOME
-                            cursor_col <= 'd0;
-                            cursor_row <= 'd0;
-                            escape <= 1'b0;
-                        end
-                        "I": begin                   // REVERSE LINE FEED
-                            if (|cursor_row) cursor_row <= cursor_row - 1'd1;
-                            cmd_buffer[cmd_buffer_wrpos] <= CMD_INSERT_LINE;
-                            cmd_buffer_wrpos <= cmd_buffer_wrpos + 1'd1;
-                            escape <= 1'b0;
-                        end
-                        "J": begin                  // ERASE TO END OF PAGE
-                            video_wr_addr <= video_cursor_addr;
-                            video_wr_addr_end <= {MAX_ROW, 7'h7f};
-                            {clear, mem_status} <= 3'b100;
-                            escape <= 1'b0;
-                        end
-                        "K": begin                  // ERASE TO THE END OF THE LINE
-                            video_wr_addr <= video_cursor_addr;
-                            video_wr_addr_end <= {cursor_row[4:0], 7'h7f};
-                            {clear, mem_status} <= 3'b100;
-                            escape <= 1'b0;
-                        end
-                        "L": begin                  //L: OPEN ROW IN CURSOR
-                            cmd_buffer[cmd_buffer_wrpos] <= CMD_INSERT_LINE;
-                            cmd_buffer[cmd_buffer_wrpos + 1'd1] <= CMD_CLEAR_LINE;
-                            cmd_buffer_wrpos <= cmd_buffer_wrpos + 2'd2;
-                            cursor_col <= 'd0;
-                            escape <= 1'b0;
-                        end
-                        "M": begin                   // DELETE LINE
-                            cmd_buffer[cmd_buffer_wrpos] <= CMD_LINE_UP;
-                            cmd_buffer[cmd_buffer_wrpos + 1'd1] <= CMD_CLEAR_LINE24;
-                            cmd_buffer_wrpos <= cmd_buffer_wrpos + 2'd2;
-                            cursor_col <= 'd0;
-                            escape <= 1'b0;
-                        end
-                        "N": begin                   // DELETE CHAR
-                            video_wr_addr <= video_cursor_addr;
-                            video_rd_addr <= video_cursor_addr + 1'd1;
-                            video_xfer_size <= MAX_COL - cursor_col;
-                            {xfer, mem_status} <= 3'b100;
-                            escape <= 1'b0;
-                        end
-                        "Y": begin
-                            escape_y <= 2'b01;
-                        end
-                        "b": begin                  // ERASE BEGINNING OF DISPLAY
-                            video_wr_addr <= 'd0;
-                            video_wr_addr_end <= video_cursor_addr;
-                            {clear, mem_status} <= 3'b100;
-                            escape <= 1'b0;
-                        end
-                        "j": begin                  // SAVE CURSOR POSITION
-                            saved_cursor_row <= cursor_row;
-                            saved_cursor_col <= cursor_col;
-                            escape <= 1'b0;
-                        end
-                        "k": begin                  // RESTORE CURSOR POSITION
-                            cursor_row <= saved_cursor_row;
-                            cursor_col <= saved_cursor_col;
-                            escape <= 1'b0;
-                        end
-                        "l": begin                  // ERASE CURSOR ENTIRE LINE
-                            video_wr_addr <= {cursor_row[4:0], 7'd0};
-                            video_wr_addr_end <= {cursor_row[4:0], 7'h7f};
-                            {clear, mem_status} <= 3'b100;
-                            escape <= 1'b0;
-                        end
-                        "o": begin                 // ERASE FROM BEGINNING OF LINE TO CURSOR
-                            video_wr_addr <= {cursor_row[4:0], 7'd0};
-                            video_wr_addr_end <= video_cursor_addr;
-                            {clear, mem_status} <= 3'b100;
-                            escape <= 1'b0;
-                        end
-                        "p": begin
-                            reverse_mode <= 1'b1;
-                            escape <= 1'b0;
-                        end
-                        "q": begin
-                            reverse_mode <= 1'b0;
-                            escape <= 1'b0;
-                        end
-                        "x": begin
-                            escape_sx <= 1'b1;
-                        end
-                        "y": begin
-                            escape_ry <= 1'b1;
-                        end
-                        default: begin
-                            escape <= 1'b0;
-                            video_wr_addr <= video_cursor_addr;
-                            video_data <= {1'b0, sio_in[6:0]};
-                            video_we <= 1'b1;
-                            update_cursor_pos <= 1'b1;
-                        end
-                    endcase
-                end
-                else if (escape_sx == 1'b1) begin
-                    escape <= 1'b0;
-                    escape_sx <= 1'b0;
-                    case (sio_in)
-                        "1": begin
-                            l25_enabled <= 1'b1;
-                        end
-                        "4": begin
-                            cursor_block <= 1'b1;
-                        end
-                        "5": begin
-                            cursor_on <= 1'b0;
-                        end
-                    endcase
-                end
-                else if (escape_ry == 1'b1) begin
-                    escape <= 1'b0;
-                    escape_ry <= 1'b0;
-                    case (sio_in)
-                        "1": begin
-                            l25_enabled <= 1'b0;
-                        end
-                        "4": begin
-                            cursor_block <= 1'b0;
-                        end
-                        "5": begin
-                            cursor_on <= 1'b1;
-                        end
-                    endcase
-                end
-                else if (escape_y == 2'b01) begin
-                    cursor_row <= sio_in - 8'd32;
-                    escape_y <= 2'b10;
-                end
-                else if (escape_y == 2'b10) begin
-                    cursor_col <= sio_in - 8'd32;
-                    escape_y <= 2'b00;
-                    escape <= 1'b0;
-                end
+            else if (escape_sx == 1'b1) begin
+                escape <= 1'b0;
+                escape_sx <= 1'b0;
+                case (serial_out)
+                    "1": begin
+                        l25_enabled <= 1'b1;
+                    end
+                    "4": begin
+                        cursor_block <= 1'b1;
+                    end
+                    "5": begin
+                        cursor_on <= 1'b0;
+                    end
+                endcase
+            end
+            else if (escape_ry == 1'b1) begin
+                escape <= 1'b0;
+                escape_ry <= 1'b0;
+                case (serial_out)
+                    "1": begin
+                        l25_enabled <= 1'b0;
+                    end
+                    "4": begin
+                        cursor_block <= 1'b0;
+                    end
+                    "5": begin
+                        cursor_on <= 1'b1;
+                    end
+                endcase
+            end
+            else if (escape_y == 2'b01) begin
+                cursor_row <= serial_out - 8'd32;
+                escape_y <= 2'b10;
+            end
+            else if (escape_y == 2'b10) begin
+                cursor_col <= serial_out - 8'd32;
+                escape_y <= 2'b00;
+                escape <= 1'b0;
             end
         end
     end
@@ -532,7 +548,7 @@ reg ctrl = 1'b0;
 reg shift = 1'b0;
 reg capslock = 1'b0;
 wire [7:0] lowercasemask = {2'd0, ~(capslock ^ shift), 5'd0};
-always @(posedge clk36m) begin
+always @(posedge clk) begin
 
     if (reset == 1'b1) begin
         kbd_buffer_wrpos <= 1'b0;

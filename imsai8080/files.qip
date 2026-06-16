@@ -1,28 +1,37 @@
-set_global_assignment -name SYSTEMVERILOG_FILE imsai8080_calypso.sv
-set_global_assignment -name SYSTEMVERILOG_FILE vga.sv
-set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
-set_global_assignment -name SYSTEMVERILOG_FILE psram64.sv
-set_global_assignment -name SYSTEMVERILOG_FILE panel.sv
-set_global_assignment -name SYSTEMVERILOG_FILE terminal.sv
-set_global_assignment -name SYSTEMVERILOG_FILE imsai8080.sv
-set_global_assignment -name VERILOG_FILE vm80a.v
-set_global_assignment -name VERILOG_FILE debouncer.v
-set_global_assignment -name VERILOG_FILE deposit.v
-set_global_assignment -name VERILOG_FILE deposit_next.v
-set_global_assignment -name VERILOG_FILE examine.v
-set_global_assignment -name VERILOG_FILE examine_next.v
-set_global_assignment -name VERILOG_FILE reset.v
-set_global_assignment -name VERILOG_FILE sense_switch.v
-set_global_assignment -name SYSTEMVERILOG_FILE wd1793.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/calypso/imsai8080_calypso.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/calypso/sdram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/calypso/psram64.sv
+set_global_assignment -name QIP_FILE rtl/calypso/pll.qip
+set_global_assignment -name SDC_FILE rtl/calypso/imsai8080.sdc
 
-set_global_assignment -name VHDL_FILE cpu68.vhd
-set_global_assignment -name QIP_FILE votrax-sc01a.qip
-set_global_assignment -name QIP_FILE ram.qip
-set_global_assignment -name QIP_FILE rom.qip
-set_global_assignment -name SYSTEMVERILOG_FILE votrax.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/vga.sv
 
-set_global_assignment -name QIP_FILE font_rom.qip
-set_global_assignment -name QIP_FILE videoram.qip
-set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu/cpu.sv
+set_global_assignment -name VERILOG_FILE rtl/cpu/vm80a.v
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/terminal/terminal.sv
+set_global_assignment -name QIP_FILE rtl/terminal/font_rom.qip
+set_global_assignment -name QIP_FILE rtl/terminal/videoram.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/fdc/fdc.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/fdc/wd1793.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/panel/panel.sv
+set_global_assignment -name VERILOG_FILE rtl/panel/debouncer.v
+set_global_assignment -name VERILOG_FILE rtl/panel/deposit.v
+set_global_assignment -name VERILOG_FILE rtl/panel/deposit_next.v
+set_global_assignment -name VERILOG_FILE rtl/panel/examine.v
+set_global_assignment -name VERILOG_FILE rtl/panel/examine_next.v
+set_global_assignment -name VERILOG_FILE rtl/panel/reset.v
+set_global_assignment -name VERILOG_FILE rtl/panel/sense_switch.v
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sio/sio2.sv
+
+set_global_assignment -name VHDL_FILE rtl/votrax/cpu68.vhd
+set_global_assignment -name QIP_FILE rtl/votrax/votrax-sc01a.qip
+set_global_assignment -name QIP_FILE rtl/votrax/ram.qip
+set_global_assignment -name QIP_FILE rtl/votrax/rom.qip
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/votrax/votrax.sv
+
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
-set_global_assignment -name SDC_FILE imsai8080.sdc
+

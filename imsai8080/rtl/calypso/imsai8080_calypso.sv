@@ -111,8 +111,8 @@ wire TAPE_SOUND = UART_RX;
 `include "build_id.v"
 parameter CONF_STR = {
     "IMSAI8080;;",
-    "S0U,DSK,Load Drive 0;",
-    "S1U,DSK,Load Drive 1;",
+    "S0U,DSK,Mount Drive 0;",
+    "S1U,DSK,Mount Drive 1;",
     "O3,DSK Protect,Disable,Enable;",
     `SEP
     "F0,ROM,Reload Panel;",
@@ -121,6 +121,7 @@ parameter CONF_STR = {
     `SEP
     "O12,Console color,Cyan,White,Green,Yellow;",
     "O4,Votrax,Disabled,Enabled;",
+    "O5,Votrax Input,Console,Port B;",
     `SEP
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -152,13 +153,13 @@ end
 wire [31:0] status;
 wire [1:0] buttons;
 
-wire [31:0] sd_lba_mux;
+wire [31:0] sd_lba;
 wire [1:0] sd_rd;
 wire [1:0] sd_wr;
 wire [1:0] sd_ack;
 wire [8:0] sd_buff_addr;
 wire [7:0] sd_buff_dout;
-wire [7:0] sd_buff_din_mux;
+wire [7:0] sd_buff_din;
 wire sd_buff_wr;
 
 wire [1:0] img_mounted;
@@ -195,13 +196,13 @@ user_io(
     .status(status),
 
     .sd_sdhc(1),
-    .sd_lba(sd_lba_mux),
+    .sd_lba(sd_lba),
     .sd_rd(sd_rd),
     .sd_wr(sd_wr),
     .sd_ack_x(sd_ack),
     .sd_buff_addr(sd_buff_addr),
     .sd_dout(sd_buff_dout),
-    .sd_din(sd_buff_din_mux),
+    .sd_din(sd_buff_din),
     .sd_dout_strobe(sd_buff_wr),
 
     .img_mounted(img_mounted),
@@ -216,8 +217,8 @@ user_io(
     .key_pressed(key_pressed),
     .key_extended(key_extended),
     
-    .serial_data(serial_data),
-    .serial_strobe(serial_strobe)
+    .serial_data(porta_serial_data),
+    .serial_strobe(porta_serial_strobe)
 );
 
 
@@ -296,14 +297,18 @@ sdram sdram(
 
 // Place the ROM at F800 initially
 // TODO: Option to load arbitrary data on the address given by the programmed input switches
-//       Avoid wrapping by masking the bits o
-wire [22:0] psram_addr = rom_download == 1'b1 ? {7'd0, 5'b11111, ioctl_addr[10:0]} : {7'd0, extram_addr[15:0]};
-wire psram_rd = rom_download == 1'b1 ? 1'b0 : extram_rd;
-wire psram_we = rom_download == 1'b1 ? ioctl_wr : extram_we;
+//       Avoid wrapping by masking the bits
+wire ram_rd = bus_cpu_rd == 1'b1 && bus_cpu_sysctl[6] == 1'b0;
+wire ram_we = (bus_cpu_wr_n == 1'b0 && bus_cpu_sysctl[4] == 1'b0) || panel_we == 1'b1;
+
+wire [22:0] psram_addr = rom_download == 1'b1 ? {7'd0, 5'b11111, ioctl_addr[10:0]} : {7'd0, bus_addr[15:0]};
+wire psram_rd = rom_download == 1'b1 ? 1'b0 : ram_rd;
+wire psram_we = rom_download == 1'b1 ? ioctl_wr : ram_we;
 wire psram_ready;
-wire [7:0] psram_din = rom_download == 1'b1 ? ioctl_dout : extram_din;
+wire [7:0] psram_din = rom_download == 1'b1 ? ioctl_dout :
+    panel_we == 1'b1 ? panel_data_out : bus_cpu_data_out;
 wire [7:0] psram_dout;
-assign extram_dout = psram_dout;
+assign ram_data_out = ram_rd == 1'b1 ? psram_dout : 8'h00;
 
 assign PSRAM_CLK = clk72m;
 
@@ -374,28 +379,32 @@ localparam [8:0] TERMINAL_HEIGHT = 9'd300;
 wire [3:0] r_panel;
 wire [3:0] g_panel;
 wire [3:0] b_panel;
-wire [15:0] panel_switches;
-wire [9:0] panel_m_switches;
 
-wire [7:0] port_leds;
-wire [7:0] data_leds;
-wire [7:0] cpu_leds;
-wire [3:0] status_leds;
+wire fdc_cpu_ready;
+wire [7:0] disk_leds;
 
-wire [7:0] disk_leds = {
-    fdd_sel[0],
-    fdd_ready[0],
-    fdd_sel[1],
-    fdd_ready[1],
-    ~status[3],
-    |sd_wr,
-    (head_loaded[0] & fdd_sel[0] & fdd_ready[0]) | (head_loaded[1] & fdd_sel[1] & fdd_ready[1]),
-    (track_zero[0] & fdd_sel[0] & fdd_ready[0]) | (track_zero[1] & fdd_sel[1] & fdd_ready[1])
-};
+wire [15:0] bus_addr;
+wire [7:0] bus_cpu_data_in = panel_ce == 1'b1 ? panel_data_out :
+    portb_serial_bus_data_out | terminal_data_out | fdc_data_out | ram_data_out;
+wire [7:0] bus_cpu_data_out;
+wire [7:0] bus_cpu_sysctl;
+wire bus_cpu_wait;
+wire bus_cpu_inte;
+wire bus_cpu_hlda;
+wire bus_cpu_rd;
+wire bus_cpu_wr_n;
+wire bus_cpu_sync;
+wire bus_xrdy;
+wire panel_ce;
+wire panel_we;
 
 panel panel(
-    .clk36m(clk36m),
+    .clk(clk36m),
+    .f1(f1),
+    .f2(f2),
     .reset(reset),
+    .ready_in(fdc_cpu_ready),
+    
     .col(col),
     .row(swapped_panels ? row - TERMINAL_HEIGHT : row),
     .hblank(hblank),
@@ -403,12 +412,24 @@ panel panel(
     .ram_addr(vid_ram_addr),
     .ram_value(ram_value),
     
-    .leds({port_leds, cpu_leds, data_leds, cpu_addr, status_leds}),
     .disk_leds(disk_leds),
-
-    .switches(panel_switches),
-    .m_switches(panel_m_switches),
     
+    .bus_addr(bus_addr),
+    .bus_data_in(bus_cpu_data_out),
+    .bus_cpu_data_in(bus_cpu_data_in),
+    .bus_data_out(panel_data_out),
+    .bus_cpu_sysctl(bus_cpu_sysctl),
+    .bus_cpu_sync(bus_cpu_sync),
+    .bus_cpu_wait(bus_cpu_wait),
+    .bus_cpu_inte(bus_cpu_inte),
+    .bus_cpu_hlda(bus_cpu_hlda),
+    .bus_cpu_rd(bus_cpu_rd),
+    .bus_cpu_wr_n(bus_cpu_wr_n),
+    
+    .bus_xrdy(bus_xrdy),
+    .panel_ce(panel_ce),
+    .panel_we(panel_we),
+
     .key_pressed(key_pressed),
     .key_code(key_code),
     .key_strobe(key_strobe & ~terminal_active),
@@ -422,18 +443,16 @@ panel panel(
 
 wire pixel_terminal;
 
-wire sio_rd;
-wire sio_we;
-wire sio_addr;
-wire [7:0] sio_in;
-wire [7:0] sio_out;
+wire [7:0] porta_serial_data;
+wire porta_serial_strobe;
 
-wire [7:0] serial_data;
-wire serial_strobe;
-
-terminal terminal(
-    .clk36m(clk36m),
+terminal #(
+    .CARD_ADDR(4'd0),
+    .CARD_PORT(2'b01)
+) terminal(
+    .clk(clk36m),
     .reset(reset),
+    
     .xpos(col),
     .ypos(swapped_panels ? row : row - PANEL_HEIGHT),
     .hblank(hblank),
@@ -444,37 +463,20 @@ terminal terminal(
     .key_strobe(key_strobe & terminal_active),
     .key_extended(key_extended),
     
-    .sio_we(sio_we),
-    .sio_rd(sio_rd),
-    .sio_addr(sio_addr),
-    .sio_in(sio_in),
-    .sio_out(sio_out),
+    .bus_addr(bus_addr),
+    .bus_cpu_rd(bus_cpu_rd),
+    .bus_cpu_wr_n(bus_cpu_wr_n),
+    .bus_cpu_sysctl(bus_cpu_sysctl),
+    .bus_data_in(bus_cpu_data_out),
+    .bus_data_out(terminal_data_out),
     
     .vout(pixel_terminal),
 
-    .serial_echo(serial_data),
-    .serial_echo_strobe(serial_strobe)
+    .serial_echo(porta_serial_data),
+    .serial_echo_strobe(porta_serial_strobe)
 );
 
-wire [15:0] extram_addr;
-wire [7:0] extram_din;
-wire [7:0] extram_dout;
-wire extram_rd;
-wire extram_we;
-
-wire io_rd;
-wire io_wr;
-wire cpu_sync;
-wire [15:0] cpu_addr;
-wire fdc_we;
-wire [7:0] io_data_in;
-wire [7:0] io_data_out = cpu_addr[7:0] == 8'h63 ? vdrsel : 
-    fdd_sel[0] ? fdc_data_out[0] :
-    fdd_sel[1] ? fdc_data_out[1] :
-    8'h00;
-
 reg [4:0] cnt = 3'd0;
-
 always @(posedge clk36m) begin
     if (cnt == 5'd17) cnt <= 3'd0;
     else cnt <= cnt + 1'd1;
@@ -483,239 +485,107 @@ end
 wire f1 = cnt == 5'd0;
 wire f2 = cnt == 5'd9;
 
-assign cpu_leds[6] = io_rd;
-assign cpu_leds[4] = io_wr;
+wire [7:0] terminal_data_out;
+wire [7:0] panel_data_out;
+wire [7:0] fdc_data_out;
+wire [7:0] ram_data_out;
 
-imsai8080 core(
+cpu cpu_board(
     .clk(clk36m),
     .f1(f1),
     .f2(f2),
     .reset(reset),
     
-    .intr_in(1'b0),
-    .hold_in(1'b0),
-    .ready_in(fdc_cpu_ready),
+    .bus_cpu_xrdy(bus_xrdy),
+    .bus_cpu_intr(1'b0),
+    .bus_cpu_hold(1'b0),
     
-    .cpu_sync(cpu_sync),
-    
-    .mem_rd(cpu_leds[7]),
-    .io_rd(io_rd),
-    .m1(cpu_leds[5]),
-    .io_wr(io_wr),
-    .halt_ack(cpu_leds[3]),
-    .io_stack(cpu_leds[2]),
-    .mem_wr_n(cpu_leds[1]),
-    .interrupt_ack(cpu_leds[0]),
+    .bus_cpu_sync(bus_cpu_sync),
+    .bus_cpu_wait(bus_cpu_wait),
+    .bus_cpu_inte(bus_cpu_inte),
+    .bus_cpu_hlda(bus_cpu_hlda),
+    .bus_cpu_rd(bus_cpu_rd),
+    .bus_cpu_wr_n(bus_cpu_wr_n),
 
-    .cpu_inte_o(status_leds[3]),
-    .cpu_wait_o(status_leds[1]),
-    .cpu_hlda_o(status_leds[0]),
-    .run_o(status_leds[2]),
-
-    .cpu_addr(cpu_addr),
-    .fdc_data_in(io_data_in),
-    .fdc_we(fdc_we),
-    .fdc_data_out(io_data_out),
-    
-    .data_leds(data_leds),
-    .programmed_output_leds(port_leds),
-    
-    .data_addr_in(panel_switches[7:0]),
-    .addr_sense_in(panel_switches[15:8]),
-    
-    .step_switch(panel_m_switches[8] | panel_m_switches[9]),
-    .examine_switch(panel_m_switches[1]),
-    .examine_next_switch(panel_m_switches[0]),
-    .deposit_switch(panel_m_switches[3]),
-    .deposit_next_switch(panel_m_switches[2]),
-    .reset_switch(panel_m_switches[5]),
-    .clear_switch(panel_m_switches[4]),
-    .run_switch(panel_m_switches[7]),
-    .stop_switch(panel_m_switches[6]),
-    
-    .extram_addr(extram_addr),
-    .extram_data_in(extram_din),
-    .extram_data_out(extram_dout),
-    .extram_rd(extram_rd),
-    .extram_we(extram_we),
-    
-    .sio_addr(sio_addr),
-    .sio_rd(sio_rd),
-    .sio_we(sio_we),
-    .sio_in(sio_in),
-    .sio_out(sio_out),
-
-    .debug_leds()
-);
-
-reg [7:0] vdrsel = 8'd0;
-wire [1:0] head_loaded;
-wire [1:0] track_zero;
-reg [1:0] fdd_ready = 2'b00;
-wire [1:0] fdd_sel = {vdrsel[1], vdrsel[0]};
-wire fdd_side = vdrsel[4];
-wire [7:0] fdc_data_out[2];
-wire [31:0] sd_lba[2];
-wire [7:0] sd_buff_din[2];
-wire [1:0] drq;
-wire [1:0] fdd_io_ena = {cpu_addr[2] & fdd_ready[1] & fdd_sel[1], cpu_addr[2] & fdd_ready[0] & fdd_sel[0]};
-
-wire fdc1_cpu_ready = ~(vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready[0] == 1'b1 && fdd_sel[0] == 1'b1 && drq[0] == 1'b0 && (io_rd | io_wr));
-wire fdc2_cpu_ready = ~(vdrsel[7] == 1'b1 && cpu_addr[7:0] == 8'h67 && fdd_ready[1] == 1'b1 && fdd_sel[1] == 1'b1 && drq[1] == 1'b0 && (io_rd | io_wr));
-wire fdc_cpu_ready = fdc1_cpu_ready & fdc2_cpu_ready;
-
-always @(posedge clk36m) begin
-    reg [1:0] old_mounted;
-    old_mounted <= img_mounted;
-
-    if (~old_mounted[0] & img_mounted[0]) fdd_ready[0] <= |img_size;
-    if (~old_mounted[1] & img_mounted[1]) fdd_ready[1] <= |img_size;
-    
-end
-
-assign sd_lba_mux = fdd_sel[1] ? sd_lba[1] : sd_lba[0];
-assign sd_buff_din_mux = fdd_sel[1] ? sd_buff_din[1] : sd_buff_din[0];
-
-//For a Versafloppy II controller
-//With DIBASE 60H
-// VDRSEL   equ     DIBASE+3    ;Drive select port
-// VDCOM    equ     DIBASE+4    ;WD1793 Command port
-// VDSTAT   equ     DIBASE+4    ;WD1793 Status port
-// VTRACK   equ     DIBASE+5    ;WD1793 Track port
-// VSECT    equ     DIBASE+6    ;WD1793 Sector Register
-// VDDATA   equ     DIBASE+7    ;WD1793 Data Register
-
-// Versafloppy II VDRSEL bit assignments (all active-high)
-
-// VDSEL0   equ     00000001b   ;select drive 0
-// VDSEL1   equ     00000010b   ;select drive 1
-// VDSEL2   equ     00000100b   ;select drive 2
-// VDSEL3   equ     00001000b   ;select drive 3
-// VSIDE1   equ     00010000b   ;Select side 1
-// VMINI    equ     00100000b   ;Set up for minidisk
-// VDDEN    equ     01000000b   ;Enable double-density
-// VWAIT    equ     10000000b   ;Enable auto-wait circuit
-
-always @(posedge clk36m) begin
-    reg last_fdc_we = 1'b0;
-    if (reset) begin
-        last_fdc_we <= 1'b0;
-    end else begin
-        last_fdc_we <= fdc_we;
-        
-        if (~last_fdc_we & fdc_we & io_wr) begin
-            if (cpu_addr[7:0] == 8'h63) begin
-                vdrsel <= io_data_in;
-            end
-        end
-    end
-end
-
-wd1793 #(.RWMODE(1), .EDSK(1)) fdc1(
-    .clk_sys(clk36m),
-    .ce(f1),
-    .reset(reset),
-    .io_en(fdd_io_ena[0]),
-    .intrq(),
-    .drq(drq[0]),
-    .busy(),
-    
-    .rd(io_rd),
-    .wr(io_wr & fdc_we),
-    .addr(cpu_addr[1:0]),
-    .din(io_data_in),
-    .dout(fdc_data_out[0]),
-
-    .img_mounted(img_mounted[0]),
-    .img_size(img_size[19:0]),
-    .sd_lba(sd_lba[0]),
-    .sd_rd(sd_rd[0]),
-    .sd_wr(sd_wr[0]),
-    .sd_ack(sd_ack[0]),
-    .sd_buff_addr(sd_buff_addr),
-    .sd_buff_dout(sd_buff_dout),
-    .sd_buff_din(sd_buff_din[0]),
-    .sd_buff_wr(sd_buff_wr),
-
-    .wp(status[3]),
-
-    .size_code(3'd0), // 26 sectors per track x 128 bytes per sector  = 3.3KB
-    .layout(0),
-    .side(fdd_side),
-    .ready(fdd_ready[0]),
-    .prepare(),
-
-    .input_active(),
-    .input_addr(),
-    .input_data(),
-    .input_wr(),
-    .buff_din(),
-    
-    .track_zero(track_zero[0]),
-    .head_loaded(head_loaded[0])
+    .bus_cpu_sysctl(bus_cpu_sysctl),
+    .bus_addr(bus_addr),
+    .bus_data_out(bus_cpu_data_out),
+    .bus_data_in(bus_cpu_data_in)
 );
 
 
-wd1793 #(.RWMODE(1), .EDSK(1)) fdc2(
-    .clk_sys(clk36m),
+fdc fdc_board(
+    .clk(clk36m),
     .ce(f1),
     .reset(reset),
-    .io_en(fdd_io_ena[1]),
-    .intrq(),
-    .drq(drq[1]),
-    .busy(),
     
-    .rd(io_rd),
-    .wr(io_wr & fdc_we),
-    .addr(cpu_addr[1:0]),
-    .din(io_data_in),
-    .dout(fdc_data_out[1]),
+    .bus_cpu_sysctl(bus_cpu_sysctl),
+    .bus_cpu_wr_n(bus_cpu_wr_n),
+    .bus_cpu_rd(bus_cpu_rd),
 
-    .img_mounted(img_mounted[1]),
-    .img_size(img_size[19:0]),
-    .sd_lba(sd_lba[1]),
-    .sd_rd(sd_rd[1]),
-    .sd_wr(sd_wr[1]),
-    .sd_ack(sd_ack[1]),
+    .bus_addr(bus_addr),
+    .bus_data_in(bus_cpu_data_out),
+    .bus_data_out(fdc_data_out),
+    
+    .sd_lba_mux(sd_lba),
+    .sd_rd(sd_rd),
+    .sd_wr(sd_wr),
+    .sd_ack(sd_ack),
     .sd_buff_addr(sd_buff_addr),
     .sd_buff_dout(sd_buff_dout),
-    .sd_buff_din(sd_buff_din[1]),
+    .sd_buff_din_mux(sd_buff_din),
     .sd_buff_wr(sd_buff_wr),
-
-    .wp(status[3]),
-
-    .size_code(3'd0), // 26 sectors per track x 128 bytes per sector  = 3.3KB
-    .layout(0),
-    .side(fdd_side),
-    .ready(fdd_ready[1]),
-    .prepare(),
-
-    .input_active(),
-    .input_addr(),
-    .input_data(),
-    .input_wr(),
-    .buff_din(),
     
-    .track_zero(track_zero[1]),
-    .head_loaded(head_loaded[1])
+    .img_mounted(img_mounted),
+    .img_size(img_size),
+    
+    .fdc_cpu_ready(fdc_cpu_ready),
+    
+    .write_protect(status[3]),
+    
+    .disk_leds(disk_leds)
+);
+
+wire [7:0] portb_serial_bus_data_out;
+wire [7:0] portb_serial_data;
+wire portb_serial_strobe;
+sio2 #(
+    .CARD_ADDR(4'd0),
+    .CARD_PORT(2'b10)
+) serial_port_b(
+    .clk(clk36m),
+    .reset(reset),
+    .bus_cpu_sysctl(bus_cpu_sysctl),
+    .bus_cpu_rd(bus_cpu_rd),
+    .bus_cpu_wr_n(bus_cpu_wr_n),
+    .bus_addr(bus_addr),
+    .bus_data_in(bus_cpu_data_out),
+    .bus_data_out(portb_serial_bus_data_out),
+    .cts(1'b1),
+    .rts(1'b1),
+
+    .serial_in(),
+    .serial_in_strobe(),
+    .serial_out(portb_serial_data),
+    .serial_out_strobe(portb_serial_strobe)
 );
 
 wire [17:0] votrax_audio;
-wire [7:0] acia_status;
+wire [7:0] votrax_serial_data = status[5] == 1'b1 ? portb_serial_data : porta_serial_data;
+wire votrax_serial_strobe = status[5] == 1'b1 ? portb_serial_strobe : porta_serial_strobe;
 
-assign LED[0] = acia_status[0];
 votrax votrax(
     .clk36m(clk36m),
     .clk2m5(clk2m5),
     .reset(reset),
     
-    .serial_data(serial_data),
-    .serial_strobe(serial_strobe & status[4]),
+    .serial_data(votrax_serial_data),
+    .serial_strobe(votrax_serial_strobe & status[4]),
     
     .audio(votrax_audio),
     .audio_valid(),
     
-    .acia_status(acia_status)
+    .acia_status()
 );
 
 wire [15:0] audio = status[4] == 1'b1 ? votrax_audio[17:2] : 16'd0;
