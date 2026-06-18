@@ -66,7 +66,9 @@ localparam [8:0] V_SIZE = 300;
 localparam [6:0] MAX_COL = 7'd79;
 localparam [4:0] MAX_ROW = 5'd23;
 
-wire [6:0] char_codebase = char_code < 7'h20 ? 7'd0 : char_code[6:0] - 7'h20;
+wire in_graphics_range = (char_code[6:0] >= 7'h5E) && (char_code[6:0] <= 7'h7E);
+wire [6:0] txt_char_codebase = char_code < 7'h20 ? 7'd0 : char_code[6:0] - 7'h20;
+wire [6:0] char_codebase = (graphics_mode && in_graphics_range) ? char_code[6:0] : txt_char_codebase;
 wire [10:0] char_addr_base = 
     {char_codebase[6:0], 2'd0} 
     + {char_codebase[6:0], 2'd0} 
