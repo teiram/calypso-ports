@@ -59,5 +59,6 @@ The monitor ROM is currently loaded at F800, but it can be overwritten, for inst
 - 0.2. Fixed the issue with the panel offset
 - 0.3. Votrax simulation
 - 0.4. BIOS LIST/LISTST support. Votrax can read from console or printer
+- 0.5. Terminal graphics mode. Console beep. Flashing cursor 
 
 

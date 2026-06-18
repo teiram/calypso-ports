@@ -12,6 +12,7 @@ set_global_assignment -name VERILOG_FILE rtl/cpu/vm80a.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/terminal/terminal.sv
 set_global_assignment -name QIP_FILE rtl/terminal/font_rom.qip
 set_global_assignment -name QIP_FILE rtl/terminal/videoram.qip
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/terminal/beeper.sv
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/fdc/fdc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/fdc/wd1793.sv
@@ -24,6 +25,8 @@ set_global_assignment -name VERILOG_FILE rtl/panel/examine.v
 set_global_assignment -name VERILOG_FILE rtl/panel/examine_next.v
 set_global_assignment -name VERILOG_FILE rtl/panel/reset.v
 set_global_assignment -name VERILOG_FILE rtl/panel/sense_switch.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/panel/clicker.sv
+set_global_assignment -name QIP_FILE rtl/panel/click_sound_rom.qip
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/sio/sio2.sv
 

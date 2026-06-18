@@ -37,7 +37,9 @@ module panel(
     
     output reg [3:0] r,
     output reg [3:0] g,
-    output reg [3:0] b
+    output reg [3:0] b,
+    
+    output [15:0] audio
 );
 
 // GIMP Palette, divide by 16
@@ -324,6 +326,24 @@ always @(posedge clk) begin
         end
     end
 end
+
+reg trigger = 1'b0;
+
+clicker #(
+    .CLK_HZ(36000000),
+    .AUDIO_HZ(22050)
+) clicker(
+    .clk(clk),
+    .trigger(trigger),
+    .audio(audio)
+);
+
+always @(posedge clk) begin
+    reg [26:0] switches_last;
+    switches_last <= {switches, m_switches};
+    trigger <= switches_last != {switches, m_switches};
+end
+
 
 wire [7:0] data_addr_switches = switches[7:0];
 wire [7:0] addr_sense_switches = switches[15:8];

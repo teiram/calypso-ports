@@ -120,6 +120,7 @@ parameter CONF_STR = {
     "F1,ROM,Reload ROM at F800;",
     `SEP
     "O12,Console color,Cyan,White,Green,Yellow;",
+    "O6,Flashing cursor,No,Yes;",
     "O4,Votrax,Disabled,Enabled;",
     "O5,Votrax Input,Console,Port B;",
     `SEP
@@ -397,7 +398,7 @@ wire bus_cpu_sync;
 wire bus_xrdy;
 wire panel_ce;
 wire panel_we;
-
+wire [15:0] panel_audio;
 panel panel(
     .clk(clk36m),
     .f1(f1),
@@ -437,7 +438,9 @@ panel panel(
 
     .r(r_panel),
     .g(g_panel),
-    .b(b_panel)
+    .b(b_panel),
+    
+    .audio(panel_audio)
 );
 
 
@@ -445,7 +448,7 @@ wire pixel_terminal;
 
 wire [7:0] porta_serial_data;
 wire porta_serial_strobe;
-
+wire [15:0] terminal_audio;
 terminal #(
     .CARD_ADDR(4'd0),
     .CARD_PORT(2'b01)
@@ -469,8 +472,10 @@ terminal #(
     .bus_cpu_sysctl(bus_cpu_sysctl),
     .bus_data_in(bus_cpu_data_out),
     .bus_data_out(terminal_data_out),
+    .flashing_cursor(status[6]),
     
     .vout(pixel_terminal),
+    .audio_out(terminal_audio),
 
     .serial_echo(porta_serial_data),
     .serial_echo_strobe(porta_serial_strobe)
@@ -588,7 +593,9 @@ votrax votrax(
     .acia_status()
 );
 
-wire [15:0] audio = status[4] == 1'b1 ? votrax_audio[17:2] : 16'd0;
+wire signed [15:0] audio = status[4] == 1'b1 ? 
+    votrax_audio[17:2] + panel_audio + terminal_audio :
+    panel_audio + terminal_audio;
 
 i2s i2s (
     .reset(1'b0),

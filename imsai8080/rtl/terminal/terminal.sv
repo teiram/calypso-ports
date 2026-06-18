@@ -19,7 +19,10 @@ module terminal(
     input [7:0] bus_data_in,
     output [7:0] bus_data_out,
     
+    input flashing_cursor,
+    
     output reg vout,
+    output [15:0] audio_out,
     
     output [7:0] serial_echo,
     output serial_echo_strobe
@@ -37,7 +40,7 @@ parameter [1:0] CARD_PORT = 2'b01; // SIO2 Port A
 
 wire [11:0] raster_addr;
 reg [10:0] char_addr;
-wire [7:0] char_code;
+wire [8:0] char_code;  // bit 8. Graphics mode, bit 7. Reverse mode. bit 6-0. ASCII code.
 wire [9:0] video_val;
 reg [9:0] pixels;
 
@@ -67,13 +70,13 @@ localparam [6:0] MAX_COL = 7'd79;
 localparam [4:0] MAX_ROW = 5'd23;
 
 wire in_graphics_range = (char_code[6:0] >= 7'h5E) && (char_code[6:0] <= 7'h7E);
-wire [6:0] txt_char_codebase = char_code < 7'h20 ? 7'd0 : char_code[6:0] - 7'h20;
-wire [6:0] char_codebase = (graphics_mode && in_graphics_range) ? char_code[6:0] : txt_char_codebase;
-wire [10:0] char_addr_base = 
-    {char_codebase[6:0], 2'd0} 
-    + {char_codebase[6:0], 2'd0} 
+wire [6:0] txt_char_codebase = char_code[6:0] < 7'h20 ? 7'd0 : char_code[6:0] - 7'h20;
+wire [6:0] char_codebase = (char_code[8] == 1'b1 && in_graphics_range == 1'b1) ? char_code[6:0] : txt_char_codebase;
+wire [10:0] char_addr_base =
+    {char_codebase[6:0], 2'd0}
+    + {char_codebase[6:0], 2'd0}
     + {char_codebase[6:0], 2'd0};
-    
+
 // Tracking of the current raster position
 // Since our font dimension is not a power of 2
 reg [4:0] row; // Current raster row (0-24)
@@ -81,9 +84,18 @@ reg [6:0] col; // Current raster col (0-79)
 reg [3:0] x;   // Raster x pixel position on char (0-9)
 reg [4:0] y;   // Raster y pixel position on char (0-11)
 
+reg cursor_timer = 1'b1;
+always @(posedge clk) begin
+    reg [24:0] cnt = 'd0;
+    
+    cnt <= cnt + 1'd1;
+    if (&cnt) cursor_timer <= ~cursor_timer;
+end
+
 wire cursor_enable = cursor_on == 1'b1 &&
     row == cursor_row &&
     col == cursor_col &&
+    (flashing_cursor == 1'b0 || cursor_timer == 1'b1) &&
     (cursor_block == 1'b1 || y[3] == 1'b1);
 
 always @(posedge clk) begin
@@ -168,11 +180,11 @@ reg [11:0] video_wr_addr = 'd0;
 reg [11:0] video_rd_addr = 'd0;
 reg [11:0] video_wr_addr_end = 'd0;
 reg [11:0] video_xfer_size = 'd0;
-reg [7:0] video_q;
+reg [8:0] video_q;
 
 
 wire [11:0] video_cursor_addr = {cursor_row[4:0], cursor_col[6:0]}; //128 bytes per line
-reg [7:0] video_data;
+reg [8:0] video_data;
 reg video_we;
 
 wire cts = ~(clear | xfer | xferr | lf  | update_cursor_pos | cmd_running | has_cmd); 
@@ -211,6 +223,14 @@ reg xfer = 1'b0;
 reg xferr = 1'b0;
 reg lf = 1'b0;
 
+reg beep_trigger = 1'b0;
+beeper beeper (
+    .clk(clk),
+    .trigger(beep_trigger),
+    .audio(audio_out)
+);
+
+
 always @(posedge clk) begin
     
     reg [1:0] mem_status = 2'b00;
@@ -221,6 +241,7 @@ always @(posedge clk) begin
     reg escape_ry = 1'b0;
     
     video_we <= 1'b0;
+    beep_trigger <= 1'b0;
     
     if (reset == 1'b1) begin
         cursor_col <= 'd0;
@@ -283,6 +304,9 @@ always @(posedge clk) begin
     else if (serial_out_strobe == 1'b1) begin
         if (escape == 1'b0) begin
             case (serial_out)
+                8'd7: begin
+                    beep_trigger <= 1'b1;
+                end
                 8'd8: begin                   // BACKSPACE
                     if (|cursor_col) cursor_col <= cursor_col - 1'd1;
                 end
@@ -295,7 +319,7 @@ always @(posedge clk) begin
                 8'd27: escape <= 1'b1;
                 default: begin
                     video_wr_addr <= video_cursor_addr;
-                    video_data <= {reverse_mode, serial_out[6:0]};
+                    video_data <= {graphics_mode, reverse_mode, serial_out[6:0]};
                     video_we <= 1'b1;
                     update_cursor_pos <= 1'b1;
                 end
@@ -428,7 +452,7 @@ always @(posedge clk) begin
                     default: begin
                         escape <= 1'b0;
                         video_wr_addr <= video_cursor_addr;
-                        video_data <= {1'b0, serial_out[6:0]};
+                        video_data <= {2'b00, serial_out[6:0]};
                         video_we <= 1'b1;
                         update_cursor_pos <= 1'b1;
                     end
@@ -655,7 +679,7 @@ always @(posedge clk) begin
             {3'b1?1, 8'h1a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h1a; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Ctrl-Z
             {3'b0?1, 8'h22}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h58 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // X
             {3'b1?1, 8'h22}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h18; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Control-X
-            {3'b???, 8'h72}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h18; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Cursor down
+            {3'b??1, 8'h72}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h18; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Cursor down
             {3'b0?1, 8'h21}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h43 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // C
             {3'b1?1, 8'h21}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h03; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // Control-C
             {3'b0?1, 8'h2a}: begin kbd_buffer[kbd_buffer_wrpos] <= 8'h56 | lowercasemask; kbd_buffer_wrpos <= kbd_buffer_wrpos + 1'b1; end     // V
