@@ -119,7 +119,7 @@ parameter CONF_STR = {
     `SEP
     "F1,ROM,Reload ROM at F800;",
     `SEP
-    "O12,Console color,Cyan,White,Green,Yellow;",
+    "O12,Console color,Cyan,White,Green,Amber;",
     "O6,Flashing cursor,No,Yes;",
     "O4,Votrax,Disabled,Enabled;",
     "O5,Votrax Input,Console,Port B;",
@@ -610,17 +610,17 @@ i2s i2s (
     .right_chan(audio)
 );
 
-wire [11:0] rgb_t_green = pixel_terminal == 1'b1 ? 12'h0e0 : 12'd0;
-wire [11:0] rgb_t_white = pixel_terminal == 1'b1 ? 12'heee : 12'd0;
+wire [11:0] rgb_t_green = pixel_terminal == 1'b1 ? 12'h0e0 : 12'h111;
+wire [11:0] rgb_t_white = pixel_terminal == 1'b1 ? 12'heee : 12'h111;
 wire [11:0] rgb_t_cyan = pixel_terminal == 1'b1 ? 12'h7ee : 12'h111;
-wire [11:0] rgb_t_yellow = pixel_terminal == 1'b1 ? 12'hfe0 : 12'd0;
-wire [11:0] rgb_t_disabled = pixel_terminal == 1'b1 ? 12'h555 : 12'h111;
+wire [11:0] rgb_t_amber = pixel_terminal == 1'b1 ? 12'hfb0 : 12'h111;
+wire [11:0] rgb_t_disabled = pixel_terminal == 1'b1 ? 12'h444 : 12'h111;
 
 wire [12:0] rgb_terminal = terminal_active ? 
     status[2:1] == 2'b00 ? rgb_t_cyan :
     status[2:1] == 2'b01 ? rgb_t_white :
     status[2:1] == 2'b10 ? rgb_t_green :
-    rgb_t_yellow :
+    rgb_t_amber :
     rgb_t_disabled;
 
 assign R = swapped_panels ?
