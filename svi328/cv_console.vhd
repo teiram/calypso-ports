@@ -40,13 +40,13 @@
 -- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 -- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
 -- THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
--- PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE
+-- PURPOSE ARE DISCLAIMED. in NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE
 -- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 -- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 -- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 -- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 -- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
--- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+-- ARISING in ANY WAY out OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 -- POSSIBILITY OF SUCH DAMAGE.
 --
 -- Please report bugs to the author, but before you do so, please
@@ -71,15 +71,15 @@ entity cv_console is
     -- Global Interface -------------------------------------------------------
     clk_i           : in  std_logic;
     clk_en_10m7_i   : in  std_logic;
-	 clk_en_5m3_i   : in  std_logic;
+    clk_en_5m3_i    : in  std_logic;
     reset_n_i       : in  std_logic;
 
     svi_row_o       : out std_logic_vector(3 downto 0);
-    svi_col_i       : in  std_logic_vector(7 downto 0);	 
+    svi_col_i       : in  std_logic_vector(7 downto 0);
 
-	 svi_tap_i	     : in  std_logic;	 
-    motor_o			  : out std_logic;	 
-	 
+    svi_tap_i       : in  std_logic;
+    motor_o         : out std_logic;
+
     por_n_o         : out std_logic;
     -- Controller Interface ---------------------------------------------------
     joy0_i          : in  std_logic_vector( 4 downto 0);
@@ -93,7 +93,7 @@ entity cv_console is
     cpu_ram_d_o     : out std_logic_vector( 7 downto 0);
     cpu_rfsh_n_o    : out std_logic;
     -- RAM Mapper Reg ---------------------------------------------------------
-	 ay_port_b		  : out std_logic_vector( 7 downto 0);
+    ay_port_b       : out std_logic_vector( 7 downto 0);
     -- Video RAM Interface ----------------------------------------------------
     vram_a_o        : out std_logic_vector(13 downto 0);
     vram_we_o       : out std_logic;
@@ -112,7 +112,15 @@ entity cv_console is
     vblank_o        : out std_logic;
     comp_sync_n_o   : out std_logic;
     -- Audio Interface --------------------------------------------------------
-    audio_o         : out std_logic_vector(10 downto 0)
+    audio_o         : out std_logic_vector(10 downto 0);
+
+    clk_en_3m58_p_o : out std_logic;
+    wait_n_i        : in std_logic;
+    cpu_ioreq_n_o   : out std_logic;
+    cpu_mreq_n_o    : out std_logic;
+    
+    ext_io_data_i   : in std_logic_vector(7 downto 0);
+    ext_io_en_n_i: in std_logic
   );
 
 end cv_console;
@@ -140,9 +148,9 @@ architecture struct of cv_console is
     csn       : in  std_logic;
 
     -- External pins to peripherals
-	 porta_din : in  std_logic_vector(7 downto 0);
+    porta_din : in  std_logic_vector(7 downto 0);
     portb_din : in  std_logic_vector(7 downto 0);
-	 portc_din : in  std_logic_vector(7 downto 0);
+    portc_din : in  std_logic_vector(7 downto 0);
 
     porta_dout: out  std_logic_vector(7 downto 0);
     portb_dout: out  std_logic_vector(7 downto 0);
@@ -152,33 +160,33 @@ architecture struct of cv_console is
   end component;
   
   component jt49_bus
-	 port (
-				clk : IN STD_LOGIC;
-				clk_en : IN STD_LOGIC;
-				rst_n : IN STD_LOGIC;
-				bdir : IN STD_LOGIC;
-				bc1 : IN STD_LOGIC;
-				sel : IN STD_LOGIC;
-				din : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-				dout : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-				sound : OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
-				A : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-				B : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-				C : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-				sample : OUT STD_LOGIC;
-				IOA_In : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-				IOA_Out : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-				IOB_In : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-				IOB_Out : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
-	 );
-	end component;
+    port (
+      clk : in std_logic;
+      clk_en : in std_logic;
+      rst_n : in std_logic;
+      bdir : in std_logic;
+      bc1 : in std_logic;
+      sel : in std_logic;
+      din : in std_logic_vector(7 downto 0);
+      dout : out std_logic_vector(7 downto 0);
+      sound : out std_logic_vector(9 downto 0);
+      A : out std_logic_vector(7 downto 0);
+      B : out std_logic_vector(7 downto 0);
+      C : out std_logic_vector(7 downto 0);
+      sample : out std_logic;
+      IOA_in : in std_logic_vector(7 downto 0);
+      IOA_out : out std_logic_vector(7 downto 0);
+      IOB_in : in std_logic_vector(7 downto 0);
+      IOB_out : out std_logic_vector(7 downto 0)
+    );
+  end component;
   
   component ls74 IS
   port(d,
-	  clr,
+     clr,
      pre,
-     clk   : IN std_logic;
-     q     : OUT std_logic);
+     clk   : in std_logic;
+     q     : out std_logic);
   end component;
   
   signal por_n_s          : std_logic;
@@ -320,33 +328,31 @@ begin
       DO         => d_from_cpu_s
     );
 
-	 
+
 inst_psg : jt49_bus
   PORT MAP(
-		 clk => clk_i,
-		 clk_en => clk_en_1m79_p_s,
-		 sel => '0',
-		 rst_n => reset_n_s,
-		 bc1 => not ay_addr_we_n_s or not ay_data_rd_n_s,
-		 bdir => not ay_addr_we_n_s or not ay_data_we_n_s,
-		 din => d_from_cpu_s,
-		 dout => ay_d_s,
-		 sample => open,
-		 sound => AySound,
-		 A => open,
-		 B => open,
-		 C => open,
-		 IOA_In => joy1_i(3 downto 0) & joy0_i(3 downto 0), 
-		 IOA_out     => open,
-		 IOB_Out => ay_port_b,
-		 IOB_In => (others => '0')
+    clk => clk_i,
+    clk_en => clk_en_1m79_p_s,
+    sel => '0',
+    rst_n => reset_n_s,
+    bc1 => not ay_addr_we_n_s or not ay_data_rd_n_s,
+    bdir => not ay_addr_we_n_s or not ay_data_we_n_s,
+    din => d_from_cpu_s,
+    dout => ay_d_s,
+    sample => open,
+    sound => AySound,
+    A => open,
+    B => open,
+    C => open,
+    IOA_in => joy1_i(3 downto 0) & joy0_i(3 downto 0), 
+    IOA_out     => open,
+    IOB_out => ay_port_b,
+    IOB_in => (others => '0')
  );
 
-
-
-	 
-	 -- SVI 8255
-	 
+  
+  -- SVI 8255
+  
 --Port A (Port address: 98H) (I/O Status: Input) (Operating mode: 0)
 --Bit 7: Cassette: Read data
 --Bit 6: Cassette: Ready (0=on/ready, 1=off/not ready)
@@ -373,8 +379,8 @@ inst_psg : jt49_bus
 --Bit 3: Keyboard: Line select 3
 --Bit 2: Keyboard: Line select 2
 --Bit 1: Keyboard: Line select 1
---Bit 0: Keyboard: Line select 0	 
-	 
+--Bit 0: Keyboard: Line select 0
+
   U8255_inst: jt8255
   port map(
     rst         => not reset_n_s,
@@ -390,43 +396,38 @@ inst_psg : jt49_bus
     csn       => u8255_cs_n_s,
 
     -- External pins to peripherals
-	 porta_din => svi_tap_i & '0' & joy1_i(4) & joy0_i(4) &"1111",
+    porta_din => svi_tap_i & '0' & joy1_i(4) & joy0_i(4) &"1111",
     portb_din => svi_col_i,
-	 portc_din => (others => '0'),
+    portc_din => (others => '0'),
 
     porta_dout=> open,
     portb_dout=> open,
     portc_dout=> PortC_8255
+  );
 
-    );
 
 
-	 
   -----------------------------------------------------------------------------
   -- Z80 Wait Signal
   ls74_inst : ls74
-  port map 
-  (	d   => m1_n_s,
-	   clr => '1',
-      pre => m1_wait_q,
-      clk => clk_en_3m58_p_s,
-      q   => wait_n_s
+  port map(
+    d   => m1_n_s,
+    clr => wait_n_i,
+    pre => m1_wait_q,
+    clk => clk_en_3m58_n_s,
+    q   => wait_n_s
   );
 
   ls74_inst2 : ls74
-  port map 
-  (	d   => wait_n_s,
-	   clr => '1',
-      pre => '1',
-      clk => clk_en_3m58_p_s,
-      q   => m1_wait_q
+  port map(
+    d   => wait_n_s,
+    clr => '1',
+    pre => wait_n_i,
+    clk => clk_en_3m58_n_s,
+    q   => m1_wait_q
   );
 
-
-  
   -----------------------------------------------------------------------------
-
-
   -----------------------------------------------------------------------------
   -- TMS9928A Video Display Processor
   -----------------------------------------------------------------------------
@@ -479,14 +480,14 @@ inst_psg : jt49_bus
       wr_n_i          => wr_n_s,
       mreq_n_i        => mreq_n_s,
       rfsh_n_i        => rfsh_n_s,
-		m1_n_i			 => m1_n_s,
+      m1_n_i          => m1_n_s,
       ram_ce_n_o      => ram_ce_n_s,
       vdp_r_n_o       => vdp_r_n_s,
       vdp_w_n_o       => vdp_w_n_s,
       ay_addr_we_n_o  => ay_addr_we_n_s,
       ay_data_we_n_o  => ay_data_we_n_s,
       ay_data_rd_n_o  => ay_data_rd_n_s,
-		u8255_cs_n_o	 => u8255_cs_n_s
+      u8255_cs_n_o    => u8255_cs_n_s
     );
 
   cpu_ram_ce_n_o  <= ram_ce_n_s;
@@ -502,12 +503,14 @@ inst_psg : jt49_bus
       ram_ce_n_i      => ram_ce_n_s,
       vdp_r_n_i       => vdp_r_n_s,
       ay_data_rd_n_i  => ay_data_rd_n_s,
-		u8255_cs_n_i    => u8255_cs_n_s,
+      u8255_cs_n_i    => u8255_cs_n_s,
+      ext_io_en_n_i   => ext_io_en_n_i,
       cpu_ram_d_i     => cpu_ram_d_i,
       vdp_d_i         => d_from_vdp_s,
       ay_d_i          => ay_d_s,
-		joyfire         => joy1_i(4) & joy0_i(4),		
-		d_from_8255 	 => d_from_8255,
+      joyfire         => joy1_i(4) & joy0_i(4),
+      d_from_8255     => d_from_8255,
+      ext_io_data_i   => ext_io_data_i,
       d_o             => d_to_cpu_s
     );
 
@@ -516,13 +519,13 @@ inst_psg : jt49_bus
   svi_row : process (clk_i, reset_n_s, m1_n_s)
   begin
     if reset_n_s = '0' then
-		svi_row_o <= (others => '0');
-		keyBeep   <= '0';
-		motor     <= '1';
+      svi_row_o <= (others => '0');
+      keyBeep   <= '0';
+      motor     <= '1';
     elsif clk_i'event and clk_i = '1' then 
-		svi_row_o <= PortC_8255(3 downto 0);
-		keyBeep   <= PortC_8255(7);
-		motor     <= PortC_8255(4);
+      svi_row_o <= PortC_8255(3 downto 0);
+      keyBeep   <= PortC_8255(7);
+      motor     <= PortC_8255(4);
     end if;
   end process svi_row;
 
@@ -533,4 +536,9 @@ inst_psg : jt49_bus
   cpu_ram_a_o  <= a_s(15 downto 0);
   cpu_ram_d_o  <= d_from_cpu_s;
 
+  clk_en_3m58_p_o <= clk_en_3m58_p_s;
+  cpu_ioreq_n_o <= iorq_n_s;
+  cpu_mreq_n_o <= mreq_n_s;
+  
+  
 end struct;

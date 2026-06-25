@@ -1,4 +1,4 @@
-module SVI328(       
+module SVI328(
     input         CLK12M,
     output [7:0]  LED,
     output [VGA_BITS-1:0] VGA_R,
@@ -124,10 +124,11 @@ assign LED[1] = ~motor;
 assign LED[2] = megarom;
 assign LED[3] = tape_loaded;
 
-`include "build_id.v" 
+`include "build_id.v"
 localparam CONF_STR = {
     "SVI328;;",
-    "F,BINROM,Load Cartridge;",
+    "S0U,DSK,Mount drive 0;",
+    "F1,BINROM,Load Cartridge;",
     "F2,CAS,Load Tape;",
     "OF,Tape Input,File,Line;",
     "TD,Rewind Tape;",
@@ -135,6 +136,7 @@ localparam CONF_STR = {
     "O79,Scanlines,None,25%,50%,75%;",
     "O6,Show border,No,Yes;",
     "O3,Swap joysticks,No,Yes;",
+    "OA,Video output,w40,w80;",
     "T0,Reset;",
     "T1,Hard reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -142,12 +144,14 @@ localparam CONF_STR = {
 
 wire clk_sys;
 wire clk_21m3;
+wire clk_12m;
 wire pll_locked;
 
 pll pll(
     .inclk0(CLK12M),
     .c0(clk_sys),
     .c1(clk_21m3),
+    .c2(clk_12m),
     .locked(pll_locked)
 );
 
@@ -171,10 +175,35 @@ always @(posedge clk_sys) begin
     end
 end
 
+wire ce_fdc = cpu_ce && &cnt_fdc;
+reg [1:0] cnt_fdc = 'd0;
+
+always @(posedge clk_sys) begin
+    if (cpu_ce == 1'b1) begin
+        cnt_fdc <= cnt_fdc + 1'b1;
+    end
+end
+
 wire [31:0] status;
 wire  [1:0] buttons;
 
 wire [31:0] joy0, joy1;
+
+wire [31:0] sd_lba;
+wire sd_rd;
+wire sd_wr;
+wire sd_ack;
+wire [8:0] sd_buff_addr;
+wire [7:0] sd_buff_dout;
+wire [7:0] sd_buff_din;
+wire sd_buff_wr;
+
+wire img_mounted;
+wire img_readonly;
+
+wire [63:0] img_size;
+wire [31:0] img_ext;
+
 
 wire        ioctl_download;
 wire  [7:0] ioctl_index;
@@ -192,16 +221,18 @@ user_io #(
     .STRLEN($size(CONF_STR)>>3),
     .SD_IMAGES(1),
     .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
-
 user_io(
 
     .clk_sys(clk_sys),
+    .clk_sd(clk_sys),
+    
     .conf_str(CONF_STR),
     
     .SPI_CLK(SPI_SCK),
     .SPI_SS_IO(CONF_DATA0),
     .SPI_MISO(SPI_DO),
     .SPI_MOSI(SPI_DI),
+    
     .buttons(buttons),
     .ypbpr(ypbpr),
     
@@ -212,7 +243,20 @@ user_io(
     
     .joystick_0(joy0),
     .joystick_1(joy1),
-    .status(status)
+    .status(status),
+    
+    .sd_sdhc(1'b1),
+    .sd_lba(sd_lba),
+    .sd_rd(sd_rd),
+    .sd_wr(sd_wr),
+    .sd_ack_x(sd_ack),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_dout(sd_buff_dout),
+    .sd_din(sd_buff_din),
+    .sd_dout_strobe(sd_buff_wr),
+
+    .img_mounted(img_mounted),
+    .img_size(img_size)
 );
 
 data_io data_io(
@@ -319,8 +363,8 @@ wire [8:0] megarom_page = megarom ?
     megarom_index < 6'd4 ? {6'd0, 1'b1, megarom_index[1:0]} : {3'b100, megarom_index[5:0]} 
     : {6'd0, 1'b1, ram_a[15:14]};
 
-assign sdram_we = ioctl_wr | 
-                  (isRam & ~(ram_we_n | ram_ce_n)) | 
+assign sdram_we = ioctl_wr |
+                  (isRam & svi806_ramdis_n & ~(ram_we_n | ram_ce_n)) | 
                   (in_hard_reset & cleanup_we);
 
 assign sdram_addr = 
@@ -354,7 +398,7 @@ sdram sdram(
     .clk(clk_sys),
 
     .wtbt(0),
-    .addr(sdram_addr), 
+    .addr(sdram_addr),
     .rd(sdram_rd),
     .we(sdram_we),
     .din(sdram_din),
@@ -401,7 +445,7 @@ i2s i2s(
 );
 `endif
 
-wire [7:0] R,G,B,ay_port_b;
+wire [7:0] R,G,B, ay_port_b;
 wire hblank, vblank;
 wire hsync, vsync;
 wire cpu_rfsh_n;
@@ -410,6 +454,15 @@ wire [31:0] joyb = status[3] ? joy0 : joy1;
 
 wire svi_audio_in = status[15] ? tape_in : (cas_status != 0 ? cas_data_out : 1'b0);
 wire ce_10m7_gated = ioctl_cas_download ? 1'b0 : ce_10m7;
+
+wire cpu_ce;
+wire cpu_wait;
+wire cpu_ioreq_n;
+wire cpu_mreq_n;
+wire cpu_rd_n;
+
+wire ext_io_ena = fdc_io_ena | svi806_io_ena;
+wire [7:0] ext_io_data = fdc_data_out | svi806_data_out;
 
 cv_console console(
     .clk_i(clk_sys),
@@ -431,7 +484,7 @@ cv_console console(
     .cpu_ram_we_n_o(ram_we_n),
     .cpu_ram_ce_n_o(ram_ce_n),
     .cpu_ram_rd_n_o(ram_rd_n),
-    .cpu_ram_d_i(ram_di),
+    .cpu_ram_d_i(svi806_ramdis_n == 1'b1 ? ram_di : svi806_data_out),
     .cpu_ram_d_o(ram_do),
     .cpu_rfsh_n_o(cpu_rfsh_n),
     .ay_port_b(ay_port_b),
@@ -450,10 +503,88 @@ cv_console console(
     .hblank_o(hblank),
     .vblank_o(vblank),
 
-    .audio_o(core_audio)
+    .audio_o(core_audio),
+
+    .clk_en_3m58_p_o(cpu_ce),
+    .wait_n_i(~cpu_wait),
+    .cpu_ioreq_n_o(cpu_ioreq_n),
+    .cpu_mreq_n_o(cpu_mreq_n),
+    
+    .ext_io_en_n_i(~ext_io_ena),
+    .ext_io_data_i(ext_io_data)
 );
 
-wire [1:0] scanlines = status[9:7];
+wire svi806_video;
+wire svi806_hsync;
+wire svi806_vsync;
+wire svi806_de;
+wire svi806_ramdis_n;
+wire svi806_io_ena;
+wire [7:0] svi806_data_out;
+
+svi806_top crt80(
+    .clk(clk_sys),
+    .clk_vid(clk_12m),
+    .cpu_ce(cpu_ce),
+    .reset(reset),
+    
+    .io_ena(svi806_io_ena),
+    .cpu_addr(cpu_ram_a),
+    .cpu_data_in(ram_do),
+    .cpu_mreq_n(cpu_mreq_n),
+    .cpu_ioreq_n(cpu_ioreq_n),
+    .cpu_rd_n(ram_rd_n),
+    .cpu_wr_n(ram_we_n),
+    
+    .cpu_data_out(svi806_data_out),
+    .cpu_wait(cpu_wait),
+    .ramdis_n(svi806_ramdis_n),
+    
+    .video(svi806_video),
+    .hsync(svi806_hsync),
+    .vsync(svi806_vsync),
+    .de(svi806_de)
+);
+
+wire [7:0] fdc_data_out;
+wire fdc_io_ena;
+
+wire fdc_ce = toggle;
+reg toggle = 1'd0;
+always @(posedge clk_sys) begin
+    if (cpu_ce) toggle <= ~toggle;
+end
+
+sv801 fdc(
+    .clk(clk_sys),
+    .ce(cpu_ce),
+    .reset(reset),
+
+    .ioreq(~cpu_ioreq_n),
+    .rd(~ram_rd_n),
+    .wr(~ram_we_n),
+    .bus_addr(cpu_ram_a),
+    .fdc_data_in(ram_do),
+    .fdc_data_out(fdc_data_out),
+    .fdc_ena(fdc_io_ena),
+    
+    .sd_lba(sd_lba),
+    .sd_rd(sd_rd),
+    .sd_wr(sd_wr),
+    .sd_ack(sd_ack),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_buff_dout(sd_buff_dout),
+    .sd_buff_din(sd_buff_din),
+    .sd_buff_wr(sd_buff_wr),
+    
+    .img_mounted(img_mounted),
+    .img_size(img_size),
+    
+    .write_protect(1'b0)
+);
+
+
+wire [2:0] scanlines = status[9:7];
 
 mist_video #(.COLOR_DEPTH(8),
              .SD_HCNT_WIDTH(11),
@@ -466,13 +597,14 @@ mist_video(
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
     
-    .R(R),
-    .G(G),
-    .B(B),
-    .HSync(hsync),
-    .VSync(vsync),
+    .R(status[10] == 1'b0 ? R : {8{svi806_video}}),
+    .G(status[10] == 1'b0 ? G : {8{svi806_video}}),
+    .B(status[10] == 1'b0 ? B : {8{svi806_video}}),
+    .HSync(status[10] == 1'b0 ? hsync : svi806_hsync),
+    .VSync(status[10] == 1'b0 ? vsync : svi806_vsync),
     .HBlank(hblank),
     .VBlank(vblank),
+    
     .VGA_R(VGA_R),
     .VGA_G(VGA_G),
     .VGA_B(VGA_B),
