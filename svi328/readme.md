@@ -8,3 +8,4 @@ SVI328.ROM file must be provided in the SD card root folder (or core folder)
 - 0.1. Initial release
 - 0.2. Tape audio (courtesy of Turri)
 - 0.3. Megarom support and tape audio fixes
+- 0.4. SVI806 (80 col card) and SV801 (Floppy disk controller) support
