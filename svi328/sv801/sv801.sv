@@ -100,12 +100,11 @@ wd1793 #(.RWMODE(1), .EDSK(0)) fdc1(
 
     .wp(write_protect),
 
-    .size_code(3'd5), // SVI328 disks 
+    .size_code(3'd5),
     
     .layout(1),
     .side(side_density[0]),
     .ready(fdd_ready),
-//    .ready(1'b1),
     .prepare(),
 
     .input_active(),

@@ -129,14 +129,20 @@ localparam CONF_STR = {
     "SVI328;;",
     "S0U,DSK,Mount drive 0;",
     "F1,BINROM,Load Cartridge;",
+    `SEP
     "F2,CAS,Load Tape;",
     "OF,Tape Input,File,Line;",
     "TD,Rewind Tape;",
     "O4,Tape Audio,On,Off;",
+    `SEP
     "O79,Scanlines,None,25%,50%,75%;",
     "O6,Show border,No,Yes;",
     "O3,Swap joysticks,No,Yes;",
-    "OA,Video output,w40,w80;",
+    `SEP
+    "OE,SVI806,Enabled,Disabled;",
+    "OA,Video output,VDP,SVI806;",
+    "OBC,SVI806 Console Color,White,Green,Amber,Cyan;",
+    `SEP
     "T0,Reset;",
     "T1,Hard reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -144,14 +150,13 @@ localparam CONF_STR = {
 
 wire clk_sys;
 wire clk_21m3;
-wire clk_12m;
+wire clk_24m;
 wire pll_locked;
 
 pll pll(
     .inclk0(CLK12M),
     .c0(clk_sys),
     .c1(clk_21m3),
-    .c2(clk_12m),
     .locked(pll_locked)
 );
 
@@ -524,7 +529,7 @@ wire [7:0] svi806_data_out;
 
 svi806_top crt80(
     .clk(clk_sys),
-    .clk_vid(clk_12m),
+    .pix_ce(ce_10m7),
     .cpu_ce(cpu_ce),
     .reset(reset),
     
@@ -532,7 +537,7 @@ svi806_top crt80(
     .cpu_addr(cpu_ram_a),
     .cpu_data_in(ram_do),
     .cpu_mreq_n(cpu_mreq_n),
-    .cpu_ioreq_n(cpu_ioreq_n),
+    .cpu_ioreq_n(cpu_ioreq_n | status[14]),
     .cpu_rd_n(ram_rd_n),
     .cpu_wr_n(ram_we_n),
     
@@ -586,6 +591,18 @@ sv801 fdc(
 
 wire [2:0] scanlines = status[9:7];
 
+wire [23:0] rgb_t_white = svi806_video == 1'b1 ? 24'hffffff : 24'd0;
+wire [23:0] rgb_t_green = svi806_video == 1'b1 ? 24'h00ff00 : 24'd0;
+wire [23:0] rgb_t_amber = svi806_video == 1'b1 ? 24'hff7e00 : 24'd0;
+wire [23:0] rgb_t_cyan = svi806_video == 1'b1 ? 24'h00ffff : 24'd0;
+
+wire [23:0] rgb_svi806 = svi806_de ? 
+    status[12:11] == 2'b00 ? rgb_t_white :
+    status[12:11] == 2'b01 ? rgb_t_green :
+    status[12:11] == 2'b10 ? rgb_t_amber :
+    rgb_t_cyan :
+    24'd0;
+
 mist_video #(.COLOR_DEPTH(8),
              .SD_HCNT_WIDTH(11),
              .OUT_COLOR_DEPTH(VGA_BITS),
@@ -597,13 +614,13 @@ mist_video(
     .SPI_SS3(SPI_SS3),
     .SPI_DI(SPI_DI),
     
-    .R(status[10] == 1'b0 ? R : {8{svi806_video}}),
-    .G(status[10] == 1'b0 ? G : {8{svi806_video}}),
-    .B(status[10] == 1'b0 ? B : {8{svi806_video}}),
-    .HSync(status[10] == 1'b0 ? hsync : svi806_hsync),
-    .VSync(status[10] == 1'b0 ? vsync : svi806_vsync),
-    .HBlank(hblank),
-    .VBlank(vblank),
+    .R(status[10] == 1'b0 ? R : rgb_svi806[23:16]),
+    .G(status[10] == 1'b0 ? G : rgb_svi806[15:8]),
+    .B(status[10] == 1'b0 ? B : rgb_svi806[7:0]),
+    .HSync(status[10] == 1'b0 ? hsync : ~svi806_hsync),
+    .VSync(status[10] == 1'b0 ? vsync : ~svi806_vsync),
+    .HBlank(status[10] == 1'b0 ? hblank : 1'b0),
+    .VBlank(status[10] == 1'b0 ? vblank : 1'b0),
     
     .VGA_R(VGA_R),
     .VGA_G(VGA_G),
@@ -611,7 +628,7 @@ mist_video(
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
     .scanlines(scanlines),
-    .ce_divider(1'b0),
+    .ce_divider(status[10] == 1'b0 ? 3'd0 : 3'd1),
 
     .scandoubler_disable(1'b0),
     .ypbpr(ypbpr),
