@@ -191,7 +191,7 @@ architecture struct of cv_console is
   
   signal por_n_s          : std_logic;
   signal reset_n_s        : std_logic;
-  signal reset_counter_s  : std_logic_vector(23 downto 0);
+  signal reset_counter_s  : std_logic_vector(23 downto 0) := x"FFFFFF";
 
   signal clk_en_3m58_p_s  : std_logic;
   signal clk_en_3m58_n_s  : std_logic;

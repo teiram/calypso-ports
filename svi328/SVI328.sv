@@ -179,15 +179,6 @@ always @(posedge clk_sys) begin
     end
 end
 
-wire ce_fdc = cpu_ce && &cnt_fdc;
-reg [1:0] cnt_fdc = 'd0;
-
-always @(posedge clk_sys) begin
-    if (cpu_ce == 1'b1) begin
-        cnt_fdc <= cnt_fdc + 1'b1;
-    end
-end
-
 wire [31:0] status;
 wire  [1:0] buttons;
 
@@ -281,7 +272,7 @@ data_io data_io(
 wire reset = status[0] | (ioctl_download && ioctl_isROM) | in_hard_reset | ~pll_locked;
 
 wire hard_reset = status[1];
-reg [17:0] cleanup_addr = 18'h3ffff;
+reg [17:0] cleanup_addr = 'd0;
 reg cleanup_we;
 wire in_hard_reset = |cleanup_addr[17:16];
 reg tape_loaded;
