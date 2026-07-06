@@ -27,7 +27,7 @@ wire ioreq_n = cpu_ioreq_n | (cpu_rd_n & cpu_wr_n);
 
 wire crten_n = ~(cpu_addr[7:4] == 4'h5 && ioreq_n == 1'b0);
 wire crtcs_n = cpu_addr[3] | crten_n; // Address 58h for bank switch
-wire crtex_en = crten_n | ~cpu_addr[3]; //Zero during the IOREQ on 58
+wire crtex_en /* synthesis keep */= crten_n | ~cpu_addr[3]; //Zero during the IOREQ on 58
 
 reg crtex = 1'b0;
 always @(posedge clk) begin

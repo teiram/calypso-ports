@@ -121,10 +121,10 @@ endgenerate
 reg         var_size  = 0;
 reg  [19:0] disk_size;
 reg         layout_r;
-wire [19:0] hs  = (layout_r & side) ? disk_size >> 1 : 20'd0;
+wire [19:0] hs  = (layout_r & side) ? 20'h2a000 : 20'd0;
 wire  [7:0] dts = {disk_track[6:0], side} >> layout_r;
 wire  [7:0] dts_1 = {disk_track[6:0] - 1'd1, side} >> layout_r;
-
+wire trackzero = ~|disk_track[6:0] & ~side;
 always @* begin
 	case({var_size,size_code})
 		0: buff_a = hs + {{1'b0, dts, 4'b0000} + {dts, 3'b000} + {dts, 1'b0} + wdreg_sector - 1'd1,  7'd0};
@@ -132,9 +132,10 @@ always @* begin
 		2: buff_a = hs + {{dts, 3'b000}  + dts                               + wdreg_sector - 1'd1,  9'd0};
 		3: buff_a = hs + {{dts, 2'b00}   + dts                               + wdreg_sector - 1'd1, 10'd0};
 		4: buff_a = hs + {{dts, 3'b000}  + {dts, 1'b0}                        + wdreg_sector - 1'd1,  9'd0};
-		5: buff_a = hs +  ~|disk_track ? 
+		5: buff_a = hs +  trackzero ? 
 		{wdreg_sector - 1'd1,  7'd0} :
-		19'd2304 + {{dts_1, 4'b0000} + dts_1 + wdreg_sector - 1'd1, 8'd0};
+        ~|disk_track[6:0] & side ? 19'h900 + {wdreg_sector - 1'd1, 8'd0} :
+        (layout_r ? 19'h900 : 19'h1a00) + {{dts_1, 4'b0000} + dts_1 + wdreg_sector - 1'd1, 8'd0};
 		default: buff_a = edsk_offset;
 	endcase
 	case({var_size,size_code})
@@ -143,7 +144,7 @@ always @* begin
 		2: sectors_per_track = 9;
 		3: sectors_per_track = 5;
 		4: sectors_per_track = 10;
-		5: sectors_per_track = ~|disk_track ? 8'd18 : 8'd17;
+		5: sectors_per_track = trackzero ? 8'd18 : 8'd17;
 		default: sectors_per_track = edsk_spt;
 	endcase
 	case({var_size,size_code})
@@ -152,7 +153,7 @@ always @* begin
 		2: wd_size_code = 2;
 		3: wd_size_code = 3;
 		4: wd_size_code = 2;
-		5: wd_size_code = ~|disk_track ? 2'd0 : 2'd1;
+		5: wd_size_code = trackzero ? 2'd0 : 2'd1;
 		default: wd_size_code = edsk_sizecode;
 	endcase
 end

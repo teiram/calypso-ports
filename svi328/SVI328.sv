@@ -150,7 +150,6 @@ localparam CONF_STR = {
 
 wire clk_sys;
 wire clk_21m3;
-wire clk_24m;
 wire pll_locked;
 
 pll pll(
@@ -279,12 +278,12 @@ data_io data_io(
 );
 
 
-wire reset = status[0] | (ioctl_download && ioctl_isROM) | in_hard_reset;
+wire reset = status[0] | (ioctl_download && ioctl_isROM) | in_hard_reset | ~pll_locked;
 
 wire hard_reset = status[1];
-reg [15:0] cleanup_addr = 16'd0;
+reg [17:0] cleanup_addr = 18'h3ffff;
 reg cleanup_we;
-wire in_hard_reset = |cleanup_addr;
+wire in_hard_reset = |cleanup_addr[17:16];
 reg tape_loaded;
 
 always @(posedge clk_sys) begin
@@ -294,14 +293,14 @@ always @(posedge clk_sys) begin
     hard_reset_last <= hard_reset;
     ce_last <= ce_5m3;
     if (~hard_reset_last & hard_reset) begin
-        cleanup_addr <= 16'hffff;
+        cleanup_addr <= 18'h3ffff;
         cleanup_we <= 1'b1;
         megarom <= 1'b0;
         tape_loaded <= 1'b0;
     end
     else begin
         if (~ce_last & ce_5m3) begin
-            if (|cleanup_addr) begin
+            if (|cleanup_addr[17:16]) begin
                 case (cleanup_we) 
                     1'b0: cleanup_we <= 1'b1;
                     1'b1: begin
@@ -372,11 +371,12 @@ assign sdram_we = ioctl_wr |
                   (isRam & svi806_ramdis_n & ~(ram_we_n | ram_ce_n)) | 
                   (in_hard_reset & cleanup_we);
 
+
 assign sdram_addr = 
         (ioctl_download && ioctl_isROM && ~|ioctl_addr[24:16]) ? {6'd0, ioctl_index[0], ioctl_addr[15:0]} : //ioctl: ROM and Cartridge (64K)
         (ioctl_download && ioctl_isROM && |ioctl_addr[24:16]) ? {3'b100,  ioctl_addr[19:0]} :               //ioctl: Cartridge (> 64K)
         ioctl_cas_download ? {2'b11, ioctl_addr[20:0]} :                                                    //ioctl: Cassette
-        in_hard_reset ? {1'b1, cleanup_addr} :                                                              //Hard reset
+        in_hard_reset ? {5'd0, cleanup_addr} :                                                              //Hard reset
         sdram_cas_rd ? {2'b11, sdram_cas_addr[20:0]} :                                                      //Cassette: Play
         ram_a[17:16] == 2'b01 ? {megarom_page, ram_a[13:0]} : ram_a;                                        //CPU&Mapper accesses
 
@@ -554,7 +554,7 @@ svi806_top crt80(
 wire [7:0] fdc_data_out;
 wire fdc_io_ena;
 
-wire fdc_ce = toggle;
+wire fdc_ce = toggle & cpu_ce;
 reg toggle = 1'd0;
 always @(posedge clk_sys) begin
     if (cpu_ce) toggle <= ~toggle;
@@ -562,7 +562,7 @@ end
 
 sv801 fdc(
     .clk(clk_sys),
-    .ce(cpu_ce),
+    .ce(fdc_ce),
     .reset(reset),
 
     .ioreq(~cpu_ioreq_n),

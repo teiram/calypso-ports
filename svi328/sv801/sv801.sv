@@ -49,18 +49,23 @@ reg [1:0] fdd_ready = 2'b00;
 wire drq;
 wire intrq;
 
-
+reg layout;
 always @(posedge clk) begin
     reg old_mounted;
     old_mounted <= img_mounted;
-
-    if (~old_mounted & img_mounted) fdd_ready <= |img_size;
+    // 2A000 -> Single side
+    // 54800 -> Double side (side b is 40*256*17)
+    if (~old_mounted & img_mounted) begin
+        fdd_ready <= |img_size;
+        layout = ~img_size[14];
+    end
 end
 
 always @(posedge clk) begin
     reg last_fdc_we = 1'b0;
     if (reset) begin
         last_fdc_we <= 1'b0;
+        side_density <= 2'd0;
     end else begin
         last_fdc_we <= fdc_we;
 
@@ -102,9 +107,9 @@ wd1793 #(.RWMODE(1), .EDSK(0)) fdc1(
 
     .size_code(3'd5),
     
-    .layout(1),
-    .side(side_density[0]),
-    .ready(fdd_ready),
+    .layout(layout),
+    .side(side_density[1]),
+    .ready(fdd_ready & drivesel[0]),
     .prepare(),
 
     .input_active(),

@@ -191,6 +191,7 @@ architecture struct of cv_console is
   
   signal por_n_s          : std_logic;
   signal reset_n_s        : std_logic;
+  signal reset_counter_s  : std_logic_vector(23 downto 0);
 
   signal clk_en_3m58_p_s  : std_logic;
   signal clk_en_3m58_n_s  : std_logic;
@@ -276,8 +277,18 @@ begin
       por_n_o => por_n_s
     );
   por_n_o   <= por_n_s;
-  reset_n_s <= por_n_s and reset_n_i;
-
+--  reset_n_s <= por_n_s and reset_n_i;
+  reset_n_s <= reset_n_i when reset_counter_s = x"000000" else '0';
+  process (clk_i, reset_n_i) begin
+    if reset_n_i = '0' then
+      reset_counter_s <= x"FFFFFF";
+    elsif clk_i'event and clk_i = '1' then
+        if reset_counter_s /= x"000000" then
+            reset_counter_s <= reset_counter_s - 1;
+        end if;
+    end if;
+  end process;
+    
   -----------------------------------------------------------------------------
   -- Clock generation
   -----------------------------------------------------------------------------
