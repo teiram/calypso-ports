@@ -822,7 +822,7 @@ sigma_delta_dac dac (
 	.aright   ( AUDIO_R )
 );
 
-wire [31:0] clk_rate = c16_pal ? 32'd28_375_168 : 32'd28_636_352;
+wire [31:0] clk_rate = c16_pal ? 32'd28_363_636 : 32'd28_636_352;
 
 `ifdef I2S_AUDIO
 i2s i2s (

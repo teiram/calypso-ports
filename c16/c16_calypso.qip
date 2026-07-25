@@ -11,7 +11,6 @@ set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 mos
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 kernal_rom.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 colors_to_rgb.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 c16_keymatrix.v]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 c16.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 ps2receiver.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 basic_rom.v]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 c1541/gcr_floppy.vhd]
@@ -22,19 +21,8 @@ set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 c1541/
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 c1541/via6522.vhd]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) c16 c1541/mist_sd_card.sv]
 set_global_assignment -name QIP_FILE [file join $::quartus(qip_path) c16 T65/T65.qip]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 sid8580/sid_voice.v]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 sid8580/sid_filters.v]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 sid8580/sid_envelope.v]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) c16 sid8580/sid8580.v]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/wave_map.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/sid_top.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/sid_regs.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/sid_mixer.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/sid_filter.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/sid_debug_pkg.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/sid_ctrl.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/Q_table.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/oscillator.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/my_math_pkg.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/mult_acc.vhd]
-set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) c16 sid/adsr_multi.vhd]
+
+set_global_assignment -name VERILOG_FILE c16.v
+set_global_assignment -name QIP_FILE verilog-mos-sid/sid.qip
+set_global_assignment -name SEARCH_PATH c16/roms
+

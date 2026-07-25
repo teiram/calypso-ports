@@ -286,3 +286,12 @@
 [submodule "imsai8080/rtl/votrax/votrax-sc01a-vhdl"]
 	path = imsai8080/rtl/votrax/votrax-sc01a-vhdl
 	url = https://github.com/teiram/votrax-sc01a-vhdl/
+[submodule "lisa/LisaFPGA"]
+	path = lisa/LisaFPGA
+	url = https://github.com/alanswx/LisaFPGA
+[submodule "mb6885/BasicMasterJr_MiSTer"]
+	path = mb6885/BasicMasterJr_MiSTer
+	url = https://github.com/teiram/BasicMasterJr_MiSTer.git
+[submodule "c16/verilog-mos-sid"]
+	path = c16/verilog-mos-sid
+	url = https://github.com/teiram/verilog-mos-sid.git

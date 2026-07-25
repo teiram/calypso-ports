@@ -8,5 +8,6 @@ No known issues at this point.
 C16.ROM is required at the root directory of the SD-Card. The format of this file is C1541 + Kernal + Basic + (Function LOW + Function HIGH). Function ROMs are optional.
 
 # Changelog
+- 0.3. Switch to Rampas SID, fix PLL reconfiguration (PAL/NTSC)
 - 0.2. Switch to big OSD and new version schema
 - 0.1. Initial version.

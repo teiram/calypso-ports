@@ -177,7 +177,7 @@ module pll_c16 (
 		altpll_component.port_extclk3 = "PORT_UNUSED",
 		altpll_component.self_reset_on_loss_lock = "OFF",
 		altpll_component.width_clock = 5,
-		altpll_component.scan_chain_mif_file = "c16/pll_c16_pal.mif";
+		altpll_component.scan_chain_mif_file = "pll_c16_pal.mif";
 
 
 endmodule
@@ -228,7 +228,7 @@ endmodule
 // Retrieval info: PRIVATE: MIRROR_CLK0 STRING "0"
 // Retrieval info: PRIVATE: MULT_FACTOR0 NUMERIC "26"
 // Retrieval info: PRIVATE: NORMAL_MODE_RADIO STRING "1"
-// Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "28.37515300"
+// Retrieval info: PRIVATE: OUTPUT_FREQ0 STRING "28.36360000"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_MODE0 STRING "0"
 // Retrieval info: PRIVATE: OUTPUT_FREQ_UNIT0 STRING "MHz"
 // Retrieval info: PRIVATE: PHASE_RECONFIG_FEATURE_ENABLED STRING "1"
@@ -246,7 +246,7 @@ endmodule
 // Retrieval info: PRIVATE: PLL_PFDENA_CHECK STRING "0"
 // Retrieval info: PRIVATE: PLL_TARGET_HARCOPY_CHECK NUMERIC "0"
 // Retrieval info: PRIVATE: PRIMARY_CLK_COMBO STRING "inclk0"
-// Retrieval info: PRIVATE: RECONFIG_FILE STRING "c16/pll_c16_pal.mif"
+// Retrieval info: PRIVATE: RECONFIG_FILE STRING "pll_c16_pal.mif"
 // Retrieval info: PRIVATE: SACN_INPUTS_CHECK STRING "1"
 // Retrieval info: PRIVATE: SCAN_FEATURE_ENABLED STRING "1"
 // Retrieval info: PRIVATE: SELF_RESET_LOCK_LOSS STRING "0"
@@ -254,7 +254,7 @@ endmodule
 // Retrieval info: PRIVATE: SPREAD_FEATURE_ENABLED STRING "0"
 // Retrieval info: PRIVATE: SPREAD_FREQ STRING "50.000"
 // Retrieval info: PRIVATE: SPREAD_FREQ_UNIT STRING "KHz"
-// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.500"
+// Retrieval info: PRIVATE: SPREAD_PERCENT STRING "0.000"
 // Retrieval info: PRIVATE: SPREAD_USE STRING "0"
 // Retrieval info: PRIVATE: SRC_SYNCH_COMP_RADIO STRING "0"
 // Retrieval info: PRIVATE: STICKY_CLK0 STRING "1"
@@ -320,7 +320,7 @@ endmodule
 // Retrieval info: CONSTANT: PORT_extclk3 STRING "PORT_UNUSED"
 // Retrieval info: CONSTANT: SELF_RESET_ON_LOSS_LOCK STRING "OFF"
 // Retrieval info: CONSTANT: WIDTH_CLOCK NUMERIC "5"
-// Retrieval info: CONSTANT: scan_chain_mif_file STRING "c16/pll_c16_pal.mif"
+// Retrieval info: CONSTANT: scan_chain_mif_file STRING "pll_c16_pal.mif"
 // Retrieval info: USED_PORT: @clk 0 0 5 0 OUTPUT_CLK_EXT VCC "@clk[4..0]"
 // Retrieval info: USED_PORT: areset 0 0 0 0 INPUT GND "areset"
 // Retrieval info: USED_PORT: c0 0 0 0 0 OUTPUT_CLK_EXT VCC "c0"
