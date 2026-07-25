@@ -11,3 +11,4 @@ ESXMMC.BIN(2x) + TRDOS + 128 ROM0 + 128 ROM1 + +3 ROM0/1/2/3 + PlusD + MF128 + M
 # Changelog
 - 0.1. First release. Sound issues.
 - 0.2. Moved to gyurco port, with more features
+- 0.3. Dandanator ROMs support

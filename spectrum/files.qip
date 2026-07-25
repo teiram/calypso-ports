@@ -24,5 +24,6 @@ set_global_assignment -name VERILOG_FILE ZX_Spectrum-128K_MIST/unouart.v
 set_global_assignment -name QIP_FILE  pll.qip
 set_global_assignment -name SYSTEMVERILOG_FILE zxspectrum_calypso.sv
 set_global_assignment -name SYSTEMVERILOG_FILE sdram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE dandanator_pager.sv
 set_global_assignment -name SDC_FILE zxspectrum.sdc
 

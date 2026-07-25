@@ -64,7 +64,6 @@ module zxspectrum_calypso(
     
     output UART_TX,
     input UART_RX
-
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -118,7 +117,7 @@ localparam CONF_PLUSD = "(+D) ";
 
 localparam ROM_ADDR  = 25'h100000; // boot rom
 localparam TAPE_ADDR = 25'h200000; // tape buffer at 2MB
-localparam SNAP_ADDR = 25'h400000; // snapshot buffer at 4MB
+localparam SNAP_ADDR = 25'h300000; // snapshot buffer at 3MB
 
 localparam ARCH_ZX48  = 5'b011_00; // ZX 48
 localparam ARCH_ZX128 = 5'b000_01; // ZX 128/+2
@@ -130,9 +129,10 @@ localparam ARCH_P1024 = 5'b001_10; // Pentagon 1024
 `include "build_id.v"
 localparam CONF_STR = {
     "SPECTRUM;;",
-    "S1U,TRDIMGDSKMGT,Load Disk;",
+    "S1U,TRDIMGDSKMGTVHD,Load Disk;",
     "F2,TAPCSWTZX,Load Tape;",
     "F3,Z80SNA,Load Snapshot;",
+    "F4,ROM,Load Dandanator ROM;",
     `SEP
     "P1,Profiles;",
     "P1I,48k Issue 2,0xc20,0x1fa0;",  // 48k video, 48k mem, snowing, Issue 2
@@ -156,6 +156,7 @@ localparam CONF_STR = {
     "O7,Snowing,Enabled,Unrained;",
     "OM,CPU type,NMOS,CMOS;",
     "ONP,CPU frequency,3.5 MHz,7 MHz,14 MHz,28 MHz,56 MHz;",
+    "OR,Dandanator,Disabled,Enabled;",
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
@@ -174,6 +175,7 @@ wire       st_uspeech     = status[19];
 wire       st_out0        = status[22];
 wire [2:0] st_cpu_freq    = status[25:23];
 wire       st_covox       = status[26];
+wire       st_dandanator  = status[27];
 
 ////////////////////   CLOCKS   ///////////////////
 wire clk_sys /* synthesis keep */;
@@ -523,13 +525,18 @@ wire auto_reset = auto_reset_btn;
 
 always @(posedge clk_sys) begin
     reg old_F10;
-
+    reg old_dandanator_enabled;
+    
     old_F10 <= Fn[10];
+    old_dandanator_enabled <= st_dandanator;
+    
+    reset <= status[0] | cold_reset | warm_reset | snap_reset | auto_reset | ~locked | ~reset_dan_n | (old_dandanator_enabled ^ st_dandanator);
 
-    reset <= status[0] | cold_reset | warm_reset | snap_reset | auto_reset | ~locked;
-
-    if (reset | ~Fn[10]) NMI <= 0;
-    else if (~old_F10 & Fn[10] & (mod[2:1] == 0)) NMI <= 1;
+    if (dandanator_en == 1'b1) NMI <= ~nmi_dan_n;
+    else begin
+        if (reset | ~Fn[10]) NMI <= 0;
+        else if (~old_F10 & Fn[10] & (mod[2:1] == 0)) NMI <= 1;
+    end
 
     warm_reset_btn <= (mod[2:1] == 0) & Fn[11];
     cold_reset_btn <= (mod[2:1] == 1) & Fn[11]; // alt+F11
@@ -568,19 +575,46 @@ reg         ram_we;
 reg         ram_rd;
 wire  [7:0] ram_dout;
 wire        ram_ready;
+wire        dandanator_en = st_dandanator;
+wire [5:0]  page_dan;
+wire nmi_dan_n;
+wire reset_dan_n;
+
+dandanator_pager dandanator(
+    .clk(clk_sys),
+    .reset(reset),
+    .ce(ce_cpu_p),
+    
+    .addr(addr),
+    .data(cpu_dout),
+    .mreq_n(nMREQ),
+    .wr_n(nWR),
+    
+    .page(page_dan),
+    .nmi_n(nmi_dan_n),
+    .reset_n(reset_dan_n),
+    // debug pins
+    .has_cmd(),
+    .pulse_out(),
+    .index_out()
+);
+
+assign LED[7:2] = page_dan;
+assign LED[1] = nmi_dan_n;
 
 always_comb begin
-    casex({snap_dl | snap_reset, mmc_ram_en, page_special, addr[15:14]})
-        'b1_X_X_XX: ram_addr = snap_rd ? (SNAP_ADDR + snap_dl_addr) : snap_addr;
-        'b0_1_0_00: ram_addr = { 5'b01100, mmc_ram_bank, addr[12:0] };
-        'b0_0_0_00: ram_addr = { 4'b0100, page_rom, addr[13:0] }; //ROM
-        'b0_X_0_01: ram_addr = {   5'd0, 3'd5,     addr[13:0] }; //Non-special page modes
-        'b0_X_0_10: ram_addr = {   5'd0, 3'd2,     addr[13:0] };
-        'b0_X_0_11: ram_addr = {   2'd0, page_ram, addr[13:0] };
-        'b0_X_1_00: ram_addr = {   5'd0,                       |page_reg_plus3[2:1], 2'b00, addr[13:0] }; //Special page modes
-        'b0_X_1_01: ram_addr = {   5'd0, |page_reg_plus3[2:1], &page_reg_plus3[2:1],  1'b1, addr[13:0] };
-        'b0_X_1_10: ram_addr = {   5'd0,                       |page_reg_plus3[2:1], 2'b10, addr[13:0] };
-        'b0_X_1_11: ram_addr = {   5'd0,     ~page_reg_plus3[2] & page_reg_plus3[1], 2'b11, addr[13:0] };
+    casex({snap_dl | snap_reset, mmc_ram_en, page_special, dandanator_en & ~page_dan[5], addr[15:14]})
+        'b1_X_X_X_XX: ram_addr = snap_rd ? (SNAP_ADDR + snap_dl_addr) : snap_addr;
+        'b0_1_0_X_00: ram_addr = { 5'b01100, mmc_ram_bank, addr[12:0] };
+        'b0_0_0_0_00: ram_addr = { 4'b0100, page_rom, addr[13:0] };     // ROM
+        'b0_0_0_1_00: ram_addr = { 3'b110, page_dan[4:0], addr[13:0] }; // Dandanator ROM (On the SNAP_ADDR zone - 3MB)
+        'b0_X_0_X_01: ram_addr = {   5'd0, 3'd5,     addr[13:0] };      // Non-special page modes
+        'b0_X_0_X_10: ram_addr = {   5'd0, 3'd2,     addr[13:0] };
+        'b0_X_0_X_11: ram_addr = {   2'd0, page_ram, addr[13:0] };
+        'b0_X_1_X_00: ram_addr = {   5'd0,                       |page_reg_plus3[2:1], 2'b00, addr[13:0] }; //Special page modes
+        'b0_X_1_X_01: ram_addr = {   5'd0, |page_reg_plus3[2:1], &page_reg_plus3[2:1],  1'b1, addr[13:0] };
+        'b0_X_1_X_10: ram_addr = {   5'd0,                       |page_reg_plus3[2:1], 2'b10, addr[13:0] };
+        'b0_X_1_X_11: ram_addr = {   5'd0,     ~page_reg_plus3[2] & page_reg_plus3[1], 2'b11, addr[13:0] };
     endcase
 
     casex({snap_dl | snap_reset, dma, tape_req})
@@ -882,6 +916,7 @@ assign ioa_in[6] = 1'b0;
 assign ioa_in[7] = UART_RX;
 
 // Turbosound card (Dual AY/YM chips)
+
 turbosound turbosound
 (
     .CLK(clk_sys),
@@ -928,6 +963,7 @@ end
 // 14 MHz (112MHz/8) clock enable for GS card
 wire gs_ce_p = gs_ce_count == 0;
 wire gs_ce_n = gs_ce_count == 4;
+
 
 gs #(.INT_DIV(373)) gs
 (
@@ -1016,6 +1052,7 @@ always @(posedge clk_sys) begin
         end
     end
 end
+
 
 sp0256 sp0256 (
     .clock(clk_sys),
@@ -1360,6 +1397,7 @@ fdc1772 #(.FD_NUM(1), .INVERT_HEAD_RA(1), .MODEL(3)) fdc1772
     .sd_dout_strobe(sd_buff_wr)
 );
 
+
 u765 #(20'd1800,1) u765
 (
     .clk_sys(clk_sys),
@@ -1553,6 +1591,7 @@ snap_loader #(ARCH_ZX48, ARCH_ZX128, ARCH_ZX3, ARCH_P128) snap_loader
 wire [7:0] unouart_dout;
 wire unouart_dout_oe;
 wire unouart_tx;
+/*
 unouart #( .CLK(112_000_000), .BPS(115200) ) unouart0(
     .clk(clk_sys),
     .rst_n(~reset),
@@ -1566,7 +1605,7 @@ unouart #( .CLK(112_000_000), .BPS(115200) ) unouart0(
     .uart_rx(UART_RX),
     .uart_tx(unouart_tx)
 );
-
+*/
 reg VSync_old = 1'b0;
 always @(posedge clk_sys)
     VSync_old <= VSync;
