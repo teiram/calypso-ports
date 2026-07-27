@@ -295,3 +295,6 @@
 [submodule "c16/verilog-mos-sid"]
 	path = c16/verilog-mos-sid
 	url = https://github.com/teiram/verilog-mos-sid.git
+[submodule "jr100/JR100_MiSTer"]
+	path = jr100/JR100_MiSTer
+	url = https://github.com/teiram/JR100_MiSTer.git

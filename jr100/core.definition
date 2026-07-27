@@ -1,0 +1,6 @@
+CORE_ID=jr100
+PROJECT_NAME=jr100
+VERSION=0.1
+BITSTREAM_FILE=output_files/jr100.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules
