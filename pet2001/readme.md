@@ -10,3 +10,4 @@ The provided version ships with COMMODORE BASIC 4.0. Some software may require a
 
 # Changelog
 - 0.1. Initial release. Disks are not working
+- 0.2. Disk support (D64 on 4040 and D80/D82 on 8250)

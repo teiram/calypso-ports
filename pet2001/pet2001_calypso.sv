@@ -573,6 +573,8 @@ always @(posedge clk_sys) begin
 
     if (drive_reset | ~drive_mounted) begin
         sd_ieee_ack[0] <= 1'b0;
+        sd_ieee_rd_last <= 1'b0;
+        sd_ieee_wr_last <= 1'b0;
         blk <= 5'd0;
         blkcnt <= 5'd0;
         operation <= 2'b00;
