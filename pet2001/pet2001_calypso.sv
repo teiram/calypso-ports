@@ -122,7 +122,7 @@ parameter CONF_STR = {
     "O3,Tape Input,File,Line;",
     "O6,Tape Sound,On,Off;",
     `SEP
-    "O7,Drive #8 Type,8250,4040;",
+    "O7,Drive #8 Type,4040,8250;",
     "S0U,D80D82D64,Mount drive #8;",
     "TF,Reset Drives;",
     `SEP
@@ -200,7 +200,7 @@ wire sd_ack /* synthesis keep */;
 wire sd_ack_x /* synthesis keep */;
 wire [8:0] sd_buff_addr /* synthesis keep */;
 wire [7:0] sd_buff_dout /* synthesis keep */;
-wire [7:0] sd_buff_din[1];
+wire [7:0] sd_buff_din[2];
 wire sd_buff_wr /* synthesis keep */;
 
 wire img_mounted;
@@ -518,29 +518,35 @@ wire [1:0] drive_led;
 // We need to transfer sd_blk_cnt / 2 512 byte blocks per hps_io transfer
 
 reg drive_mounted = 0;
-wire [5:0] sd_blk_cnt[1] /* synthesis keep */;
+wire [5:0] sd_blk_cnt[2] /* synthesis keep */;
 reg [4:0] blkcnt;
-reg sd_ieee_ack = 1'b0;
+reg [1:0] sd_ieee_ack = 2'b00;
 reg [4:0] blk;
-wire sd_ieee_rd /* synthesis keep */;
-wire sd_ieee_wr;
+wire [1:0] sd_ieee_rd /* synthesis keep */;
+wire [1:0] sd_ieee_wr;
 
-wire [31:0] sd_ieee_lba[1] /* synthesis keep */;
+wire [31:0] sd_ieee_lba[2] /* synthesis keep */;
 wire [12:0] sd_ieee_buff_addr /* synthesis keep */ = {blk[3:0], sd_buff_addr[8:0]} - {3'd0, sd_ieee_lba[0][0], 8'd0};
+// Gate sd_buff_wr to extract 256-byte IEEE sectors from 512-byte SD blocks.
+// H=0 (even LBA): sectors align with SD block halves, no gating needed.
+// H=1 (odd LBA): data starts in upper half of first block.
+//   - First block: keep only upper half (discard lower half from prior track)
+//   - Last block: keep upper half UNLESS sd_blk_cnt is odd (even N), in which
+//     case the last valid byte ends in the lower half
 wire sd_ieee_buff_wr /* synthesis keep */= sd_ieee_lba[0][0] == 1'b0 ? sd_buff_wr :
     blk == 5'd0 ? sd_buff_wr & sd_buff_addr[8] :
-    blk == blkcnt - 5'd1 ? sd_buff_wr & ~sd_buff_addr[8] :
+    blk == blkcnt - 5'd1 ? (sd_blk_cnt[0][0] ? sd_buff_wr & ~sd_buff_addr[8] : sd_buff_wr) :
     sd_buff_wr;
     
 reg [31:0] sd_blk_lba /* synthesis keep */;
 assign sd_lba[0] = sd_blk_lba;
-wire drive_type = status[7];
+wire drive_type = ~status[7];
 
 assign LED[2] = drive_type;
 assign LED[3] = sd_rd;
 assign LED[4] = sd_ieee_rd;
 assign LED[5] = sd_ack;
-assign LED[6] = sd_ieee_ack;
+assign LED[6] = |sd_ieee_ack;
 assign LED[7] = sd_blk_cnt[0][0];
 
 localparam STATE_IDLE = 3'd0;
@@ -556,19 +562,17 @@ always @(posedge clk_sys) begin
     reg sd_ieee_rd_last;
     reg sd_ieee_wr_last;
     reg sd_ack_last;
-    reg img_mounted_last;
     
-    sd_ieee_rd_last <= sd_ieee_rd;
-    sd_ieee_wr_last <= sd_ieee_wr;
+    sd_ieee_rd_last <= sd_ieee_rd[0];
+    sd_ieee_wr_last <= sd_ieee_wr[0];
     sd_ack_last <= sd_ack;
-    img_mounted_last <= img_mounted;
     
-    if (~img_mounted_last & img_mounted) begin
+    if (img_mounted) begin
         drive_mounted <= |img_size;
     end
 
     if (drive_reset | ~drive_mounted) begin
-        sd_ieee_ack <= 1'b0;
+        sd_ieee_ack[0] <= 1'b0;
         blk <= 5'd0;
         blkcnt <= 5'd0;
         operation <= 2'b00;
@@ -576,20 +580,22 @@ always @(posedge clk_sys) begin
     end else if (drive_mounted == 1'b1) begin
         case (state)
             STATE_IDLE: begin
-                if ((~sd_ieee_rd_last & sd_ieee_rd) | (~sd_ieee_wr_last & sd_ieee_wr)) begin
+                if ((~sd_ieee_rd_last & sd_ieee_rd[0]) | (~sd_ieee_wr_last & sd_ieee_wr[0])) begin
                     blk <= 5'd0;
-                    blkcnt <= sd_blk_cnt[0][5:1] + sd_ieee_lba[0][0]; //IEEE blocks of 256 bytes with hps_io, MiST of 512 bytes
+                    // sd_blk_cnt is track sector count minus 1, H=sector LSB
+                    // Number of 512-byte blocks = ceil((sd_blk_cnt + 1 + H) / 2)
+                    blkcnt <= (sd_blk_cnt[0][5:0] + sd_ieee_lba[0][0] + 2'd2) >> 1'd1;
                     sd_blk_lba <= {1'b0, sd_ieee_lba[0][31:1]}; //Block address divided by two (due to the block size difference)
-                    sd_ieee_ack <= 1'b0;
-                    sd_rd <= sd_ieee_rd;
-                    sd_wr <= sd_ieee_wr;
-                    operation <= {sd_ieee_wr, sd_ieee_rd};
+                    sd_ieee_ack[0] <= 1'b0;
+                    sd_rd <= sd_ieee_rd[0];
+                    sd_wr <= sd_ieee_wr[0];
+                    operation <= {sd_ieee_wr[0], sd_ieee_rd[0]};
                     state <= STATE_START;
                 end
             end
             STATE_START: begin
                 if (sd_ack == 1'b1) begin
-                    sd_ieee_ack <= 1'b1;
+                    sd_ieee_ack[0] <= 1'b1;
                     state <= STATE_WAITACK;
                 end
             end
@@ -614,7 +620,7 @@ always @(posedge clk_sys) begin
                 state <= STATE_START;
             end
             STATE_DONE: begin
-                sd_ieee_ack <= 1'b0;
+                sd_ieee_ack[0] <= 1'b0;
                 {sd_wr, sd_rd} <= operation;
                 state <= STATE_IDLE;
             end
@@ -622,13 +628,22 @@ always @(posedge clk_sys) begin
     end
 end
 
+// Drive 1: no image, ack immediately (no SD card access)
+always @(posedge clk_sys) begin
+    sd_ieee_ack[1] <= sd_ieee_rd[1] | sd_ieee_wr[1];
+end
+
+wire [1:0] ieee_drv_type = {drive_type, drive_type};
+wire [1:0] ieee_img_mounted = {1'b0, img_mounted};
+
 ieee_drive #(
     .DRIVES(1),
-    .SUBDRV(1)
+    .SUBDRV(2),
+    .PAUSE_CTL(1)
 ) ieee_drive(
     .CLK(56_000_000),
     .clk_sys(clk_sys),
-    .reset(drive_reset),
+    .reset(drive_reset | ~drive_mounted),
     .pause(1'b0),
 
     .led(LED[1]),
@@ -636,9 +651,9 @@ ieee_drive #(
     .bus_i(ieee_bus_dc),
     .bus_o(ieee_bus_te),
 
-    .drv_type(status[7]),
+    .drv_type(ieee_drv_type),
 
-    .img_mounted(drive_mounted),
+    .img_mounted(ieee_img_mounted),
     .img_size(img_size),
     .img_readonly(img_readonly),
 
