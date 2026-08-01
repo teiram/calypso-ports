@@ -23,6 +23,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity i8255 is
 	Port (
+        CLKSYS: in std_logic;
 		RST : in std_logic;
 		A : in std_logic_vector(1 downto 0);
 		CS : in std_logic;
@@ -42,19 +43,7 @@ entity i8255 is
 		MOTOR : out std_logic;
 		PS2CK : in std_logic;
 		PS2DT : in std_logic;
-		-- for Sub processor
-		KEY_UP : out std_logic;
-		KEY_DOWN : out std_logic;
-		KEY_LEFT : out std_logic;
-		KEY_RIGHT : out std_logic;
-		KEY_CR : out std_logic;
-		KEY_SPACE : out std_logic;
-		ALT_ALT : out std_logic;
-		ALT_EXIT : out std_logic;
-		ALT_PLAY : out std_logic;
-		ALT_STOP : out std_logic;
-		ALT_CG : out std_logic;
-		ALT_PCG : out std_logic;
+        PS2KEY : in std_logic_vector(10 downto 0);
 		-- for Joystick
 		JOYA : in std_logic_vector(5 downto 0);
 		JOYB : in std_logic_vector(5 downto 0));
@@ -98,22 +87,7 @@ component keymatrix
 		PA : in std_logic_vector(3 downto 0);
 		PB : out std_logic_vector(7 downto 0);
 		KCLK : in std_logic;
-		LDDAT : out std_logic_vector(7 downto 0);
-		PS2CK : in std_logic;
-		PS2DT : in std_logic;
-		-- for Sub processor
-		KEY_UP : out std_logic;
-		KEY_DOWN : out std_logic;
-		KEY_LEFT : out std_logic;
-		KEY_RIGHT : out std_logic;
-		KEY_CR : out std_logic;
-		KEY_SPACE : out std_logic;
-		ALT_ALT : out std_logic;
-		ALT_EXIT : out std_logic;
-		ALT_PLAY : out std_logic;
-		ALT_STOP : out std_logic;
-		ALT_CG : out std_logic;
-		ALT_PCG : out std_logic;
+        PS2KEY : in std_logic_vector(10 downto 0);
 		-- for Joystick
 		JOYA : in std_logic_vector(5 downto 0);
 		JOYB : in std_logic_vector(5 downto 0));
@@ -128,23 +102,8 @@ begin
 			RST => RST,
 			PA => PA(3 downto 0),
 			PB => PB,
-			KCLK => KCLK,
-			LDDAT => open,	-- LDDAT,
-			PS2CK => PS2CK,
-			PS2DT => PS2DT,
-			-- for Sub processor
-			KEY_UP => KEY_UP,
-			KEY_DOWN => KEY_DOWN,
-			KEY_LEFT => KEY_LEFT,
-			KEY_RIGHT => KEY_RIGHT,
-			KEY_CR => KEY_CR,
-			KEY_SPACE => KEY_SPACE,
-			ALT_ALT => ALT_ALT,
-			ALT_EXIT => ALT_EXIT,
-			ALT_PLAY => ALT_PLAY,
-			ALT_STOP => ALT_STOP,
-			ALT_CG => ALT_CG,
-			ALT_PCG => ALT_PCG,
+			KCLK => CLKSYS,
+            PS2KEY => PS2KEY,
 			-- for Joystick
 			JOYA => JOYA,
 			JOYB => JOYB);
@@ -217,39 +176,40 @@ begin
 	--
 	-- Input select
 	--
-	DO<=PB                       when SELPB='1' else
-	    VBLNK&TBLNK&RBIT&MTR&PC(3 downto 0) when SELPC='1' else (others=>'1');
+    DO <=
+    PB when SELPB = '1'
+    else VBLNK & TBLNK & RBIT & MTR & PC(3 downto 0) when SELPC = '1'
+    else (others => '1');
 
 	--
 	-- Remote
 	--
-	MOTOR<=MTR;
-	process( KCLK ) begin
-		if( KCLK'event and KCLK='1' ) then
-			M_ON<=PC(3);
-			SNS<=SENSE0;
-			if( SENSE0='1' ) then
-				MTR<='0';
-			elsif( SNS='1' and SENSE0='0' ) then
-				MTR<='1';
-			elsif( M_ON='0' and PC(3)='1' ) then
-				MTR<=not MTR;
-			end if;
+    MOTOR <= MTR;
+    process (KCLK) begin
+        if KCLK'event and KCLK = '1' then
+            M_ON <= PC(3);
+            SNS <= SENSE0;
+            if SENSE0 = '1' then
+                MTR <= '0';
+            elsif SNS = '1' and SENSE0 = '0' then
+                MTR <= '1';
+            elsif M_ON = '0' and PC(3) = '1' then
+                MTR <= not MTR;
+            end if;
+            SWIN <= SWIN(2 downto 0) & SENSE;
+            if SWIN = "1111" and SENSE='1' then
+                SENSE0 <= '0';
+            elsif SWIN = "0000" and SENSE='0' then
+                SENSE0 <= '1';
+            end if;
+        end if;
+    end process;
 
-			SWIN<=SWIN(2 downto 0)&SENSE;
-			if( SWIN="1111" and SENSE='1' ) then
-				SENSE0<='0';
-			elsif( SWIN="0000" and SENSE='0' ) then
-				SENSE0<='1';
-			end if;
-		end if;
-	end process;
+    --
+    -- Others
+    --
+    INTMSK <= PC(2);
 
-	--
-	-- Others
-	--
-	INTMSK<=PC(2);
-
-LDDAT<=not PB;
+    LDDAT <= not PB;
 
 end Behavioral;

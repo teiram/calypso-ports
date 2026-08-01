@@ -13,12 +13,12 @@ set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/dpram4k.vhd
 set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/rom.vhd
 set_global_assignment -name VHDL_FILE mz700_cd/VHDL/avr/Core/avrrom.vhd
 
-set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80.vhd
-set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_ALU.vhd
-set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_MCode.vhd
-set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_Pack.vhd
-set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_Reg.vhd
-set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80s.vhd
+#set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80.vhd
+#set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_ALU.vhd
+#set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_MCode.vhd
+#set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_Pack.vhd
+#set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80_Reg.vhd
+#set_global_assignment -name VHDL_FILE mz700_cd/VHDL/T80/T80s.vhd
 
 set_global_assignment -name VHDL_FILE mz700_cd/VHDL/ls367.vhd
 set_global_assignment -name VHDL_FILE mz700_cd/VHDL/psio.vhd
@@ -41,6 +41,8 @@ set_global_assignment -name VHDL_FILE mz700_cd/VHDL/pcg.vhd
 set_global_assignment -name HEX_FILE mz700_cd/VHDL/test32.hex
 
 set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE ../common/T80/T80.qip
+
 set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name QIP_FILE vgapll.qip
 set_global_assignment -name SYSTEMVERILOG_FILE mz700_calypso.sv

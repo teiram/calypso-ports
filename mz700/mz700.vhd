@@ -62,9 +62,12 @@ entity mz700 is
     pMemAdr     : out std_logic_vector(12 downto 0);    -- SD-RAM Address
     pMemDat     : inout std_logic_vector(15 downto 0);  -- SD-RAM Data
 
+    pEar        : in std_logic;
+    pSense      : in std_logic;
     -- PS/2 keyboard ports
     pPs2Clk     : inout std_logic;
     pPs2Dat     : inout std_logic;
+    pPs2Key      : in std_logic_vector(10 downto 0);
 
     -- Joystick ports (Port_A, Port_B)
     pJoyA       : inout std_logic_vector( 5 downto 0);
@@ -110,7 +113,15 @@ entity mz700 is
     pIopRsv18   : out std_logic;
     pIopRsv19   : out std_logic;
     pIopRsv20   : out std_logic;
-    pIopRsv21   : out std_logic
+    pIopRsv21   : out std_logic;
+    
+    -- MiST IO Port
+    ioctlDownload: in std_logic;
+    ioctlIndex: in std_logic_vector(7 downto 0);
+    ioctlWr: in std_logic;
+    ioctlAddr: in std_logic_vector(24 downto 0);
+    ioctlDout: in std_logic_vector(7 downto 0);
+    pllLocked: in std_logic
   );
 end mz700;
 
@@ -126,20 +137,11 @@ signal URST : std_logic;
 --
 signal MREQ : std_logic;
 signal IORQ : std_logic;
-signal ZWR : std_logic;
-signal ZRD : std_logic;
 signal M1 : std_logic;
 --signal RFSH : std_logic;
-signal ZWAIT : std_logic;
-signal ZA16 : std_logic_vector(15 downto 0);
 signal A16 : std_logic_vector(15 downto 0);
 signal DO : std_logic_vector(7 downto 0);
-signal ZDO : std_logic_vector(7 downto 0);
 signal DI : std_logic_vector(7 downto 0);
-signal ZRST : std_logic;
-signal ZBREQ : std_logic;
-signal ZBACK : std_logic;
---signal ZCS00 : std_logic;
 signal ZCSD0 : std_logic;
 signal ZCSD8 : std_logic;
 --
@@ -193,6 +195,10 @@ signal PCGREG : std_logic_vector(7 downto 0);
 -- Decodes, misc
 --
 signal WR : std_logic;
+signal RD : std_logic;
+signal ZWAIT : std_logic;
+signal SWAIT : std_logic;
+signal SRAMDI : std_logic_vector(7 downto 0);
 signal WEMM : std_logic;
 signal CS1 : std_logic;
 signal RAMDI : std_logic_vector(7 downto 0);
@@ -237,32 +243,7 @@ signal INTX : std_logic;
 --
 signal CSE8 : std_logic;
 --signal EMDI : std_logic_vector(7 downto 0);
---
--- Sub processor
---
-signal SA16 : std_logic_vector(15 downto 0);
-signal SEA6 : std_logic_vector(5 downto 0);
-signal SDO : std_logic_vector(7 downto 0);
-signal SRD : std_logic;
-signal SWR : std_logic;
-signal SCSM : std_logic;
-signal SCSD0 : std_logic;
-signal SCSD8 : std_logic;
-signal SRAMDI : std_logic_vector(7 downto 0);
-signal SRAMCS : std_logic;
-signal SWAIT : std_logic;
-signal KEY_UP : std_logic;
-signal KEY_DOWN : std_logic;
-signal KEY_LEFT : std_logic;
-signal KEY_RIGHT : std_logic;
-signal KEY_CR : std_logic;
-signal KEY_SPACE : std_logic;
-signal ALT_ALT : std_logic;
-signal ALT_EXIT : std_logic;
-signal ALT_PLAY : std_logic;
-signal ALT_STOP : std_logic;
-signal ALT_CG : std_logic;
-signal ALT_PCG : std_logic;
+
 --
 -- Debug
 --
@@ -303,18 +284,17 @@ signal TBWD : std_logic_vector(7 downto 0);
 signal TSDAT : std_logic_vector(7 downto 0);
 signal TPC : std_logic;
 
+signal DATAIOADDR: std_logic_vector(22 downto 0);
+
 attribute keep: boolean;
-attribute keep of SA16: signal is true;
-attribute keep of ZRST: signal is true;
 attribute keep of CPUCLK: signal is true;
 attribute keep of URST: signal is true;
 attribute keep of pPs2Clk: signal is true;
 attribute keep of pPs2Dat: signal is true;
-attribute keep of SWAIT: signal is true;
 --
 -- Components
 --
-component T80s
+component T80se
 	generic(
 		Mode : integer := 0;	-- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
 		T2Write : integer := 0;	-- 0 => WR_n active in T3, /=0 => WR_n active in T2
@@ -323,6 +303,7 @@ component T80s
 	port(
 		RESET_n		: in std_logic;
 		CLK_n		: in std_logic;
+        CLKEN: in std_logic;
 		WAIT_n		: in std_logic;
 		INT_n		: in std_logic;
 		NMI_n		: in std_logic;
@@ -388,21 +369,6 @@ component pcg
 		DO     : out std_logic_vector(7 downto 0);
 		MCLK   : in std_logic);
 end component;
-
---component dpram2k
---	PORT(
---		address_a	: IN STD_LOGIC_VECTOR (10 DOWNTO 0);
---		address_b	: IN STD_LOGIC_VECTOR (10 DOWNTO 0);
---		clock_a		: IN STD_LOGIC ;
---		clock_b		: IN STD_LOGIC ;
---		data_a		: IN STD_LOGIC_VECTOR (7 DOWNTO 0);
---		data_b		: IN STD_LOGIC_VECTOR (7 DOWNTO 0);
---		wren_a		: IN STD_LOGIC  := '1';
---		wren_b		: IN STD_LOGIC  := '1';
---		q_a			: OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
---		q_b			: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
---	);
---end component;
 
 component vgaout
 	Port( 
@@ -501,6 +467,7 @@ end component;
 
 component i8255
 	Port(
+        CLKSYS: in std_logic;
 		RST : in std_logic;
 		A : in std_logic_vector(1 downto 0);
 		CS : in std_logic;
@@ -520,89 +487,13 @@ component i8255
 		MOTOR : out std_logic;
 		PS2CK : in std_logic;
 		PS2DT : in std_logic;
-		-- for Sub processor
-		KEY_UP : out std_logic;
-		KEY_DOWN : out std_logic;
-		KEY_LEFT : out std_logic;
-		KEY_RIGHT : out std_logic;
-		KEY_CR : out std_logic;
-		KEY_SPACE : out std_logic;
-		ALT_ALT : out std_logic;
-		ALT_EXIT : out std_logic;
-		ALT_PLAY : out std_logic;
-		ALT_STOP : out std_logic;
-		ALT_CG : out std_logic;
-		ALT_PCG : out std_logic;
+        PS2KEY: in std_logic_vector(10 downto 0);
 		-- for Joystick
 		JOYA : in std_logic_vector(5 downto 0);
 		JOYB : in std_logic_vector(5 downto 0)
 	);
 end component;
 
-component psio
-	Port (
-		-- common
-		RST  : in std_logic;
-		FCLK : in std_logic;
-		CLK  : in std_logic;
-		ADR  : out std_logic_vector(15 downto 0);
-		EADR : out std_logic_vector(5 downto 0);
-		DI	 : in std_logic_vector(7 downto 0);
-		RAMDI : in std_logic_vector(7 downto 0);
-		DO	 : out std_logic_vector(7 downto 0);
-		RD	 : out std_logic;
-		WR	 : out std_logic;
-		CSM  : out std_logic;
-		RAMCS : out std_logic;
-		CSD0 : out std_logic;
-		CSD8 : out std_logic;
-		SWAIT : in std_logic;
-		KEY_UP : in std_logic;
-		KEY_DOWN : in std_logic;
-		KEY_LEFT : in std_logic;
-		KEY_RIGHT : in std_logic;
-		KEY_CR : in std_logic;
-		KEY_SPACE : in std_logic;
-		ALT_ALT : in std_logic;
-		ALT_EXIT : in std_logic;
-		ALT_PLAY : in std_logic;
-		ALT_STOP : in std_logic;
-		TPMA : out std_logic_vector(7 downto 0);
-		TPMI : out std_logic_vector(15 downto 0);
-		TMRD : out std_logic;
-		TMWR : out std_logic;
-		--TINT : out std_logic;
-		TEPCCK : out std_logic;
-		TEPCDO : out std_logic;
-		TEPCCS : out std_logic;
-		TEPCDI : out std_logic;
-		-- from/to Main CPU
-		ZRST : out std_logic;
-		ZADR : in std_logic_vector(15 downto 0);
-		ZDI  : in std_logic_vector(7 downto 0);
-		ZDO  : out std_logic_vector(7 downto 0);
-		MREQ : in std_logic;
-		IORQ : in std_logic;
-		ZWR	 : in std_logic;
-		ZRD	 : in std_logic;
-		ZBRQ : out std_logic;
-		ZBAK : in std_logic;
-		-- MMC I/F
-		MMCCK : out std_logic;
-		MMCCS : out std_logic;
-		MMCDI : in std_logic;
-		MMCDO : out std_logic;
-		-- FDD
-		CSFDD : out std_logic;
-		INUSE1 : out std_logic;
-		INUSE2 : out std_logic;
-		-- I/O
-		CSPRT : out std_logic;
-		RBIT : out std_logic;
-		PLYSW : out std_logic;
-		MOTOR : in std_logic
-	);
-end component;
 
 component i8253
 	Port(
@@ -627,32 +518,37 @@ component i8253
 end component;
 
 begin
+    
+    RBIT <= pEar;
+    
+    DATAIOADDR <= "0000001" & ioctlAddr(15 downto 0) when ioctlIndex(0) = '0'
+             else "0000010" & "1" & ioctlAddr(12 downto 0) & "00";
+    --
+    -- Instantiation
+    --
+    CPU0 : T80se port map (
+            RESET_N => URST,
+            CLK_n => CPUCLK,
+            CLKEN => '1',
+            WAIT_n => ZWAIT,
+            INT_n => INT,
+            NMI_n => '1',
+            BUSRQ_n => '1',
+            M1_n => M1,
+            MREQ_n => MREQ,
+            IORQ_n => IORQ,
+            RD_n => RD,
+            WR_n => WR,
+            RFSH_n => open,
+            HALT_n => open,
+            BUSAK_n => open,
+            A => A16,
+            DI => DI,
+            DO => DO);
 
-	--
-	-- Instantiation
-	--
-	CPU0 : T80s port map (
-			RESET_n => ZRST,
-			CLK_n => CPUCLK,
-			WAIT_n => ZWAIT,
-			INT_n => INT,
-			NMI_n => '1',
-			BUSRQ_n => ZBREQ,
-			M1_n => M1,
-			MREQ_n => MREQ,
-			IORQ_n => IORQ,
-			RD_n => ZRD,
-			WR_n => ZWR,
-			RFSH_n => open,	--RFSH,
-			HALT_n => open,
-			BUSAK_n => ZBACK,
-			A => ZA16,
-			DI => DI,
-			DO => ZDO);
-
-	CGEN0 : ckgen PORT MAP (
-			CLK21	=> pClk21m,
-			CPUCLK	=> CPUCLK);
+    CGEN0 : ckgen PORT MAP (
+            CLK21 => pClk21m,
+            CPUCLK => CPUCLK);
 
 	DEC0 : memsel port map (
 			RST		=> URST,
@@ -660,7 +556,7 @@ begin
 			M1		=> M1,
 			MREQ	=> MREQ,
 			IORQ	=> IORQ,
-			RD		=> ZRD,
+			RD		=> RD,
 			WR		=> WR,
 			A		=> A16,
 			DI		=> DO,
@@ -690,29 +586,6 @@ begin
 			DO     => PCGREG,
 			MCLK	=> CPUCLK);
 
---	CVRAM0 : dpram2k PORT MAP (
---			address_a	=> A16(10 downto 0),
---			address_b	=> VADR,
---			clock_a		=> CPUCLK,
---			clock_b		=> DCLK,
---			data_a		=> DO,
---			data_b		=> "00000000",
---			wren_a		=> WECV,
---			wren_b		=> '1',
---			q_a			=> CVDI,
---			q_b			=> DCODE);
-
---	AVRAM0 : dpram2k PORT MAP (
---			address_a	=> A16(10 downto 0),
---			address_b	=> VADR,
---			clock_a		=> CPUCLK,
---			clock_b		=> DCLK,
---			data_a		=> DO,
---			data_b		=> "00000000",
---			wren_a		=> WEAV,
---			wren_b		=> '1',
---			q_a			=> AVDI,
---			q_b			=> ATDAT);
 
 	VGA0 : vgaout port map (
 			RST		=> URST,
@@ -741,7 +614,7 @@ begin
 			CSO		=> GCS,
 			-- from/to Main CPU
 			ZCLK	=> CPUCLK,
-			ZADR	=> ZA16,
+			ZADR	=> A16,
 			ZDI		=> DO,
 			IORQ	=> IORQ,
 			ZWR		=> WR,
@@ -749,28 +622,33 @@ begin
 			PCGSW	=> PCGSW);
 
 	RAM0 : sdram port map (
-			RST		=> URST,
+			RST		=> pllLocked,
 			MEMCLK	=> pClk84m,
 			TPC => TPC,
+            
 			AA		=> RAMA,
 			DAI		=> DO,
 			DAO		=> RAMDI,
 			CSA		=> RAMCS,
 			WRA		=> WEMM,
-			AB		=> "1000000"&SA16,
-			DBI		=> SDO,
+            
+			AB		=> DATAIOADDR,
+			DBI		=> ioctlDOut,
 			DBO		=> SRAMDI,
-			CSB		=> SRAMCS,
-			RDB		=> SRD,
-			WRB	 	=> SWR,
+			CSB		=> ioctlDownload and ioctlWr,
+			RDB		=> '0',
+			WRB	 	=> ioctlWr,
 			WAITB	=> SWAIT,
+            
 			AC		=> "00000"&FADR&"00",
 			DCO		=> CGDAT,
 			CSC		=> GCS,
+            
 			AD		=> "00000"&"1011"&PCGA(10)&'1'&PCGA(9 downto 0)&"00",
 			DDI		=> PCGD,
 			CSD		=> PCGWP,
 			CPYMODE => PCGCPY,
+            
 			MA		=> pMemAdr,
 			MBA0	=> pMemBa0,
 			MBA1	=> pMemBa1,
@@ -787,142 +665,63 @@ begin
 
     pMemClk <= pClk84m;
     
-	BSEL<="000000"&(not (CS00 and CSE8)) when ZRST='1' and ZBACK='1' else '0' & SEA6;
-	RAMCS<=(CS1 and CS00 and CSE8 and CSVRAM and CSCG) when ZRST='1' and ZBACK='1' else SCSM;
-	RAMA<="0000010"&"0000"&A16(9 downto 0)&A16(11)&A16(10) when CSVRAM='0' else
-		  "0000010"&'1'&(not A16(12))&A16(11 downto 0)&CGSEL			   when CSCG='0'   else
-		  BSEL & A16;
+    BSEL <= "000000" & (not (CS00 and CSE8));
+    RAMCS <= (CS1 and CS00 and CSE8 and CSVRAM and CSCG);
+    RAMA <= "0000010" & "0000" & A16(9 downto 0) & A16(11) & A16(10)   when CSVRAM='0' else
+            "0000010" & '1' & (not A16(12)) & A16(11 downto 0) & CGSEL when CSCG='0'   else
+            BSEL & A16;
+          
+    GPIO0 : ls367 port map (
+        RST => URST,
+        CLKIN => CPUCLK,
+        CLKOUT => SCLK,
+        GATE => SOUNDEN,
+        CS => CS367,
+        WR => WR,
+        DI => DO,
+        DO => DO367);
 
-	GPIO0 : ls367 port map (
-			RST => URST,
-			CLKIN => CPUCLK,
-			CLKOUT => SCLK,
-			GATE => SOUNDEN,
-			CS => CS367,
-			WR => WR,
-			DI => DO,
-			DO => DO367);
+    PPI0 : i8255 port map (
+        CLKSYS => pCLk21m,
+        RST => URST,
+        A => A16(1 downto 0),
+        CS => CSPPI,
+        WR => WR,
+        DI => DO,
+        DO => DOPPI,
+        LDDAT => open,
+        CLKIN => SCLK,
+        KCLK => CPUCLK,
+        VBLNK => VBLNK,
+        INTMSK => INTMSK,
+        RBIT => RBIT,
+        SENSE => pSense,
+        MOTOR => MOTOR,
+        PS2CK => pPs2Clk,
+        PS2DT => pPs2Dat,
+        PS2KEY => pPs2Key,
+        -- for Joystick
+        JOYA => pJoyA,
+        JOYB => pJoyB);
 
-	PPI0 : i8255 port map (
-			RST => URST,
-			A => A16(1 downto 0),
-			CS => CSPPI,
-			WR => WR,
-			DI => DO,
-			DO => DOPPI,
-			LDDAT => open,
---			LDDAT2 => LD(5),
---			LDSNS => LD(6),
-			CLKIN => SCLK,
-			KCLK => CPUCLK,
---			FCLK => NTSCCLK,
-			VBLNK => VBLNK,
-			INTMSK => INTMSK,
-			RBIT => RBIT,
-			SENSE => PLYSW,		-- SW(0),
-			MOTOR => MOTOR,
-			PS2CK => pPs2Clk,
-			PS2DT => pPs2Dat,
-			-- for Sub processor
-			KEY_UP => KEY_UP,
-			KEY_DOWN => KEY_DOWN,
-			KEY_LEFT => KEY_LEFT,
-			KEY_RIGHT => KEY_RIGHT,
-			KEY_CR => KEY_CR,
-			KEY_SPACE => KEY_SPACE,
-			ALT_ALT => ALT_ALT,
-			ALT_EXIT => ALT_EXIT,
-			ALT_PLAY => ALT_PLAY,
-			ALT_STOP => ALT_STOP,
-			ALT_CG => ALT_CG,
-			ALT_PCG => ALT_PCG,
-			-- for Joystick
---			JOYA => "000000",
---			JOYB => "000000");
-			JOYA => not pJoyA,
-			JOYB => not pJoyB);
-
-	PSIO0 : psio port map (
-			-- common
-			RST  => URST,
-			FCLK => pClk21m,
-			CLK  => not CPUCLK,
-			ADR  => SA16,
-			EADR => SEA6,
-			DI	 => RAMDI,
-			RAMDI => SRAMDI,
-			DO	 => SDO,
-			RD	 => SRD,
-			WR	 => SWR,
-			CSM  => SCSM,
-			RAMCS => SRAMCS,
-			CSD0 => SCSD0,
-			CSD8 => SCSD8,
-			SWAIT => SWAIT,
-			-- for Sub-Z80
-			KEY_UP => KEY_UP,
-			KEY_DOWN => KEY_DOWN,
-			KEY_LEFT => KEY_LEFT,
-			KEY_RIGHT => KEY_RIGHT,
-			KEY_CR => KEY_CR,
-			KEY_SPACE => KEY_SPACE,
-			ALT_ALT => ALT_ALT,
-			ALT_EXIT => ALT_EXIT,
-			ALT_PLAY => ALT_PLAY,
-			ALT_STOP => ALT_STOP,
-			TPMA => TPMA,
-			TPMI => TPMI,
-			TMRD => TMRD,
-			TMWR => TMWR,
-			--TINT => TINT,
-			TEPCCK => TEPCCK,
-			TEPCDO => TEPCDO,
-			TEPCCS => TEPCCS,
-			TEPCDI => TEPCDI,
-			-- from/to Main CPU
-			ZRST => ZRST,
-			ZADR => A16,
-			ZDI  => DO,
-			ZDO  => DOPS,
-			MREQ => MREQ,
-			IORQ => IORQ,
-			ZWR	 => ZWR,
-			ZRD	 => ZRD,
-			ZBRQ => ZBREQ,
-			ZBAK => ZBACK,
-			-- MMC I/F
-			MMCCK => MMCCK,	--pSd_Ck,	--MMCCK,
-			MMCCS => MMCCS,	--pSd_Dt(3),	--MMCCS,
-			MMCDI => MMCDI,	--pSd_Dt(0),	--MMCDI,
-			MMCDO => MMCDO,	--pSd_Cm,	--MMCDO,
-			-- FDD
-			CSFDD => CSFDD,
-			INUSE1 => FDD1,
-			INUSE2 => FDD2,
-			-- I/O
-			CSPRT => CSPRT,
-			RBIT => RBIT,
-			PLYSW => PLYSW,
-			MOTOR => MOTOR);
-
-	PIT0 : i8253 port map (
-			RST => URST,
-			CLK => CPUCLK,
-			A => A16(1 downto 0),
-			DI => DO,
-			DO => DOPIT,
-			CS => CSPIT,
-			WR => WR,
-			RD => ZRD,
-			CLK0 => DIV4(1),
-			GATE0 => SOUNDEN,
-			OUT0 => XSPKOUT,
-			CLK1 => HCLK,
-			GATE1 => '1',
-			OUT1 => CASCADE,
-			CLK2 => CASCADE,
-			GATE2 => '1',
-			OUT2 => INTX);
+    PIT0 : i8253 port map (
+        RST => URST,
+        CLK => CPUCLK,
+        A => A16(1 downto 0),
+        DI => DO,
+        DO => DOPIT,
+        CS => CSPIT,
+        WR => WR,
+        RD => RD,
+        CLK0 => DIV4(1),
+        GATE0 => SOUNDEN,
+        OUT0 => XSPKOUT,
+        CLK1 => HCLK,
+        GATE1 => '1',
+        OUT1 => CASCADE,
+        CLK2 => CASCADE,
+        GATE2 => '1',
+        OUT2 => INTX);
 
 	--
 	-- Reset
@@ -966,7 +765,7 @@ begin
 	--
 	--DI<=CVDI when CSD0='0' else
 	--	AVDI when CSD8='0' else
-	DI<=RAMDI when CS1='0' or CS00='0' or CSE8='0' or ((ZRST='0' or ZBACK='0') and SCSM='0') or CSVRAM='0' or CSCG='0' else
+	DI<=RAMDI when CS1='0' or CS00='0' or CSE8='0' or CSVRAM='0' or CSCG='0' else
 		DO367 when CS367='0' else
 		DOPPI when CSPPI='0' else
 		DOPIT when CSPIT='0' else
@@ -980,24 +779,19 @@ begin
 	--
 	--WECV<=WR or CSD0;
 	--WEAV<=WR or CSD8;
-	WEMM<=ZWR or (not (CS00 and CSE8) or (not (CGSEL(0) or CGSEL(1) or CSCG))) when ZRST='1' and ZBACK='1' else SWR;
+	WEMM<=WR or (not (CS00 and CSE8) or (not (CGSEL(0) or CGSEL(1) or CSCG)));
 
 	--
 	-- LED
 	--
 --	pLed<=(others=>'0');
 --	pLed<=TBWD;	--TBUFPT&"00";
-	pLed<=(not MMCCS) & MOTOR & '0' & FDD1 & FDD2 & KEY_SPACE & ALT_ALT & PCGSW;
+	pLed<=(not MMCCS) & MOTOR & '0' & FDD1 & FDD2 & "00" & PCGSW;
 	pLedPwr<='1';
 
 	--
 	-- Bus control
 	--
-	A16 <=ZA16  when ZRST='1' and ZBACK='1' else SA16;
-	--CSD0<=ZCSD0 when ZRST='1' and ZBACK='1' else SCSD0;
-	--CSD8<=ZCSD8 when ZRST='1' and ZBACK='1' else SCSD8;
-	DO  <=ZDO   when ZRST='1' and ZBACK='1' else SDO;
-	WR  <=ZWR   when ZRST='1' and ZBACK='1' else SWR;
 
 	--
 	-- Misc
@@ -1006,100 +800,7 @@ begin
 	pDac_SL<=not (XSPKOUT&XSPKOUT&XSPKOUT&XSPKOUT&XSPKOUT&XSPKOUT);
 	pDac_SR<="000000";
 	INT<=not (INTX and INTMSK);
-	process( ALT_CG, ALT_PCG ) begin
-		if( ALT_CG='1' ) then
-			PCGSW<='0';
-		elsif( ALT_PCG='1' ) then
-			PCGSW<='1';
-		end if;
-	end process;
 
-	--
-	-- Debug
-	--
---	pJoyA(0)<=TEPCCK;		-- IO[0]
---	pJoyA(4)<=TEPCCS;		-- IO[1]
---	pJoyA(1)<=TEPCDO;		-- IO[2]
---	pJoyA(5)<=TEPCDI;		-- IO[3]
---	pJoyA(2)<=MMCCS;		-- IO[4]
---	pStrA<=TVADRC(3);			-- IO[5]
---	pJoyA(3)<=TVADRC(4);		-- IO[6]
---	pJoyB(0)<=TVADRC(5);		-- IO[7]
---	pJoyB(4)<=TVADRC(6);		-- IO[8]
---	pJoyB(1)<=TVADRC(7);		-- IO[9]
---	pJoyB(5)<=TVADRC(8);		-- IO[10]
---	pJoyB(2)<=TVADRC(9);		-- IO[11]
---	pStrB<=TBUFWP(0);		-- IO[12]
---	pJoyB(3)<=TBUFWP(1);			-- IO[13]
---	pIopRsv14<=TBUFWP(2);
---	pIopRsv15<=TBUFWP(3);
---	pIopRsv16<=TBUFWP(4);
---	pIopRsv17<=TBUFWP(5);
---	pIopRsv18<=GCS;
---	pIopRsv19<=TPC;
---	pIopRsv20<=TBMASK(6);
---	pIopRsv21<=TBMASK(7);
-
---	pLed<=SDO when SWR='0' else TDI when SRD='0' else (others=>'0');
---	pJoyA(0)<='1' when TDI=X"CD" and TM1='0' and CPUCLK='0' else '0';		-- IO[0]
---	pJoyA(4)<=SWR;			-- IO[1]
---	pJoyA(1)<=SRD;			-- IO[2]
---	pJoyA(5)<=TM1;			-- IO[3]
---	pJoyA(2)<=SRAMCS;		-- IO[4]
---	pStrA<=CPUCLK;			-- IO[5]
---	pJoyA(3)<=TADR(0);		-- IO[6]
---	pJoyB(0)<=TADR(1);		-- IO[7]
---	pJoyB(4)<=TADR(2);		-- IO[8]
---	pJoyB(1)<=TADR(3);		-- IO[9]
---	pJoyB(5)<=TADR(4);		-- IO[10]
---	pJoyB(2)<=TADR(5);		-- IO[11]
---	pStrB<=TADR(6);			-- IO[12]
---	pJoyB(3)<=TADR(7);		-- IO[13]
---	pIopRsv14<=TADR(8);
---	pIopRsv15<=TADR(9);
---	pIopRsv16<=TADR(10);
---	pIopRsv17<=TADR(11);
---	pIopRsv18<=TADR(12);
---	pIopRsv19<=TADR(13);
---	pIopRsv20<=TADR(14);
---	pIopRsv21<=TADR(15);
-
---	pLed<=ZDO when ZWR='0' else DI when ZRD='0' else (others=>'0');
---	pJoyA(0)<='1' when A16(15 downto 10)="110100" and CPUCLK='0' else '0';		-- IO[0]
---	pJoyA(0)<=RAMCS;		-- IO[0]
---	pJoyA(4)<=ZWR;			-- IO[1]
---	pJoyA(1)<=ZRD;			-- IO[2]
---	pJoyA(5)<=M1;			-- IO[3]
---	pJoyA(2)<=CS00;			-- IO[4]
---	pStrA<=CSVRAM;			-- IO[5]
---	pJoyA(3)<=A16(0);		-- IO[6]
---	pJoyB(0)<=A16(1);		-- IO[7]
---	pJoyB(4)<=A16(2);		-- IO[8]
---	pJoyB(1)<=A16(3);		-- IO[9]
---	pJoyB(5)<=A16(4);		-- IO[10]
---	pJoyB(2)<=A16(5);		-- IO[11]
---	pStrB<=A16(6);			-- IO[12]
---	pJoyB(3)<=A16(7);		-- IO[13]
---	pIopRsv14<=A16(8);
---	pIopRsv15<=A16(9);
---	pIopRsv16<=A16(10);
---	pIopRsv17<=A16(11);
---	pIopRsv18<=A16(12);
---	pIopRsv19<=A16(13);
---	pIopRsv20<=A16(14);
---	pIopRsv21<=A16(15);
-
-
---	pDac_VR<=R;
---	pDac_VG<=G;
---	pDac_VB<=B;
---	pVideoHS_n<=HS;
---	pVideoVS_n<=VS;
---	pMemAdr<=MA;
---	pMemCas_n<=MCAS;
---	pMemRas_n<=MRAS;
---	pMemCs_n<=MCS;
---	pMemWe_n<=TWE;
 	pSd_Ck<=MMCCK;
 	pSd_Cm<=MMCDO;
 	pSd_Dt(3)<=MMCCS;

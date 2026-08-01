@@ -110,12 +110,14 @@ wire TAPE_SOUND=UART_RX;
 `include "build_id.v"
 parameter CONF_STR = {
     "MZ700;;",
-    "S0U,DSK,Load Floppy 1;",
+    "F0,ROM,Reload ROM;",
+    "F1,ROM,Reload CGROM;",
     `SEP
-    "O45,Scanlines,Off,25%,50%,75%;",
+    "S2U,DSK,Load Floppy 1;",
     `SEP
     "O3,Swap Joysticks,No,Yes;",
-    "OC,Mode,Computer,Console;",
+    "O4,Tape Sound,Yes,No;",
+    "O5,Sense,Zero,One;",
     `SEP
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
@@ -123,7 +125,7 @@ parameter CONF_STR = {
 
 /////////////////  CLOCKS  ////////////////////////
 wire clk_sys /* synthesis keep */;
-wire clk_mem;
+wire clk_mem /* synthesis keep */;
 wire clk_vga;
 wire pll_locked;
 
@@ -181,12 +183,14 @@ wire key_extended;
 wire ps2_kbd_clk;
 wire ps2_kbd_data;
 
-wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code}; 
+wire [10:0] ps2_key = {key_strobe, key_pressed, key_extended, key_code};
+
 
 user_io #(
     .STRLEN($size(CONF_STR)>>3),
     .SD_IMAGES(1'b1),
-    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14)))
+    .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))
+)
 user_io(
     .clk_sys(clk_sys),
     .clk_sd(clk_sys),
@@ -269,7 +273,7 @@ sd_card sd_card(
     .sd_buff_din(sd_buff_din),
     .sd_buff_addr(sd_buff_addr),
     .sd_buff_wr(sd_buff_wr),
-    .allow_sdhc(1'b0),
+    .allow_sdhc(1'b1),
     
     .sd_sck(sdclk),
     .sd_cs(sdss),
@@ -278,7 +282,19 @@ sd_card sd_card(
 );
 
 /////////////////  RESET  /////////////////////////
-wire reset =  status[0] | buttons[1] | ioctl_download | ~pll_locked;
+// Reset key
+reg kbd_reset /* synthesis keep */;
+always @(posedge clk_sys) begin
+    if (key_strobe) begin
+        if (!key_extended) begin
+            case(key_code)
+                8'h78: kbd_reset <= key_pressed; // F11
+            endcase
+        end
+    end
+end
+
+wire reset =  status[0] | buttons[1] | ioctl_download | ~pll_locked | kbd_reset;
 
 ////////////////  Machine  ////////////////////////
 wire [5:0] laudio;
@@ -290,6 +306,15 @@ wire hsync, vsync;
 
 wire [31:0] joya = status[3] ? joy1 : joy0;
 wire [31:0] joyb = status[3] ? joy0 : joy1;
+
+// MZ-700 joystick matrix: (0)UP (1)DOWN (2)LEFT (3)RIGHT (4)B (5)A
+wire [5:0] joya_mz = {joya[5], joya[4], joya[3], joya[2], joya[1], joya[0]};
+wire [5:0] joyb_mz = {1'b0, joyb[4], joyb[3], joyb[2], joyb[1], joyb[0]};
+
+reg [2:0] ear = 3'b000;
+always @(posedge clk_sys) begin
+    ear[2:0] <= {ear[1:0], TAPE_SOUND};
+end
 
 mz700 mz700(
     .pClk21m(clk_sys),      // in std_logic;      - VDP clock ... 21.48MHz
@@ -337,12 +362,15 @@ mz700 mz700(
     
     .pPs2Clk(ps2_kbd_clk),        // inout std_logic;
     .pPs2Dat(ps2_kbd_data),        // inout std_logic;
-    
-    .pJoyA(),          // inout std_logic_vector( 5 downto 0);
+    .pPs2Key(ps2_key),
+    .pJoyA(joya_mz),     // inout std_logic_vector( 5 downto 0);
     .pStrA(),          // out std_logic;
-    .pJoyB(),          // inout std_logic_vector( 5 downto 0);
+    .pJoyB(joyb_mz),     // inout std_logic_vector( 5 downto 0);
     .pStrB(),          // out std_logic;
 
+    .pEar(ear[2]),
+    .pSense(status[5]),
+    
     // pSd_Ck,       --MMCCK
     // pSd_Dt(3),    --MMCCS
     // pSd_Dt(0),    --MMCDI
@@ -381,7 +409,14 @@ mz700 mz700(
     .pIopRsv18(),       // out std_logic;
     .pIopRsv19(),       // out std_logic;
     .pIopRsv20(),       // out std_logic;
-    .pIopRsv21()        // out std_logic
+    .pIopRsv21(),       // out std_logic;
+    
+    .ioctlDownload(ioctl_download),
+    .ioctlIndex(ioctl_index),
+    .ioctlWr(ioctl_wr),
+    .ioctlAddr(ioctl_addr),
+    .ioctlDout(ioctl_dout),
+    .pllLocked(pll_locked)
 );
 
 
@@ -389,14 +424,14 @@ mz700 mz700(
 i2s i2s (
     .reset(1'b0),
     .clk(clk_sys),
-    .clk_rate(32'd42_660_000),
+    .clk_rate(32'd21_500_000),
 
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),
     .sdata(I2S_DATA),
 
-    .left_chan({laudio, 10'd0}),
-    .right_chan({raudio, 10'd0})
+    .left_chan({laudio, status[4] ? 1'b0 : TAPE_SOUND, 9'd0}),
+    .right_chan({raudio, status[4] ? 1'b0 : TAPE_SOUND, 9'd0})
 );
 `endif
 
@@ -424,7 +459,7 @@ mist_video(
     .VGA_VS(VGA_VS),
     .VGA_HS(VGA_HS),
     .ce_divider(3'd7),
-    .scandoubler_disable(scandoubler_disable),
+    .scandoubler_disable(1'b1),
     .no_csync(no_csync),
     .scanlines(status[5:4]),
     .ypbpr(ypbpr)
