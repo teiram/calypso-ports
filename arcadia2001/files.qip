@@ -1,0 +1,10 @@
+set_global_assignment -name VHDL_FILE Arcadia_MiSTer/rtl/base/base_pack.vhd
+set_global_assignment -name VHDL_FILE Arcadia_MiSTer/rtl/s2650/sgs2650_pack.vhd
+set_global_assignment -name VHDL_FILE Arcadia_MiSTer/rtl/s2650/sgs2650.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE arcadia2001_calypso.sv
+set_global_assignment -name VHDL_FILE arcadia_core.vhd
+set_global_assignment -name VHDL_FILE sgs2637.vhd
+set_global_assignment -name QIP_FILE ../common/mist-modules/mist.qip
+set_global_assignment -name QIP_FILE pll.qip
+
+

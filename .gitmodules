@@ -298,3 +298,9 @@
 [submodule "jr100/JR100_MiSTer"]
 	path = jr100/JR100_MiSTer
 	url = https://github.com/teiram/JR100_MiSTer.git
+[submodule "arcadia2001/Arcadia_MiSTer"]
+	path = arcadia2001/Arcadia_MiSTer
+	url = https://github.com/MiSTer-devel/Arcadia_MiSTer
+[submodule "mac-lc/MacLC_MiSTer"]
+	path = mac-lc/MacLC_MiSTer
+	url = https://github.com/MiSTer-devel/MacLC_MiSTer.git
