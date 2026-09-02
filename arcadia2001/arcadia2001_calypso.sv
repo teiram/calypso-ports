@@ -500,7 +500,7 @@ arcadia_core arcadia_core(
     .OSD_STATUS(),
     .pause_osd(status[9]),
 
-    .ntsc_pal(status[2]),
+    .ntsc_pal(~status[2]),
     .swapxy(status[4]),
     .swap_controllers(status[8]),
 
@@ -536,7 +536,7 @@ arcadia_core arcadia_core(
 i2s i2s (
     .reset(1'b0),
     .clk(clk_sys),
-    .clk_rate(32'd42_660_000),
+    .clk_rate(status[2] ? 32'd28_615_385 : 32'd35_428_571),
 
     .sclk(I2S_BCK),
     .lrclk(I2S_LRCK),

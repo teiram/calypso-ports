@@ -88,8 +88,8 @@ ENTITY sgs2637 IS
     vid_hsyn : OUT std_logic;
     vid_vsyn : OUT std_logic;
     vid_ce   : OUT std_logic;
-    vid_hblank : out std_logic;
-    vid_vblank : out std_logic;
+    vid_hblank : OUT std_logic;
+    vid_vblank : OUT std_logic;
     vrst     : OUT std_logic;
 
     sound    : OUT uv8;
@@ -116,14 +116,15 @@ ARCHITECTURE rtl OF sgs2637 IS
       x"01",x"02",x"04",x"08",x"10",x"20",x"40",x"80",  -- /
       x"80",x"40",x"20",x"10",x"08",x"04",x"02",x"01",  -- \
       x"FF",x"FF",x"FF",x"FF",x"FF",x"FF",x"FF",x"FF",  -- #
-      x"FF",x"00",x"00",x"00",x"00",x"00",x"00",x"00",  -- "
-      x"01",x"01",x"01",x"01",x"01",x"01",x"01",x"01",  -- |
-      x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"FF",  -- _
-      x"80",x"80",x"80",x"80",x"80",x"80",x"80",x"80",  -- |
-      x"FF",x"01",x"01",x"01",x"01",x"01",x"01",x"01",  -- "|
-      x"FF",x"80",x"80",x"80",x"80",x"80",x"80",x"80",  -- |"
-      x"80",x"80",x"80",x"80",x"80",x"80",x"80",x"FF",  -- |_
-      x"01",x"01",x"01",x"01",x"01",x"01",x"01",x"FF",  -- _|
+      -- SC2637 built-in line/corner glyphs ($04..$0B) use two-pixel strokes.
+      x"FF",x"FF",x"00",x"00",x"00",x"00",x"00",x"00",  -- $04 top line
+      x"03",x"03",x"03",x"03",x"03",x"03",x"03",x"03",  -- $05 right line
+      x"00",x"00",x"00",x"00",x"00",x"00",x"FF",x"FF",  -- $06 bottom line
+      x"C0",x"C0",x"C0",x"C0",x"C0",x"C0",x"C0",x"C0",  -- $07 left line
+      x"FF",x"FF",x"03",x"03",x"03",x"03",x"03",x"03",  -- $08 top+right
+      x"FF",x"FF",x"C0",x"C0",x"C0",x"C0",x"C0",x"C0",  -- $09 top+left
+      x"C0",x"C0",x"C0",x"C0",x"C0",x"C0",x"FF",x"FF",  -- $0A left+bottom
+      x"03",x"03",x"03",x"03",x"03",x"03",x"FF",x"FF",  -- $0B right+bottom
       x"01",x"03",x"07",x"0F",x"1F",x"3F",x"7F",x"FF",  -- /
       x"80",x"C0",x"E0",x"F0",x"F8",x"FC",x"FE",x"FF",  -- \
       x"FF",x"FE",x"FC",x"F8",x"F0",x"E0",x"C0",x"80",  -- /
@@ -197,7 +198,13 @@ ARCHITECTURE rtl OF sgs2637 IS
   ALIAS  r_cm   : std_logic IS r_0fd(7); -- Color mode
   
   SIGNAL r_0fe  : uv8; -- FE
-  ALIAS hshift  : uv3 IS r_0fe(7 DOWNTO 5); -- Character shift
+  ALIAS hshift  : uv3 IS r_0fe(7 DOWNTO 5); -- Character shift register
+  -- Horizontal character delay is captured at the start of each DMA row.
+  SIGNAL hshift_row : uv3 := (OTHERS => '0');
+  -- Registered horizontal origin shared by fetch, clipping and pixel phase.
+  SIGNAL row_origin : natural range 0 to 255 := 43;
+  SIGNAL hshift_zero_pending : std_logic := '0';
+
   ALIAS r_rng   : std_logic IS r_0fe(4); -- Random noise
   ALIAS r_sen   : std_logic IS r_0fe(3); -- Sound enable
   ALIAS r_loud  : uv3 IS r_0fe(2 DOWNTO 0); -- Sound loudness
@@ -233,6 +240,15 @@ ARCHITECTURE rtl OF sgs2637 IS
   SIGNAL col_grb : uv3;
   CONSTANT HOFFSET : natural := 32+11; -- ???
 
+  -- SC2637 object horizontal coordinates are used directly in this renderer's
+  -- left-edge-relative hpos domain.  The upstream preservation pass assumed a
+  -- 20-clock pre-display offset (OBJ_X_ORIGIN=20) calibrated to the 2621/2622
+  -- MiSTer framing, but that shifted Calypso sprites/objects 20px left.  The
+  -- Calypso port renders objects in the raw coordinate domain, so the offset
+  -- is zeroed here.
+  CONSTANT OBJ_X_ORIGIN : natural := 0;
+  CONSTANT OBJ_X_LAST   : natural := 227;
+
   SIGNAL cyc : uint3;
   SIGNAL vrle,vrle_pre,hrle,hrle_pre,hpulse : std_logic;
   SIGNAL hpos,hlen,hsync,hdisp : uint9;
@@ -266,10 +282,16 @@ ARCHITECTURE rtl OF sgs2637 IS
     hpos : uint9; -- Spot horizontal position
     hc   : uv8 ) RETURN natural IS -- Horizontal coordinate object
     VARIABLE a : uint3;
-    VARIABLE ihc : uint8 := to_integer(hc);
+    VARIABLE ihc : integer := to_integer(hc) - OBJ_X_ORIGIN;
   BEGIN
-    a:=(hpos-ihc) MOD 8;
-    RETURN 7-a;
+    -- objhit() rejects coordinates before the visible object origin; keep
+    -- the bit selector harmless when called for one of those coordinates.
+    IF ihc < 0 THEN
+      RETURN 0;
+    ELSE
+      a:=(hpos-ihc) MOD 8;
+      RETURN 7-a;
+    END IF;
   END FUNCTION;
   
   ------------------------------------------------
@@ -280,10 +302,12 @@ ARCHITECTURE rtl OF sgs2637 IS
     vc   : uv8; -- Vertical   coordinate object
     size : std_logic) RETURN boolean IS -- Object size
     VARIABLE ivc : uint8 := to_integer(vc);
-    VARIABLE ihc : uint8 := to_integer(hc);
+    VARIABLE ihc : integer := to_integer(hc) - OBJ_X_ORIGIN;
   BEGIN
-    
-    IF hc > 227 THEN
+    -- Convert the SC2637 object coordinate into the renderer's visible-X
+    -- domain.  Coordinates before the object origin or beyond the chip
+    -- displayable range do not produce pixels.
+    IF to_integer(hc) < OBJ_X_ORIGIN OR to_integer(hc) > OBJ_X_LAST THEN
       RETURN false;
     ELSIF size='1' THEN -- Small
       RETURN vpos>=ivc AND (vpos-ivc)<8 AND hpos>=ihc AND (hpos-ihc)<8;
@@ -302,6 +326,17 @@ ARCHITECTURE rtl OF sgs2637 IS
     IF g='0' THEN
       RETURN d(7-h)='1';
     ELSE
+      -- Documented SC2637 block-graphics mapping is exactly:
+      --   22211100
+      --   22211100
+      --   22211100
+      --   22211100
+      --   55544433
+      --   55544433
+      --   55544433
+      --   55544433
+      -- i.e. horizontal widths 3 + 3 + 2.  DIAG V's 3+2+3 experiment
+      -- was disproved and is intentionally reverted here.
       IF    v=0 AND h<3 THEN  RETURN c(2)='1';
       ELSIF v=1 AND h<3 THEN  RETURN c(5)='1';
       ELSIF v=0 AND h<6 THEN  RETURN c(1)='1';
@@ -321,7 +356,11 @@ BEGIN
   ack<='1';
 
   wreq<=wr AND req AND tick;
-  adi <="0" & ad(10 DOWNTO 0);
+  -- Normalise the Arcadia mirror aliases to the native 1 KiB 2637 window.
+  -- $xB00-$xBFF is an alias of $x900-$x9FF; the surrounding 1 KiB blocks
+  -- repeat at $x000/$x400/$x800/$xC00 within each odd 4 KiB CPU page.
+  adi <= "000" & ad(8 DOWNTO 0) WHEN ad(9 DOWNTO 8)="11" ELSE
+         "00"  & ad(9 DOWNTO 0);
 
   dr<=dr_reg WHEN drreg_sel='1' ELSE dr_mem;
   
@@ -354,9 +393,12 @@ BEGIN
         WHEN x"0F5" =>  IF wreq='1' THEN o3_hc<=dw; END IF;
         WHEN x"0F6" =>  IF wreq='1' THEN o4_vc<=NOT dw; END IF;
         WHEN x"0F7" =>  IF wreq='1' THEN o4_hc<=dw; END IF;
-        WHEN x"0FC" =>  IF wreq='1' THEN voffset<=NOT dw - 1; END IF;
+        WHEN x"0FC" =>  IF wreq='1' THEN voffset<=NOT dw; END IF;
         WHEN x"0FD" =>  IF wreq='1' THEN r_0fd<=dw; END IF;
-        WHEN x"0FE" =>  IF wreq='1' THEN r_0fe<=dw; END IF;
+        WHEN x"0FE" =>
+          IF wreq='1' THEN
+            r_0fe<=dw;
+          END IF;
         WHEN x"0FF" =>  dr_reg<="1111" & dmarow; drreg_sel<='1';
         WHEN x"1F8" =>  IF wreq='1' THEN r_1f8<=dw; END IF;
         WHEN x"1F9" =>  IF wreq='1' THEN r_1f9<=dw; END IF;
@@ -406,8 +448,15 @@ BEGIN
       
       --------------------------------------------
       -- POT MUX
-      pot13<=mux(r_pmux,pot3,pot1);
-      pot24<=mux(r_pmux,pot4,pot2);
+      -- Paddle A/D registers are valid only during vertical reset.
+      -- Outside VRST the real 2637 returns $FF.
+      IF vrle='1' THEN
+        pot13<=mux(r_pmux,pot3,pot1);
+        pot24<=mux(r_pmux,pot4,pot2);
+      ELSE
+        pot13<=x"FF";
+        pot24<=x"FF";
+      END IF;
       
       --------------------------------------------
     END IF;
@@ -416,7 +465,7 @@ BEGIN
 
   ------------------------------------------------------------------------------
   -- Memory address mux
-  MadMux:PROCESS(ram_dr,vpos,voffset,hpos,hshift,r_csize,
+  MadMux:PROCESS(ram_dr,vpos,voffset,hpos,row_origin,r_csize,
                  o1_size,o2_size,o3_size,o4_size,
                  o1_vc,o2_vc,o3_vc,o4_vc,cyc) IS
   BEGIN
@@ -430,11 +479,11 @@ BEGIN
     
     IF (vpos) < 13*8  + to_integer(voffset) THEN
       xxx_ad <=to_unsigned(
-        (hpos - HOFFSET - to_integer(hshift)) / 8
+        (hpos - row_origin) / 8
         + ((vpos - to_integer(voffset)) / 8) * 16,10);
     ELSE
       xxx_ad <=to_unsigned(512 +
-         (hpos - HOFFSET - to_integer(hshift)) / 8
+         (hpos - row_origin) / 8
          + ((vpos - to_integer(voffset)) / 8 - 13) * 16,10);
     END IF;
     
@@ -443,17 +492,17 @@ BEGIN
         IF r_csize='1' THEN -- Small chars
           IF vpos < 13*8 + to_integer(voffset) THEN
             ram_ad <=to_unsigned(
-              (hpos - HOFFSET - to_integer(hshift)) / 8
+              (hpos - row_origin) / 8
               + ((vpos - to_integer(voffset)) / 8) * 16,10);
           ELSE
             ram_ad <=to_unsigned(512 +
-              (hpos - HOFFSET - to_integer(hshift)) / 8
+              (hpos - row_origin) / 8
               + ((vpos - to_integer(voffset)) / 8 - 13) * 16,10);
           END IF;
           
         ELSE -- High chars
           ram_ad <=to_unsigned(
-            (hpos - HOFFSET - to_integer(hshift)) / 8
+            (hpos - row_origin) / 8
             + ((vpos - to_integer(voffset)) / 16) * 16,10);
         END IF;
         
@@ -499,39 +548,31 @@ BEGIN
     VARIABLE h,m : boolean;
     VARIABLE i : natural RANGE 0 TO 7;
     VARIABLE dm_v : uv8;
+    VARIABLE next_v : natural RANGE 0 TO 311;
+    VARIABLE next_dma : uv4;
   BEGIN
     IF reset_na='0' THEN
       NULL;
     ELSIF rising_edge(clk) THEN
       --------------------------------------------
-      IF np='0' THEN
-        -- NTSC
-        hlen <=227;
-        hsync<=224;
-        hdisp<=222;
-        vlen <=262;
-        vsync<=253;
-        vdisp<=252;
-      ELSE
-        -- PAL
-        hlen <=284;
-        hsync<=280;
-        hdisp<=228;
-        vlen <=312;
-        vsync<=260;
-        vdisp<=252;
-      END IF;
-
-
-      hlen <=227;
+      -- 2622 NTSC and 2621 PAL both use exactly 227 pixel clocks per line.
+      -- Counters are zero based, hence terminal counts 226 / 261 / 311.
+      -- VRST (and therefore the 2650 SENSE input) lasts 20 NTSC lines or
+      -- 43 PAL lines, as on the real USG.
+      hlen <=226;
       hsync<=200;
       hdisp<=184;
-      
-      vlen <=312;
-      vsync<=269;
-      vdisp<=268;
-
-      vsync<=270;
+      IF np='0' THEN
+        -- 262 total lines: 242 active + 20 vertical-reset lines.
+        vlen <=261;
+        vdisp<=242;
+        vsync<=241;
+      ELSE
+        -- 312 total lines: 269 active + 43 vertical-reset lines.
+        vlen <=311;
+        vdisp<=269;
+        vsync<=268;
+      END IF;
       
       --------------------------------------------
       -- Collisions pulses
@@ -554,14 +595,68 @@ BEGIN
       CASE cyc IS
         WHEN 0 => -- Clear
           IF hpos<hlen THEN
+            -- Capture horizontal delay at the first raster of a character row.
+            IF hpos=0 THEN
+              IF r_csize='1' THEN
+                IF vpos>=to_integer(voffset) AND vpos<to_integer(voffset)+8*13 THEN
+                  next_dma := to_unsigned((vpos-to_integer(voffset))/8,4);
+                ELSIF vpos>=to_integer(voffset)+8*13 AND
+                      vpos<to_integer(voffset)+8*13*2 AND r_ref='1' THEN
+                  next_dma := to_unsigned((vpos-to_integer(voffset))/8-13,4);
+                ELSE
+                  next_dma := to_unsigned(13,4);
+                END IF;
+              ELSE
+                IF vpos>=to_integer(voffset) AND vpos<to_integer(voffset)+16*13 THEN
+                  next_dma := to_unsigned((vpos-to_integer(voffset))/16,4);
+                ELSE
+                  next_dma := to_unsigned(13,4);
+                END IF;
+              END IF;
+
+              IF next_dma /= dmarow AND to_integer(next_dma) <= 12 THEN
+                -- One row-wide origin is used by the complete character pipeline.
+                hshift_row <= hshift;
+                row_origin <= HOFFSET + to_integer(hshift);
+                hshift_zero_pending <= '0';
+              END IF;
+            END IF;
             hpos<=hpos+1;
           ELSE
             hpos<=0;
             gmode<=r_gmode;
+
             IF vpos<vlen THEN
+              next_v := vpos + 1;
+
+              IF r_csize='1' THEN
+                IF next_v < to_integer(voffset) THEN
+                  next_dma := to_unsigned(15,4);
+                ELSIF next_v < to_integer(voffset)+8*13 THEN
+                  next_dma := to_unsigned((next_v-to_integer(voffset))/8,4);
+                ELSIF next_v < to_integer(voffset)+8*13*2 AND r_ref='1' THEN
+                  next_dma := to_unsigned((next_v-to_integer(voffset))/8-13,4);
+                ELSE
+                  next_dma := to_unsigned(13,4);
+                END IF;
+              ELSE
+                IF next_v < to_integer(voffset) THEN
+                  next_dma := to_unsigned(15,4);
+                ELSIF next_v < to_integer(voffset)+16*13 THEN
+                  next_dma := to_unsigned((next_v-to_integer(voffset))/16,4);
+                ELSE
+                  next_dma := to_unsigned(13,4);
+                END IF;
+              END IF;
+
+              -- HSHIFT is captured at hpos=0 of the first raster, not here.
+
               vpos<=vpos+1;
             ELSE
               vpos<=0;
+              hshift_row <= hshift;
+              row_origin <= HOFFSET + to_integer(hshift);
+              hshift_zero_pending <= '0';
             END IF;
             
             hpulse<='1';
@@ -633,16 +728,16 @@ BEGIN
           IF r_csize='0' OR r_ref='1' THEN -- Full scree
             IF vpos<to_integer(voffset) OR --to_integer(voffset)>=128 OR
               vpos>=to_integer(voffset)+8*26 OR
-              hpos<HOFFSET+to_integer(hshift) OR
-              hpos>=16*8+HOFFSET+to_integer(hshift) THEN
+              hpos<row_origin OR
+              hpos>=16*8+row_origin THEN
               m:=false;
             END IF;
 
           ELSE -- Half, small chars
             IF vpos<to_integer(voffset) OR --to_integer(voffset)>=128 OR
               vpos>=to_integer(voffset)+8*13 OR
-              hpos<HOFFSET+to_integer(hshift) OR
-              hpos>=16*8+HOFFSET+to_integer(hshift) THEN
+              hpos<row_origin OR
+              hpos>=16*8+row_origin THEN
               m:=false;
             END IF;
 
@@ -650,48 +745,71 @@ BEGIN
           --IF r_csize='1' THEN -- 16x13 mode
           --  IF vpos<to_integer(voffset) OR to_integer(voffset)>=128 OR
           --    vpos>=to_integer(voffset)+16*13 OR
-          --    hpos<HOFFSET+to_integer(hshift) OR
-          --    hpos>=16*8+HOFFSET+to_integer(hshift) THEN
+          --    hpos<row_origin OR
+          --    hpos>=16*8+row_origin THEN
           --    m:=false;
           --  END IF;
           --ELSE -- 16x26 mode
           --  IF vpos<to_integer(voffset) OR to_integer(voffset)>=128 OR
           --    (vpos>=8*13+to_integer(voffset) AND r_ref='0') OR
           --    (vpos>=8*26+to_integer(voffset) AND r_ref='1') OR
-          --    hpos<HOFFSET+to_integer(hshift) OR
-          --    hpos>=16*8+HOFFSET+to_integer(hshift) THEN
+          --    hpos<row_origin OR
+          --    hpos>=16*8+row_origin THEN
           --    m:=false; 
           --  END IF;
           --END IF;
           
           xxx_bg<=m;
           
-          IF ch=x"C0" AND m THEN -- Set GMODE special char
+          -- $C0/$40 are block-mode control characters only when they
+          -- occupy the first character cell of a display line.  Treating
+          -- them as controls in any column corrupts rows containing ordinary
+          -- coloured character codes with those byte values.
+          IF ch=x"C0" AND m AND
+             hpos>=row_origin AND
+             hpos< row_origin+8 THEN
             gmode<='1';
             h:=false;
             
-          ELSIF ch=x"40" AND m THEN -- Clear GMODE special char
+          ELSIF ch=x"40" AND m AND
+                hpos>=row_origin AND
+                hpos< row_origin+8 THEN
             gmode<='0';
             h:=false;
             
-          ELSIF r_csize='1' THEN -- 16x13 mode
-            h:=pix(gmode,(hpos-HOFFSET-to_integer(hshift)) MOD 8,
-                   ((vpos-to_integer(voffset))/8) MOD 2,dm_v,ch);
-          ELSE -- 16x26 mode
-            h:=pix(gmode,(hpos-HOFFSET-to_integer(hshift)) MOD 8,
+          ELSIF r_csize='1' THEN -- high resolution: 8 raster lines/character
+            -- 2637 block graphics are split into a 4-line upper half and a
+            -- 4-line lower half.  The old core divided by 8 here, so it
+            -- never selected the lower half in high-resolution mode.
+            h:=pix(gmode,(hpos-row_origin) MOD 8,
                    ((vpos-to_integer(voffset))/4) MOD 2,dm_v,ch);
+          ELSE -- low resolution: each 8-line character is doubled to 16 rasters
+            -- With vertical doubling each block half occupies 8 scanlines.
+            h:=pix(gmode,(hpos-row_origin) MOD 8,
+                   ((vpos-to_integer(voffset))/8) MOD 2,dm_v,ch);
           END IF;
           
           bg_hit<=to_std_logic(h AND m);
           
           IF r_cm='0' THEN -- Character Color Mode = 0
             col_grb<=mux(h AND m,ch(7 DOWNTO 6) & r_cc(0),r_sc);
-          ELSE -- Character Color Mode = 1
-            col_grb<=mux(h AND m,mux(ch(6),r_cc,r_acc),mux(ch(7),r_sc,r_asc));
+          ELSE -- Character Color Mode = 1 (board mode)
+            -- Outside the 16x13/16x26 character display the 2637 outputs the
+            -- OUTER background colour (BGCOLOUR bits 2..0 = r_sc).
+            --
+            -- The previous implementation selected inner/outer background
+            -- from stale ch(7) even when m=false. That made the border inherit
+            -- the last fetched character's bit 7 and produced large rectangular
+            -- white/coloured artifacts around the active display.
+            IF m THEN
+              col_grb<=mux(h,mux(ch(6),r_cc,r_acc),mux(ch(7),r_sc,r_asc));
+            ELSE
+              col_grb<=r_sc;
+            END IF;
           END IF;
           
         WHEN 4 => -- Object 1
-          i:=7- ((hpos-to_integer(o1_hc)) MOD 8);
+          i:=objbit(hpos,o1_hc);
           h:=objhit(hpos,vpos,o1_hc,o1_vc,o1_size);
           
           IF h AND ram_dr(i)='1' THEN
@@ -700,7 +818,7 @@ BEGIN
           END IF;
           
         WHEN 5 => -- Object 2
-          i:=7- ((hpos-to_integer(o2_hc)) MOD 8);
+          i:=objbit(hpos,o2_hc);
           h:=objhit(hpos,vpos,o2_hc,o2_vc,o2_size);
           
           IF h AND ram_dr(i)='1' THEN
@@ -709,7 +827,7 @@ BEGIN
           END IF;
           
         WHEN 6 => -- Object 3
-          i:=7- ((hpos-to_integer(o3_hc)) MOD 8);
+          i:=objbit(hpos,o3_hc);
           h:=objhit(hpos,vpos,o3_hc,o3_vc,o3_size);
           
           IF h AND ram_dr(i)='1' THEN
@@ -718,7 +836,7 @@ BEGIN
           END IF;
           
         WHEN 7 => -- Object 4
-          i:=7- ((hpos-to_integer(o4_hc)) MOD 8);
+          i:=objbit(hpos,o4_hc);
           h:=objhit(hpos,vpos,o4_hc,o4_vc,o4_size);
           
           IF h AND ram_dr(i)='1' THEN
@@ -727,6 +845,7 @@ BEGIN
           END IF;
           
       END CASE;
+      
       vid_hblank <= to_std_logic(hpos > hsync - 1);
       vid_vblank <= to_std_logic(vpos > vsync - 1);
       vid_hsyn <= to_std_logic(hpos > hsync and hpos <= hsync + 6);
