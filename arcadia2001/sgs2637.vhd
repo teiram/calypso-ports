@@ -98,9 +98,7 @@ ENTITY sgs2637 IS
     pot2     : IN uv8;
     pot3     : IN uv8;
     pot4     : IN uv8;
-
     np       : IN std_logic; -- 0=NTSC 60Hz, 1=PAL 50Hz
-    
     reset    : IN std_logic;
     clk      : IN std_logic; -- 8x Pixel clock
     reset_na : IN std_logic
@@ -197,8 +195,10 @@ ARCHITECTURE rtl OF sgs2637 IS
   -- DMA-15 latched copies: per the 2637 spec, "the vertical and horizontal
   -- coordinates of the four objects and vertical offset will be accessed at
   -- DMA 15."  The CPU writes to the live registers; the renderer reads
-  -- these shadow copies which are frozen once per frame at the DMA-15 to
-  -- row-0 boundary.
+  -- these shadow copies which are frozen once per frame at the start of
+  -- the active display (the DMA-15 readout at the top of the frame).
+  -- Sprite colour and size (1FA/1FB) have NO such latch note in the
+  -- datasheet: they are wired live into the video path.
   SIGNAL o1_hc_l,o1_vc_l,o2_hc_l,o2_vc_l : uv8;
   SIGNAL o3_hc_l,o3_vc_l,o4_hc_l,o4_vc_l : uv8;
   SIGNAL voffset_l : uv8;
@@ -247,6 +247,14 @@ ARCHITECTURE rtl OF sgs2637 IS
   SIGNAL o1c_coll,o2c_coll,o3c_coll,o4c_coll : std_logic;
 
   SIGNAL col_grb : uv3;
+  -- Per-pixel overlap accumulator for object video.  The real 2637 wired-ORs
+  -- object video, so when several objects overlap the RGB bits are combined
+  -- rather than one object hiding the others: ANDed when the CPU FLAG is
+  -- clear, ORed when it is set.  obj_any latches whether any object produced
+  -- a pixel for the current position, so the object colour (which overrides
+  -- characters/screen) is emitted at the following cyc 0.
+  SIGNAL obj_grb : uv3;
+  SIGNAL obj_any : std_logic;
   CONSTANT HOFFSET : natural := 32+11; -- ???
 
   -- SC2637 object horizontal coordinates are used directly in this renderer's
@@ -607,17 +615,17 @@ BEGIN
             -- Capture horizontal delay at the first raster of a character row.
             IF hpos=0 THEN
               IF r_csize='1' THEN
-                IF vpos>=to_integer(voffset) AND vpos<to_integer(voffset)+8*13 THEN
-                  next_dma := to_unsigned((vpos-to_integer(voffset))/8,4);
-                ELSIF vpos>=to_integer(voffset)+8*13 AND
-                      vpos<to_integer(voffset)+8*13*2 AND r_ref='1' THEN
-                  next_dma := to_unsigned((vpos-to_integer(voffset))/8-13,4);
+                IF vpos>=to_integer(voffset_l) AND vpos<to_integer(voffset_l)+8*13 THEN
+                  next_dma := to_unsigned((vpos-to_integer(voffset_l))/8,4);
+                ELSIF vpos>=to_integer(voffset_l)+8*13 AND
+                      vpos<to_integer(voffset_l)+8*13*2 AND r_ref='1' THEN
+                  next_dma := to_unsigned((vpos-to_integer(voffset_l))/8-13,4);
                 ELSE
                   next_dma := to_unsigned(13,4);
                 END IF;
               ELSE
-                IF vpos>=to_integer(voffset) AND vpos<to_integer(voffset)+16*13 THEN
-                  next_dma := to_unsigned((vpos-to_integer(voffset))/16,4);
+                IF vpos>=to_integer(voffset_l) AND vpos<to_integer(voffset_l)+16*13 THEN
+                  next_dma := to_unsigned((vpos-to_integer(voffset_l))/16,4);
                 ELSE
                   next_dma := to_unsigned(13,4);
                 END IF;
@@ -628,12 +636,18 @@ BEGIN
                 hshift_row <= hshift;
                 row_origin <= HOFFSET + to_integer(hshift);
                 hshift_zero_pending <= '0';
+              END IF;
 
-                -- DMA-15 object/VSCROLL latch: the 2637 spec states that
-                -- object coordinates and vertical offset are "accessed at
-                -- DMA 15."  This transition fires at the DMA-15 → row-0
-                -- boundary (start of active display), capturing the values
-                -- written by the CPU during the preceding vertical blank.
+              -- DMA-15 object/VSCROLL latch: the 2637 spec states that
+              -- object coordinates and vertical offset are "accessed at
+              -- DMA 15", i.e. ONCE per frame in the undisplayed DMA-$FF
+              -- top area at the start of the frame.  The CPU has finished
+              -- its VBLANK writes by the frame wrap, so capturing at
+              -- line 0 reproduces the hardware readout exactly: a
+              -- mid-frame rewrite of a coordinate is invisible until the
+              -- next frame.  Colour/size registers (1FA/1FB) carry no
+              -- such latch note in the datasheet and stay live.
+              IF vpos=0 THEN
                 o1_hc_l <= o1_hc;  o1_vc_l <= o1_vc;
                 o2_hc_l <= o2_hc;  o2_vc_l <= o2_vc;
                 o3_hc_l <= o3_hc;  o3_vc_l <= o3_vc;
@@ -690,20 +704,20 @@ BEGIN
           bg_hit<='0';
 
           IF r_csize='1' THEN -- Small chars
-            IF vpos<to_integer(voffset) THEN
+            IF vpos<to_integer(voffset_l) THEN
               dmarow<=to_unsigned(15,4);
-            ELSIF vpos<to_integer(voffset)+8*13 THEN
-              dmarow<=to_unsigned((vpos-to_integer(voffset))/8,4);
-            ELSIF vpos<to_integer(voffset)+8*13*2 AND r_ref='1' THEN
-              dmarow<=to_unsigned((vpos-to_integer(voffset))/8-13,4);
+            ELSIF vpos<to_integer(voffset_l)+8*13 THEN
+              dmarow<=to_unsigned((vpos-to_integer(voffset_l))/8,4);
+            ELSIF vpos<to_integer(voffset_l)+8*13*2 AND r_ref='1' THEN
+              dmarow<=to_unsigned((vpos-to_integer(voffset_l))/8-13,4);
             ELSE
               dmarow<=to_unsigned(13,4);
             END IF;
           ELSE -- Tall chars
-            IF vpos<to_integer(voffset) THEN
+            IF vpos<to_integer(voffset_l) THEN
               dmarow<=to_unsigned(15,4);
-            ELSIF vpos<to_integer(voffset)+16*13 THEN
-              dmarow<=to_unsigned((vpos-to_integer(voffset))/16,4);
+            ELSIF vpos<to_integer(voffset_l)+16*13 THEN
+              dmarow<=to_unsigned((vpos-to_integer(voffset_l))/16,4);
             ELSE
               dmarow<=to_unsigned(13,4);
             END IF;
@@ -721,6 +735,14 @@ BEGIN
           o4c_coll<=o4_hit AND bg_hit;
 
           vid_argb<='1' & NOT (col_grb(1) & col_grb(2) & col_grb(0));
+
+          -- obj_any and obj_grb hold the *previous* pixel's object result
+          -- (accumulated over its cyc 3..7): emit the object overlap colour
+          -- here when any object lit that position, otherwise the character /
+          -- screen colour.  This overrides characters with objects.
+          IF obj_any='1' THEN
+            vid_argb<='1' & NOT (obj_grb(1) & obj_grb(2) & obj_grb(0));
+          END IF;
 
         WHEN 1 =>
           -- Wait !
@@ -827,6 +849,23 @@ BEGIN
               col_grb<=r_sc;
             END IF;
           END IF;
+
+          -- Start the per-pixel object overlap accumulator at its identity
+          -- value for this position.
+          --
+          -- Object overlap semantics: the 2637 wire-ORs sprite video, and
+          -- reports overlap by the AND of two sprite videos (collision).
+          -- When several objects' pixels coincide, the sprite RGB pins are
+          -- OR-combined (per the Amigan guide, overlapping *displayed* RGB is
+          -- ANDed when FLAG is clear and ORed when FLAG is set, which -- after
+          -- the FLAG-dependent colour inversion -- is an OR of the stored
+          -- register colours in both cases).  The accumulator is therefore a
+          -- plain OR; the FLAG's AND/OR difference is already produced by the
+          -- register colour being inverted at the pins and re-inverted by the
+          -- core's FLAG complement.  A lone object (OR identity 000) must
+          -- yield its own stored colour.
+          obj_grb<="000";
+          obj_any<='0';
           
         WHEN 4 => -- Object 1
           i:=objbit(hpos,o1_hc_l);
@@ -834,7 +873,8 @@ BEGIN
           
           IF h AND ram_dr(i)='1' THEN
             o1_hit<='1';
-            col_grb<=o1_col;
+            obj_any<='1';
+            obj_grb<=obj_grb OR o1_col;
           END IF;
           
         WHEN 5 => -- Object 2
@@ -843,7 +883,8 @@ BEGIN
           
           IF h AND ram_dr(i)='1' THEN
             o2_hit<='1';
-            col_grb<=o2_col;
+            obj_any<='1';
+            obj_grb<=obj_grb OR o2_col;
           END IF;
           
         WHEN 6 => -- Object 3
@@ -852,7 +893,8 @@ BEGIN
           
           IF h AND ram_dr(i)='1' THEN
             o3_hit<='1';
-            col_grb<=o3_col;
+            obj_any<='1';
+            obj_grb<=obj_grb OR o3_col;
           END IF;
           
         WHEN 7 => -- Object 4
@@ -861,7 +903,8 @@ BEGIN
           
           IF h AND ram_dr(i)='1' THEN
             o4_hit<='1';
-            col_grb<=o4_col;
+            obj_any<='1';
+            obj_grb<=obj_grb OR o4_col;
           END IF;
           
       END CASE;
