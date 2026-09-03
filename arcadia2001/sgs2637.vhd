@@ -193,6 +193,15 @@ ARCHITECTURE rtl OF sgs2637 IS
   SIGNAL o1_hc,o1_vc,o2_hc,o2_vc : uv8; -- F0..F3
   SIGNAL o3_hc,o3_vc,o4_hc,o4_vc : uv8; -- F4..F7
   SIGNAL voffset : uv8;  -- FC
+
+  -- DMA-15 latched copies: per the 2637 spec, "the vertical and horizontal
+  -- coordinates of the four objects and vertical offset will be accessed at
+  -- DMA 15."  The CPU writes to the live registers; the renderer reads
+  -- these shadow copies which are frozen once per frame at the DMA-15 to
+  -- row-0 boundary.
+  SIGNAL o1_hc_l,o1_vc_l,o2_hc_l,o2_vc_l : uv8;
+  SIGNAL o3_hc_l,o3_vc_l,o4_hc_l,o4_vc_l : uv8;
+  SIGNAL voffset_l : uv8;
   SIGNAL r_0fd  : uv8; -- FD
   ALIAS  r_freq : uv7 IS r_0fd(6 DOWNTO 0); -- Sound Frequency
   ALIAS  r_cm   : std_logic IS r_0fd(7); -- Color mode
@@ -465,67 +474,67 @@ BEGIN
 
   ------------------------------------------------------------------------------
   -- Memory address mux
-  MadMux:PROCESS(ram_dr,vpos,voffset,hpos,row_origin,r_csize,
+  MadMux:PROCESS(ram_dr,vpos,voffset_l,hpos,row_origin,r_csize,
                  o1_size,o2_size,o3_size,o4_size,
-                 o1_vc,o2_vc,o3_vc,o4_vc,cyc) IS
+                 o1_vc_l,o2_vc_l,o3_vc_l,o4_vc_l,cyc) IS
   BEGIN
     
     -- Character ROM
     IF r_csize='1' THEN
-      rom_ad <= (ram_dr(5 DOWNTO 0) & "000") + ((vpos - voffset) MOD 8);
+      rom_ad <= (ram_dr(5 DOWNTO 0) & "000") + ((vpos - voffset_l) MOD 8);
     ELSE
-      rom_ad <= (ram_dr(5 DOWNTO 0) & "000") + ((vpos - voffset)/2 MOD 8);
+      rom_ad <= (ram_dr(5 DOWNTO 0) & "000") + ((vpos - voffset_l)/2 MOD 8);
     END IF;
     
-    IF (vpos) < 13*8  + to_integer(voffset) THEN
+    IF (vpos) < 13*8  + to_integer(voffset_l) THEN
       xxx_ad <=to_unsigned(
         (hpos - row_origin) / 8
-        + ((vpos - to_integer(voffset)) / 8) * 16,10);
+        + ((vpos - to_integer(voffset_l)) / 8) * 16,10);
     ELSE
       xxx_ad <=to_unsigned(512 +
          (hpos - row_origin) / 8
-         + ((vpos - to_integer(voffset)) / 8 - 13) * 16,10);
+         + ((vpos - to_integer(voffset_l)) / 8 - 13) * 16,10);
     END IF;
     
     CASE cyc IS
       WHEN 1 | 7 | 0 => -- Read text image
         IF r_csize='1' THEN -- Small chars
-          IF vpos < 13*8 + to_integer(voffset) THEN
+          IF vpos < 13*8 + to_integer(voffset_l) THEN
             ram_ad <=to_unsigned(
               (hpos - row_origin) / 8
-              + ((vpos - to_integer(voffset)) / 8) * 16,10);
+              + ((vpos - to_integer(voffset_l)) / 8) * 16,10);
           ELSE
             ram_ad <=to_unsigned(512 +
               (hpos - row_origin) / 8
-              + ((vpos - to_integer(voffset)) / 8 - 13) * 16,10);
+              + ((vpos - to_integer(voffset_l)) / 8 - 13) * 16,10);
           END IF;
           
         ELSE -- High chars
           ram_ad <=to_unsigned(
             (hpos - row_origin) / 8
-            + ((vpos - to_integer(voffset)) / 16) * 16,10);
+            + ((vpos - to_integer(voffset_l)) / 16) * 16,10);
         END IF;
         
       WHEN 2 => -- Read user character shape
         IF r_csize='1' THEN
           ram_ad <= to_unsigned(384 + to_integer(ram_dr(2 DOWNTO 0)) * 8 +
-                                ((vpos - to_integer(voffset)) MOD 8),10);
+                                ((vpos - to_integer(voffset_l)) MOD 8),10);
         ELSE
          ram_ad <= to_unsigned(384 + to_integer(ram_dr(2 DOWNTO 0)) * 8 +
-                                ((vpos - to_integer(voffset))/2 MOD 8),10);
+                                ((vpos - to_integer(voffset_l))/2 MOD 8),10);
         END IF;
         
       WHEN 3 => -- Read object 1 shape
-        ram_ad <=objadrs(vpos,o1_vc,o1_size,0);
+        ram_ad <=objadrs(vpos,o1_vc_l,o1_size,0);
         
       WHEN 4 =>
-        ram_ad <=objadrs(vpos,o2_vc,o2_size,1);
+        ram_ad <=objadrs(vpos,o2_vc_l,o2_size,1);
         
       WHEN 5 =>
-        ram_ad <=objadrs(vpos,o3_vc,o3_size,2);
+        ram_ad <=objadrs(vpos,o3_vc_l,o3_size,2);
         
       WHEN 6 =>
-        ram_ad <=objadrs(vpos,o4_vc,o4_size,3);
+        ram_ad <=objadrs(vpos,o4_vc_l,o4_size,3);
         
     END CASE;
 
@@ -619,6 +628,17 @@ BEGIN
                 hshift_row <= hshift;
                 row_origin <= HOFFSET + to_integer(hshift);
                 hshift_zero_pending <= '0';
+
+                -- DMA-15 object/VSCROLL latch: the 2637 spec states that
+                -- object coordinates and vertical offset are "accessed at
+                -- DMA 15."  This transition fires at the DMA-15 → row-0
+                -- boundary (start of active display), capturing the values
+                -- written by the CPU during the preceding vertical blank.
+                o1_hc_l <= o1_hc;  o1_vc_l <= o1_vc;
+                o2_hc_l <= o2_hc;  o2_vc_l <= o2_vc;
+                o3_hc_l <= o3_hc;  o3_vc_l <= o3_vc;
+                o4_hc_l <= o4_hc;  o4_vc_l <= o4_vc;
+                voffset_l <= voffset;
               END IF;
             END IF;
             hpos<=hpos+1;
@@ -726,16 +746,16 @@ BEGIN
           m:=true;
 
           IF r_csize='0' OR r_ref='1' THEN -- Full scree
-            IF vpos<to_integer(voffset) OR --to_integer(voffset)>=128 OR
-              vpos>=to_integer(voffset)+8*26 OR
+            IF vpos<to_integer(voffset_l) OR --to_integer(voffset)>=128 OR
+              vpos>=to_integer(voffset_l)+8*26 OR
               hpos<row_origin OR
               hpos>=16*8+row_origin THEN
               m:=false;
             END IF;
 
           ELSE -- Half, small chars
-            IF vpos<to_integer(voffset) OR --to_integer(voffset)>=128 OR
-              vpos>=to_integer(voffset)+8*13 OR
+            IF vpos<to_integer(voffset_l) OR --to_integer(voffset)>=128 OR
+              vpos>=to_integer(voffset_l)+8*13 OR
               hpos<row_origin OR
               hpos>=16*8+row_origin THEN
               m:=false;
@@ -782,11 +802,11 @@ BEGIN
             -- 4-line lower half.  The old core divided by 8 here, so it
             -- never selected the lower half in high-resolution mode.
             h:=pix(gmode,(hpos-row_origin) MOD 8,
-                   ((vpos-to_integer(voffset))/4) MOD 2,dm_v,ch);
+                   ((vpos-to_integer(voffset_l))/4) MOD 2,dm_v,ch);
           ELSE -- low resolution: each 8-line character is doubled to 16 rasters
             -- With vertical doubling each block half occupies 8 scanlines.
             h:=pix(gmode,(hpos-row_origin) MOD 8,
-                   ((vpos-to_integer(voffset))/8) MOD 2,dm_v,ch);
+                   ((vpos-to_integer(voffset_l))/8) MOD 2,dm_v,ch);
           END IF;
           
           bg_hit<=to_std_logic(h AND m);
@@ -809,8 +829,8 @@ BEGIN
           END IF;
           
         WHEN 4 => -- Object 1
-          i:=objbit(hpos,o1_hc);
-          h:=objhit(hpos,vpos,o1_hc,o1_vc,o1_size);
+          i:=objbit(hpos,o1_hc_l);
+          h:=objhit(hpos,vpos,o1_hc_l,o1_vc_l,o1_size);
           
           IF h AND ram_dr(i)='1' THEN
             o1_hit<='1';
@@ -818,8 +838,8 @@ BEGIN
           END IF;
           
         WHEN 5 => -- Object 2
-          i:=objbit(hpos,o2_hc);
-          h:=objhit(hpos,vpos,o2_hc,o2_vc,o2_size);
+          i:=objbit(hpos,o2_hc_l);
+          h:=objhit(hpos,vpos,o2_hc_l,o2_vc_l,o2_size);
           
           IF h AND ram_dr(i)='1' THEN
             o2_hit<='1';
@@ -827,8 +847,8 @@ BEGIN
           END IF;
           
         WHEN 6 => -- Object 3
-          i:=objbit(hpos,o3_hc);
-          h:=objhit(hpos,vpos,o3_hc,o3_vc,o3_size);
+          i:=objbit(hpos,o3_hc_l);
+          h:=objhit(hpos,vpos,o3_hc_l,o3_vc_l,o3_size);
           
           IF h AND ram_dr(i)='1' THEN
             o3_hit<='1';
@@ -836,8 +856,8 @@ BEGIN
           END IF;
           
         WHEN 7 => -- Object 4
-          i:=objbit(hpos,o4_hc);
-          h:=objhit(hpos,vpos,o4_hc,o4_vc,o4_size);
+          i:=objbit(hpos,o4_hc_l);
+          h:=objhit(hpos,vpos,o4_hc_l,o4_vc_l,o4_size);
           
           IF h AND ram_dr(i)='1' THEN
             o4_hit<='1';
