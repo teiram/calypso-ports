@@ -107,7 +107,7 @@ localparam bit USE_AUDIO_IN = 0;
 wire TAPE_SOUND=UART_RX;
 `endif
 
-assign LED[0] = ~ioctl_download; 
+//assign LED[0] = ~ioctl_download; 
 
 `include "build_id.v"
 localparam CONF_STR = {
@@ -150,6 +150,7 @@ wire [1:0] buttons;
 
 reg [9:0] kb1_keys, kb2_keys;
 reg kb1_enter, kb1_clear, kb2_enter, kb2_clear;
+reg kb_select, kb_start, kb_option;
 wire [31:0] joystick_0,joystick_1;
 wire [15:0] joystick_analog_0,joystick_analog_1;
 
@@ -219,6 +220,7 @@ data_io data_io(
     .ioctl_dout(ioctl_dout)
 );
 
+/*
 always @(posedge clk_sys) begin
     if (ps2_key[10]) begin
         if (ps2_key[9]) begin  // Press
@@ -278,18 +280,59 @@ always @(posedge clk_sys) begin
         end
     end
 end
+*/
+always @(posedge clk_sys) begin
+    if (ps2_key[10]) begin
+        case (ps2_key[7:0])
+            'h16: kb1_keys[1] <= ps2_key[9];    // 1
+            'h1E: kb1_keys[2] <= ps2_key[9];    // 2
+            'h26: kb1_keys[3] <= ps2_key[9];    // 3
+            'h15: kb1_keys[4] <= ps2_key[9];    // Q
+            'h1D: kb1_keys[5] <= ps2_key[9];    // W
+            'h24: kb1_keys[6] <= ps2_key[9];    // E
+            'h1C: kb1_keys[7] <= ps2_key[9];    // A
+            'h1B: kb1_keys[8] <= ps2_key[9];    // S
+            'h23: kb1_keys[9] <= ps2_key[9];    // D
+            'h1A: kb1_clear   <= ps2_key[9];    // Z
+            'h22: kb1_keys[0] <= ps2_key[9];    // X
+            'h21: kb1_enter   <= ps2_key[9];    // C
+            'h3E: kb2_keys[1] <= ps2_key[9];    // 8
+            'h46: kb2_keys[2] <= ps2_key[9];    // 9
+            'h45: kb2_keys[3] <= ps2_key[9];    // 0
+            'h43: kb2_keys[4] <= ps2_key[9];    // I
+            'h44: kb2_keys[5] <= ps2_key[9];    // O
+            'h4D: kb2_keys[6] <= ps2_key[9];    // P
+            'h42: kb2_keys[7] <= ps2_key[9];    // K
+            'h4B: kb2_keys[8] <= ps2_key[9];    // L
+            'h4C: kb2_keys[9] <= ps2_key[9];    // ;
+            'h41: kb2_clear   <= ps2_key[9];    // ,
+            'h49: kb2_keys[0] <= ps2_key[9];    // .
+            'h4A: kb2_enter   <= ps2_key[9];    // /
+            'h05: kb_select <= ps2_key[9];      // F1
+            'h06: kb_start <= ps2_key[9];       // F2
+            'h04: kb_option <= ps2_key[9];      // F3
+        endcase
+    end
+end
 
+
+// Mist gamepad buttons
+// 4 -> A, 5 -> B, 6 -> SELECT, 7 -> START
+// 8 -> X, 9 -> Y, 10 -> L, 11 -> R
+
+assign LED[7:0] = joystick_0[7:0];
 // OR keyboard keys into joystick keypad bits before feeding the core
 wire [31:0] joy0_combined, joy1_combined;
 
+// 
 // P1 combined
-assign joy0_combined[3:0]   = joystick_0[3:0];                // d-pad
-assign joy0_combined[6:4]   = joystick_0[6:4];                // Start, Select, Option
-assign joy0_combined[7]     = joystick_0[7]  | kb1_enter;     // ENTER
-assign joy0_combined[8]     = joystick_0[8]  | kb1_clear;     // CLEAR
-assign joy0_combined[9]     = joystick_0[9]  | kb1_keys[0];   // 0
-assign joy0_combined[10]    = joystick_0[10] | kb1_keys[1];   // 1
-assign joy0_combined[11]    = joystick_0[11] | kb1_keys[2];   // 2
+assign joy0_combined[3:0] = {joystick_0[2], joystick_0[3], joystick_0[0], joystick_0[1]};
+assign joy0_combined[6:4]   = {kb_start | joystick_0[7], kb_select | joystick_0[6], kb_option | joystick_0[5]};     // Start, Select, Option (B)
+assign joy0_combined[7]     = joystick_0[8]  | kb1_enter;     // ENTER  (X)
+assign joy0_combined[8]     = joystick_0[9]  | kb1_clear;     // CLEAR  (Y)
+assign joy0_combined[9]     = joystick_0[10]  | kb1_keys[0];  // 0      (L)
+assign joy0_combined[10]    = joystick_0[11] | kb1_keys[1];   // 1      (R)
+assign joy0_combined[11]    = joystick_0[4] | kb1_keys[2];    // 2      (A)
 assign joy0_combined[12]    = joystick_0[12] | kb1_keys[3];   // 3
 assign joy0_combined[13]    = joystick_0[13] | kb1_keys[4];   // 4
 assign joy0_combined[14]    = joystick_0[14] | kb1_keys[5];   // 5
@@ -301,13 +344,13 @@ assign joy0_combined[19]    = joystick_0[19] | kb1_keys[2];   // 2 alt
 assign joy0_combined[20]    = joystick_0[20] | kb1_keys[2];   // 2 alt
 
 // P2 combined
-assign joy1_combined[3:0]   = joystick_1[3:0];                // d-pad
-assign joy1_combined[6:4]   = joystick_1[6:4];                // Start, Select, Option
-assign joy1_combined[7]     = joystick_1[7]  | kb2_enter;     // ENTER
-assign joy1_combined[8]     = joystick_1[8]  | kb2_clear;     // CLEAR
-assign joy1_combined[9]     = joystick_1[9]  | kb2_keys[0];   // 0
-assign joy1_combined[10]    = joystick_1[10] | kb2_keys[1];   // 1
-assign joy1_combined[11]    = joystick_1[11] | kb2_keys[2];   // 2
+assign joy1_combined[3:0]   = {joystick_1[2], joystick_1[3], joystick_1[0], joystick_1[1]};       // d-pad (RIGHT, LEFT, DOWN, UP)
+assign joy1_combined[6:4]   = {kb_start | joystick_1[7], kb_select | joystick_1[6], kb_option | joystick_1[5]};                      // Start, Select, Option (B)
+assign joy1_combined[7]     = joystick_1[8]  | kb2_enter;     // ENTER (X)
+assign joy1_combined[8]     = joystick_1[9]  | kb2_clear;     // CLEAR (Y)
+assign joy1_combined[9]     = joystick_1[10]  | kb2_keys[0];  // 0    (L)
+assign joy1_combined[10]    = joystick_1[11] | kb2_keys[1];   // 1    (R)
+assign joy1_combined[11]    = joystick_1[4] | kb2_keys[2];    // 2    (A)
 assign joy1_combined[12]    = joystick_1[12] | kb2_keys[3];   // 3
 assign joy1_combined[13]    = joystick_1[13] | kb2_keys[4];   // 4
 assign joy1_combined[14]    = joystick_1[14] | kb2_keys[5];   // 5
