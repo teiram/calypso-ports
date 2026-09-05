@@ -1,0 +1,34 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2017  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files) and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel MegaCore Function License Agreement, or any 
+# applicable license agreement. Without limiting the scope of the 
+# foregoing, you may not use, modify, or distribute this file in 
+# compliance with the foregoing license agreements.  Intel Corporation
+# grants to you a world-wide, non-exclusive, no-charge, royalty-free 
+# patent license to make, have made, use, and/or sell the design work 
+# described herein for the sole purpose of programming logic devices 
+# manufactured by Intel and sold by Intel or its authorized 
+# distributors.  Please refer to the applicable license agreement for 
+# further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 22.1std.2 Build 922 07/20/2023 SC Lite Edition
+#
+# -------------------------------------------------------------------------- #
+
+QUARTUS_VERSION = "22.1"
+DATE = "2026/09/04"
+
+# Revisions
+
+PROJECT_REVISION = "zxuno"
