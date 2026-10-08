@@ -1,7 +1,7 @@
 CORE_ID=fp1100
-PROJECT_NAME=fp1100
+PROJECT_NAME=fp1100_calypso
 VERSION=0.2
-BITSTREAM_FILE=fp1100/calypso/output_files/fp1100.rbf
+BITSTREAM_FILE=fp1100/calypso/output_files/fp1100_calypso.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=common/T80 common/mist-modules
 BUILDER=./build.sh
