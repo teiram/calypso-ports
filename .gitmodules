@@ -304,3 +304,9 @@
 [submodule "mac-lc/MacLC_MiSTer"]
 	path = mac-lc/MacLC_MiSTer
 	url = https://github.com/MiSTer-devel/MacLC_MiSTer.git
+[submodule "x16/X16_Mister"]
+	path = x16/X16_Mister
+	url = https://github.com/vinej/X16_Mister.git
+[submodule "newbrain/newbrain"]
+	path = newbrain/newbrain
+	url = https://github.com/shaeon/newbrain.git
