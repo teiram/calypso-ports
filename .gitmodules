@@ -310,3 +310,6 @@
 [submodule "newbrain/newbrain"]
 	path = newbrain/newbrain
 	url = https://github.com/shaeon/newbrain.git
+[submodule "fp1100/fp1100"]
+	path = fp1100/fp1100
+	url = https://github.com/shaeon/fp1100.git
