@@ -1,7 +1,7 @@
 CORE_ID=newbrain
 PROJECT_NAME=newbrain_calypso
 VERSION=0.3
-BITSTREAM_FILE=newbrain/calypso/output_files/newbrain.rbf
+BITSTREAM_FILE=newbrain/calypso/output_files/newbrain_calypso.rbf
 EXTRA_BINARIES=readme.md
 EXTRA_SUBMODULES=common/T80 common/mist-modules
 BUILDER=./build.sh
