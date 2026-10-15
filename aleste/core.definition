@@ -1,0 +1,7 @@
+CORE_ID=aleste
+PROJECT_NAME=aleste_calypso
+VERSION=1.0
+BITSTREAM_FILE=aleste520ex/calypso/output_files/aleste_calypso.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=common/T80 common/mist-modules
+BUILDER=./build.sh

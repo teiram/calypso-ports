@@ -313,3 +313,6 @@
 [submodule "fp1100/fp1100"]
 	path = fp1100/fp1100
 	url = https://github.com/shaeon/fp1100.git
+[submodule "aleste/aleste520ex"]
+	path = aleste/aleste520ex
+	url = https://github.com/shaeon/aleste520ex.git
