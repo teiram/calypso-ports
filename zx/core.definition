@@ -1,0 +1,6 @@
+CORE_ID=zx
+PROJECT_NAME=zx
+VERSION=0.1
+BITSTREAM_FILE=zx.calypso/output_files/zx.rbf
+EXTRA_BINARIES=readme.md
+BUILDER=./build.sh

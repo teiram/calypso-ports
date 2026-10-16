@@ -316,3 +316,6 @@
 [submodule "aleste/aleste520ex"]
 	path = aleste/aleste520ex
 	url = https://github.com/shaeon/aleste520ex.git
+[submodule "zx/zx.calypso"]
+	path = zx/zx.calypso
+	url = https://github.com/Kyp069/zx.calypso.git
