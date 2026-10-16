@@ -1,4 +1,5 @@
 output_files/
+AGENTS.md
 *.bak
 *.qws
 *.rbf
