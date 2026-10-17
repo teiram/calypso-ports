@@ -65,6 +65,14 @@ set_global_assignment -name VHDL_FILE opll/vm2413.vhd
 
 set_global_assignment -name QIP_FILE pll.qip
 set_global_assignment -name SYSTEMVERILOG_FILE msx2plus.sv
+set_global_assignment -name SYSTEMVERILOG_FILE i2s_decoder.sv
+set_global_assignment -name VERILOG_FILE msx2midi/msx2midi.v
+set_global_assignment -name VERILOG_FILE msx2midi/msx2midi_fifo.v
+set_global_assignment -name VERILOG_FILE msx2midi/psg2midi_conv.v
+set_global_assignment -name VERILOG_FILE msx2midi/opll2midi_conv.v
+set_global_assignment -name VERILOG_FILE msx2midi/opll_patch_class.v
+set_global_assignment -name VERILOG_FILE msx2midi/psg2midi_pitch_rom.v
+set_global_assignment -name VERILOG_FILE msx2midi/opll2midi_fnum_rom.v
 set_global_assignment -name VHDL_FILE emsx_top.vhd
 set_global_assignment -name VHDL_FILE MSX_MiST/mist/rtc_mist.vhd
 set_global_assignment -name QIP_FILE ../common/T80/T80.qip

@@ -105,7 +105,12 @@ module msx2plus
 	output        MIDI_OUT,
 `endif
 	input         UART_RX,
-	output        UART_TX
+	output        UART_TX,
+
+	// audio del sintetizador MIDI de la MCU (como en tsconf)
+	input         I2S_MIDI_BCK,
+	input         I2S_MIDI_LRCK,
+	input         I2S_MIDI_DATA
 );
 
 
@@ -177,6 +182,15 @@ parameter CONF_STR = {
     "O8,VGA Output,CRT,LCD;",
 //    "OAB,Scanlines,Off,25%,50%,75%;",
     "O9,Tape sound,OFF,ON;",
+    `SEP
+    "OB,MIDI out,Off,Internal synth;",
+    "ODE,MIDI source,MSX to MIDI,OCM (E8h),OCM + MSX to MIDI;",
+    "OFG,Convert,PSG + OPLL,PSG,OPLL;",
+    "OHI,Note stability,Off,2 frames,3 frames,4 frames;",
+    "OJK,PSG mute below,Vol 2,Vol 0 (off),Vol 1,Vol 3;",
+    "OL,MIDI-PAC interface,Off,On;",
+    "OM,Internal PSG sound,On,Off;",
+    "ON,Internal OPLL sound,On,Off;",
 `ifndef USE_MIDI_PINS
 //    "OA,UART TX,MIDI,WiFi;",
 `endif
@@ -253,7 +267,11 @@ wire        i2c_ack;
 wire        i2c_end;
 `endif
 
-user_io #(.STRLEN($size(CONF_STR)>>3), .PS2DIV(100), .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))) user_io
+// MSX -> MIDI (msx2midi): bytes hacia la MCU
+wire  [7:0] m2m_byte;
+wire        m2m_stb;
+
+user_io #(.STRLEN($size(CONF_STR)>>3), .PS2DIV(100), .SERIAL_CHANNEL(1), .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))) user_io
 (
         .clk_sys(clk_sys),
         .clk_sd(clk_sys),
@@ -304,6 +322,10 @@ user_io #(.STRLEN($size(CONF_STR)>>3), .PS2DIV(100), .FEATURES(32'h0 | (BIG_OSD 
         .mouse_y(mouse_y),
         .mouse_flags(mouse_flags),
         .mouse_strobe(mouse_strobe),
+
+        // MIDI hacia el sintetizador de la MCU
+        .serial_data(m2m_byte),
+        .serial_strobe(m2m_stb),
 
         // unused
         .switches(),
@@ -447,6 +469,13 @@ wire  [5:0] B_O;
 wire        HSync, VSync, Blank;
 wire [13:0] audio;
 
+// MSX -> MIDI: escrituras al PSG y al OPLL desde emsx_top
+wire        psg_wr, psg_a0, opll_wr, opll_a0;
+wire  [7:0] cpu_dat;
+wire  [7:0] mpac_dbi;
+wire        midi_on  = status[11];                     // 1 = sintetizador interno
+wire        mpac_on  = midi_on & status[21];
+
 emsx_top emsx
 (
 //        -- Clock, Reset ports
@@ -503,8 +532,64 @@ emsx_top emsx
 
         .iRTC       (rtc),
         .oMidi      (midi_tx),
+        .pPsgWr     (psg_wr),
+        .pPsgA0     (psg_a0),
+        .pOpllWr    (opll_wr),
+        .pOpllA0    (opll_a0),
+        .pCpuDat    (cpu_dat),
+        .pMpacEna   (mpac_on),
+        .pMpacDbi   (mpac_dbi),
+        .pMutePsg   (status[22]),
+        .pMuteOpll  (status[23]),
         .pUsbP1     (rx),
         .pUsbN1     (esp_tx)
+);
+
+//////////////////   MSX -> MIDI   ///////////////////
+// msx2midi (Shaeon): PSG y OPLL -> MIDI. Los bytes van a la MCU por user_io
+// (serial_data), como el MIDI de tsconf, y su audio vuelve por I2S_MIDI_*.
+// MIDI source: 0 conversor, 1 MIDI de OCM (E8h) tal cual, 2 los dos mezclados.
+wire [1:0] midi_src  = status[14:13];
+wire [1:0] midi_conv = status[16:15];       // 0 PSG + OPLL, 1 PSG, 2 OPLL
+wire [1:0] psg_thr   = (status[20:19] == 2'd0) ? 2'd2 : (status[20:19] == 2'd1) ? 2'd0 :
+                       (status[20:19] == 2'd2) ? 2'd1 : 2'd3;
+wire       m2m_tx, m2m_active;
+
+msx2midi #(
+    .CLK_HZ  (21250000),                    // clk_sys = 12 MHz * 85 / 48
+    .PSG_HZ  (1770833),                     // clk_sys / 12
+    // Sinte de la MCU (calypso-firmware): ignora CC#11, aplica CC#123 a todos los canales,
+    // suelta las notas tras 1 s sin bytes y la FIFO de user_io (64 bytes) pisa datos si
+    // la MCU va con retraso. Por eso: volumen por CC#7, menos bytes (running status y bend
+    // a 50 Hz), note off repetido en los canales que callan y un CC#123 global cuando
+    // no suena nada, para limpiar cualquier nota que se haya quedado colgada.
+    .BEND_HZ (50),
+    .EXPR_CC (7),
+    .PANIC   (2),
+    .KEEPALIVE_MS(300),
+    .RUNNING_STATUS(1),
+    .QUIET_ANO_MS(1500)
+) msx2midi_u (
+    .clk      (clk_sys),
+    .reset    (reset),
+    .psg_en   (midi_on && midi_src != 2'd1 && midi_conv != 2'd2),
+    .opll_en  (midi_on && midi_src != 2'd1 && midi_conv != 2'd1),
+    .ext_en   (midi_on && midi_src != 2'd0),
+    .stable_n (status[18:17]),
+    .psg_thr  (psg_thr),
+    .mpac_en  (mpac_on),
+    .psg_wr   (psg_wr),
+    .psg_a0   (psg_a0),
+    .psg_d    (cpu_dat),
+    .opll_wr  (opll_wr),
+    .opll_a0  (opll_a0),
+    .opll_d   (cpu_dat),
+    .ext_rx   (midi_tx),
+    .midi_tx  (m2m_tx),
+    .active   (m2m_active),
+    .mpac_dbi (mpac_dbi),
+    .tx_byte  (m2m_byte),
+    .tx_stb   (m2m_stb)
 );
 
 assign AUDIO_L = Dac_SL[0];
@@ -562,8 +647,19 @@ always @(posedge clk_sys) begin
 	VGA_VS <= ((~no_csync & scandoubler_disable) || ypbpr) ? 1'b1 : vs;
 end
 
-wire [15:0] audio_l = {1'b0, audio, 1'b0};
-wire [15:0] audio_r = {1'b0, audio, 1'b0};
+// audio del sintetizador MIDI de la MCU, mezclado a medias con el del MSX (como tsconf)
+wire [15:0] midi_left, midi_right;
+i2s_decoder midi_decoder(
+    .clock(clk_sys),
+    .i2s_bck(I2S_MIDI_BCK),
+    .i2s_lrck(I2S_MIDI_LRCK),
+    .i2s_data(I2S_MIDI_DATA),
+    .audio_left(midi_left),
+    .audio_right(midi_right)
+);
+wire [15:0] msx_audio = {1'b0, audio, 1'b0};
+wire [15:0] audio_l = midi_on ? {1'b0, msx_audio[15:1]} + {midi_left[15],  midi_left[15:1]}  : msx_audio;
+wire [15:0] audio_r = midi_on ? {1'b0, msx_audio[15:1]} + {midi_right[15], midi_right[15:1]} : msx_audio;
 
 `ifdef I2S_AUDIO
 i2s i2s(

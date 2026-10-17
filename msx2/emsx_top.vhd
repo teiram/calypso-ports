@@ -138,6 +138,17 @@ entity emsx_top is
         -- MIDI Out
         oMidi           : out   std_logic;
 
+        -- MSX -> MIDI (msx2midi): escrituras al PSG (A0h/A1h) y al OPLL (7Ch/7Dh)
+        pPsgWr          : out   std_logic;
+        pPsgA0          : out   std_logic;                       -- 0 = A0h (indice), 1 = A1h (dato)
+        pOpllWr         : out   std_logic;
+        pOpllA0         : out   std_logic;                       -- 0 = 7Ch (registro), 1 = 7Dh (dato)
+        pCpuDat         : out   std_logic_vector(  7 downto 0);
+        pMpacEna        : in    std_logic := '0';                -- interfaz MIDI-PAC: lectura de 7Ch/7Dh
+        pMpacDbi        : in    std_logic_vector(  7 downto 0) := (others => '1');
+        pMutePsg        : in    std_logic := '0';                -- silenciar el PSG interno
+        pMuteOpll       : in    std_logic := '0';                -- silenciar el OPLL interno
+
         -- Reserved ports (USB)
         pUsbP1          : in    std_logic := 'Z';
         pUsbN1          : out   std_logic := 'Z';
@@ -1641,6 +1652,8 @@ begin
                 dlydbi <= MmcDbi;
             elsif( mem = '0' and adr(  7 downto 2 ) = "100110" )then                            -- VDP (V9938/V9958)
                 dlydbi <= VdpDbi;
+            elsif( mem = '0' and adr(  7 downto 1 ) = "0111110" and pMpacEna = '1' )then        -- MIDI-PAC (msx2midi)
+                dlydbi <= pMpacDbi;
             elsif( mem = '0' and adr(  7 downto 2 ) = "101000" )then                            -- PSG (AY-3-8910)
                 dlydbi <= PsgDbi;
             elsif( mem = '0' and adr(  7 downto 2 ) = "101010" )then                            -- PPI (8255)
@@ -2102,7 +2115,7 @@ begin
             -- amplitude ramp of the PSG (full range)
             ff_prepsg <= ("0" & PsgAmp) + (KeyClick & "00000");
             c_Psg       := ("1" & PsgVol) - ("0" & MstrVol);
-            if( PsgVol = "000" or MstrVol = "111" )then
+            if( PsgVol = "000" or MstrVol = "111" or pMutePsg = '1' )then
                 ff_psg      <= ( others => '0' );
             elsif( c_Psg > h_thrd )then
                 chPsg       := ff_prepsg;
@@ -2134,7 +2147,7 @@ begin
 
             -- amplitude ramp of the OPLL (full range)
             c_Opll      := ("1" & OpllVol) - ("0" & MstrVol);
-            if( OpllVol = "000" or MstrVol = "111" )then
+            if( OpllVol = "000" or MstrVol = "111" or pMuteOpll = '1' )then
                 ff_opll <= c_opll_offset;
             elsif( OpllAmp < c_opll_zero )then
                 if( c_Opll > h_thrd )then
@@ -2894,5 +2907,12 @@ begin
     pJoyB(0) <= midi_o when( midi_active_o = '1' )else
                 'Z';
     oMidi <= midi_o;
+
+    -- MSX -> MIDI: los mismos strobes que ven el PSG y el OPLL
+    pPsgWr  <= PsgReq and wrt and not adr(1);
+    pPsgA0  <= adr(0);
+    pOpllWr <= OpllReq and wrt;
+    pOpllA0 <= adr(0);
+    pCpuDat <= dbo;
 
 end RTL;

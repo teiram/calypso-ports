@@ -120,9 +120,9 @@ set_location_assignment PIN_R11 -to AUX_1
 set_location_assignment PIN_R12 -to AUX_2
 set_location_assignment PIN_P14 -to AUX_3
 set_location_assignment PIN_J14 -to AUX_4
-set_location_assignment PIN_L2 -to AUX_5
-set_location_assignment PIN_F13 -to AUX_6
-set_location_assignment PIN_F16 -to AUX_7
+set_location_assignment PIN_L2 -to I2S_MIDI_DATA
+set_location_assignment PIN_F13 -to I2S_MIDI_LRCK
+set_location_assignment PIN_F16 -to I2S_MIDI_BCK
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[0]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[1]
