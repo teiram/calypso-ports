@@ -4,6 +4,11 @@ set_global_assignment -name VERILOG_FILE Menu_MIST/lfsr.v
 set_global_assignment -name QIP_FILE mist-modules/mist.qip
 
 set_global_assignment -name SYSTEMVERILOG_FILE menu_calypso.sv
+set_global_assignment -name SYSTEMVERILOG_FILE lcd_clock.sv
+set_global_assignment -name SYSTEMVERILOG_FILE waterfall_bg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE matrix_bg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE sea_bg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE calypso_logo.sv
 set_global_assignment -name QIP_FILE kitt.qip
 set_global_assignment -name SDC_FILE menu.sdc
 set_global_assignment -name QIP_FILE pll.qip

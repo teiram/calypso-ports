@@ -123,6 +123,11 @@ set_location_assignment PIN_F15 -to SPI_SS3
 set_location_assignment PIN_R14 -to SPI_SS4
 
 set_location_assignment PIN_P14 -to SD_DIRECT_MODE
+
+set_location_assignment PIN_L2 -to I2S_MIDI_DATA
+set_location_assignment PIN_F13 -to I2S_MIDI_LRCK
+set_location_assignment PIN_F16 -to I2S_MIDI_BCK
+
 ####################################
 # Generic CS pins
 ####################################
