@@ -1,24 +1,24 @@
 //============================================================================
-//  SNES top-level for MiST
+//  SNES for Calypso: everything in the SDRAM, SNESTang style
 //
-//  This program is free software; you can redistribute it and/or modify it
-//  under the terms of the GNU General Public License as published by the Free
-//  Software Foundation; either version 2 of the License, or (at your option)
-//  any later version.
+//  Memory as in SNESTang (nand2mario) on the Tang Nano 20K, which runs the
+//  whole SNES from one 8MB SDRAM: a 3 channel interleaved CL2 controller at
+//  4x clk_sys (~86 MHz), each channel with its own bank(s):
+//    channel 0  banks 0,1  cartridge ROM (up to 4MB)
+//    channel 1  bank 2     ARAM, WRAM, BSRAM
+//    channel 2  bank 3     VRAM
+//  ROMs above 4MB: in the PSRAM of the powerpack, when one is detected at
+//  start-up (psram_calib.sv: a write/read test over all PSRAM_CLK phases and
+//  read sampling points). Without it the core works as before (4MB max).
 //
-//  This program is distributed in the hope that it will be useful, but WITHOUT
-//  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-//  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-//  more details.
+//  Based on the MiST top-level of gyurco/SNES_FPGA and on the Calypso port of
+//  teiram/calypso-ports.
 //
-//  You should have received a copy of the GNU General Public License along
-//  with this program; if not, write to the Free Software Foundation, Inc.,
-//  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+//  Shaeon (Carlos Palmero), 2026. GPL v2 or later.
 //============================================================================
 
 module snes_calypso(
     input CLK12M,
-
     output [7:0] LED,
     output [VGA_BITS-1:0] VGA_R,
     output [VGA_BITS-1:0] VGA_G,
@@ -47,7 +47,7 @@ module snes_calypso(
     input AUDIO_IN,
 `endif
 
-    output [12:0] SDRAM_A,
+    output [11:0] SDRAM_A,
     inout [15:0] SDRAM_DQ,
     output SDRAM_DQML,
     output SDRAM_DQMH,
@@ -57,7 +57,12 @@ module snes_calypso(
     output SDRAM_nCS,
     output [1:0] SDRAM_BA,
     output SDRAM_CLK,
-    output SDRAM_CKE
+    output SDRAM_CKE,
+
+    // PSRAM of the powerpack (optional): ROM above 4MB
+    inout [3:0] PSRAM_SIO,
+    output PSRAM_CE,
+    output PSRAM_CLK
 );
 
 `ifdef NO_DIRECT_UPLOAD
@@ -67,24 +72,10 @@ wire SPI_SS4 = 1;
 localparam bit DIRECT_UPLOAD = 1;
 `endif
 
-`ifdef USE_QSPI
-localparam bit QSPI = 1;
-assign QDAT = 4'hZ;
-`else
-localparam bit QSPI = 0;
-`endif
-
 `ifdef VGA_8BIT
 localparam VGA_BITS = 8;
 `else
 localparam VGA_BITS = 4;
-`endif
-
-`ifdef USE_HDMI
-localparam bit HDMI = 1;
-assign HDMI_RST = 1'b1;
-`else
-localparam bit HDMI = 0;
 `endif
 
 `ifdef BIG_OSD
@@ -95,28 +86,13 @@ localparam bit BIG_OSD = 0;
 `define SEP
 `endif
 
-`ifdef EXTRA_CHIPS_1
-localparam bit EXTRA_CHIPS_1=1'b1;
-`else
-localparam bit EXTRA_CHIPS_1=1'b0;
-`endif
-
-`ifdef EXTRA_CHIPS_2
-localparam bit EXTRA_CHIPS_2=1'b1;
-`else
-localparam bit EXTRA_CHIPS_2=1'b0;
-`endif
-
+// LEDs are active low
 assign LED[0] = ~ioctl_download & ~bk_ena;
-
-// Further macros affecting the core:
-// USE_SIMPLE_SDRAM - use a simple 85MHz SDRAM controller for the cart ROM
-// BRAM_LEVEL_1 - BSRAM and VRAM in BRAM
-// BRAM_WRAM    - WRAM in BRAM (only cart ROM in SDRAM)
-// BRAM_ARAM    - ARAM in BRAM
-// EXTRA_CHIPS_1 - SDD1, SA1, GSU
-// EXTRA_CHIPS_2 - CX4, SPC7110
-
+assign LED[1] = sdram_ready;
+assign LED[2] = ~psram_present;             // lit: PSRAM found (ROM > 4MB possible)
+assign LED[3] = ~dl_overrun;                // lit: ROM download to the PSRAM lost data
+assign LED[4] = ~dl_active;                 // lit: ROM data still going to the PSRAM
+assign LED[7:5] = 3'h7;
 
 `include "build_id.v"
 parameter CONF_STR = {
@@ -134,9 +110,7 @@ parameter CONF_STR = {
     "OPQ,Lightgun,Off,Super Scope,Justifier;",
     "O7,Swap Joysticks,No,Yes;",
     "OH,Multitap,Disabled,Port2;",
-`ifdef BRAM_LEVEL_1
-    "OR,GSU Turbo,Off,On;",
-`endif
+    "OR,PSRAM (ROM >4MB),Auto,Off;",
     "T0,Reset;",
     "V,",`BUILD_VERSION,"-",`BUILD_DATE
 };
@@ -150,35 +124,72 @@ wire       multitap = status[17];
 wire       BLEND = ~status[16];
 wire       bk_save = status[3];
 wire [1:0] GUN_MODE = status[26:25];
-wire       GSU_TURBO = status[27];
+wire       psram_enable = ~status[27];
+wire signed [6:0] calib_phase;            // PSRAM_CLK phase from the calibration
+wire       calib_ok;                      // calibration done (or PSRAM off)
+wire       psram_present;                 // PSRAM found: ROM above 4MB in it
+wire       dl_active;                     // ROM data still going to the PSRAM
+reg        dl_overrun = 1'b0;             // ROM download to the PSRAM lost data
+wire signed [6:0] sdram_phase = 7'sd0;      // SDRAM_CLK: phase of pll_cal.v (measured)
 
 ////////////////////   CLOCKS   ///////////////////
 
 wire locked;
-wire clk_sys, clk_mem;
+wire clk_sys, clk_mem, clk_psram;
+wire [2:0] pll_cntsel;
+wire pll_updown, pll_step, pll_done;
+wire pll_settled;
 
-pll pll(
+pll_cal pll(
     .inclk0(CLK12M),
     .c0(SDRAM_CLK),
     .c1(clk_mem),
     .c2(clk_sys),
-    .locked(locked)
+    .c3(clk_psram),
+    .c4(PSRAM_CLK),
+    .locked(locked),
+    .scanclk(clk_sys),
+    .phasecounterselect(pll_cntsel),
+    .phaseupdown(pll_updown),
+    .phasestep(pll_step),
+    .phasedone(pll_done)
 );
 
+pll_phase pll_phase (
+    .clk(clk_sys),
+    .locked(locked),
+    .c0_target(sdram_phase),
+    .c4_target(calib_phase),
+    .cntsel(pll_cntsel),
+    .updown(pll_updown),
+    .step(pll_step),
+    .done(pll_done),
+    .settled(pll_settled)
+);
+
+// the SDRAM is initialized again after its clock phase moves (moving it
+// through bad phases can leave it misconfigured)
+reg  mem_ok = 1'b0;
+reg  [6:0] sdram_phase_l = 7'd0;
+reg        sdram_moving = 1'b1;
+always @(posedge clk_sys) begin
+    sdram_phase_l <= sdram_phase;
+    if (sdram_phase != sdram_phase_l) sdram_moving <= 1'b1;
+    else if (pll_settled) sdram_moving <= 1'b0;
+    mem_ok <= locked & ~sdram_moving;
+end
+
+wire sdram_ready;
 reg reset;
 always @(posedge clk_sys) begin
-    reset <= buttons[1] | status[0] | ioctl_download;
+    reset <= buttons[1] | status[0] | ioctl_download | ~sdram_ready | ~calib_ok | dl_active;
 end
 
 reg RESET_N = 0;
-reg RFSH = 0;
+reg [1:0] rst_div = 2'd0;
 always @(posedge clk_sys) begin
-    reg [1:0] div;
-
-    div <= div + 1'd1;
-    RFSH <= !div;
-
-    if (div == 2) RESET_N <= ~reset;
+    rst_div <= rst_div + 1'd1;
+    if (rst_div == 2) RESET_N <= ~reset;
 end
 
 //////////////////   MiST I/O   ///////////////////
@@ -198,12 +209,11 @@ wire        scandoubler_disable;
 wire        no_csync;
 
 wire        ioctl_wr;
-wire [24:0] ioctl_addr;
+wire [26:0] ioctl_addr;
 wire [15:0] ioctl_dout;
 wire        ioctl_download;
 wire  [7:0] ioctl_index;
-wire        ioctl_wait;
-wire [23:0] ioctl_filesize;
+wire [31:0] ioctl_filesize;
 
 wire  [8:0] mouse_x;
 wire  [8:0] mouse_y;
@@ -222,510 +232,638 @@ wire        sd_buff_rd;
 wire        img_mounted;
 wire [31:0] img_size;
 
-`ifdef USE_HDMI
-wire        i2c_start;
-wire        i2c_read;
-wire  [6:0] i2c_addr;
-wire  [7:0] i2c_subaddr;
-wire  [7:0] i2c_dout;
-wire  [7:0] i2c_din;
-wire        i2c_ack;
-wire        i2c_end;
-`endif
-
 user_io #(
-	.ROM_DIRECT_UPLOAD(DIRECT_UPLOAD),
-`ifdef DUAL_SDRAM
-	.STRLEN($size(CONF_STR)>>3),
-`endif
-	.FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))
+    .ROM_DIRECT_UPLOAD(DIRECT_UPLOAD),
+    .FEATURES(32'h0 | (BIG_OSD << 13))
 ) user_io (
-	.clk_sys(clk_sys),
-	.clk_sd(clk_sys),
-	.SPI_SS_IO(CONF_DATA0),
-	.SPI_CLK(SPI_SCK),
-	.SPI_MOSI(SPI_DI),
-	.SPI_MISO(SPI_DO),
-`ifdef DUAL_SDRAM
-	.conf_str(CONF_STR),
-`else
-	.conf_addr(conf_str_addr),
-	.conf_chr(conf_str_char),
-`endif
+    .clk_sys(clk_sys),
+    .clk_sd(clk_sys),
+    .SPI_SS_IO(CONF_DATA0),
+    .SPI_CLK(SPI_SCK),
+    .SPI_MOSI(SPI_DI),
+    .SPI_MISO(SPI_DO),
+    .conf_addr(conf_str_addr),
+    .conf_chr(conf_str_char),
 
-`ifdef USE_HDMI
-	.i2c_start      (i2c_start      ),
-	.i2c_read       (i2c_read       ),
-	.i2c_addr       (i2c_addr       ),
-	.i2c_subaddr    (i2c_subaddr    ),
-	.i2c_dout       (i2c_dout       ),
-	.i2c_din        (i2c_din        ),
-	.i2c_ack        (i2c_ack        ),
-	.i2c_end        (i2c_end        ),
-`endif
-	.status(status),
-	.scandoubler_disable(scandoubler_disable),
-	.ypbpr(ypbpr),
-	.no_csync(no_csync),
-	.buttons(buttons),
-	.joystick_0(joystick0),
-	.joystick_1(joystick1),
-	.joystick_2(joystick2),
-	.joystick_3(joystick3),
-	.joystick_4(joystick4),
+    .status(status),
+    .scandoubler_disable(scandoubler_disable),
+    .ypbpr(ypbpr),
+    .no_csync(no_csync),
+    .buttons(buttons),
+    .joystick_0(joystick0),
+    .joystick_1(joystick1),
+    .joystick_2(joystick2),
+    .joystick_3(joystick3),
+    .joystick_4(joystick4),
 
-	.mouse_x(mouse_x),
-	.mouse_y(mouse_y),
-	.mouse_flags(mouse_flags),
-	.mouse_strobe(mouse_strobe),
+    .mouse_x(mouse_x),
+    .mouse_y(mouse_y),
+    .mouse_flags(mouse_flags),
+    .mouse_strobe(mouse_strobe),
 
-	.sd_conf(1'b0),
-	.sd_sdhc(1'b1),
-	.sd_lba(sd_lba),
-	.sd_rd(sd_rd),
-	.sd_wr(sd_wr),
-	.sd_ack(sd_ack),
-	.sd_buff_addr(sd_buff_addr),
-	.sd_dout(sd_buff_dout),
-	.sd_din(sd_buff_din),
-	.sd_dout_strobe(sd_buff_wr),
-	.sd_din_strobe(sd_buff_rd),
-	.img_mounted(img_mounted),
-	.img_size(img_size)
+    .sd_conf(1'b0),
+    .sd_sdhc(1'b1),
+    .sd_lba(sd_lba),
+    .sd_rd(sd_rd),
+    .sd_wr(sd_wr),
+    .sd_ack(sd_ack),
+    .sd_buff_addr(sd_buff_addr),
+    .sd_dout(sd_buff_dout),
+    .sd_din(sd_buff_din),
+    .sd_dout_strobe(sd_buff_wr),
+    .sd_din_strobe(sd_buff_rd),
+    .img_mounted(img_mounted),
+    .img_size(img_size)
 );
 
 wire [24:0] ps2_mouse = { mouse_strobe_level, mouse_y[7:0], mouse_x[7:0], mouse_flags };
 reg         mouse_strobe_level;
 
 always @(posedge SPI_SCK)
-	conf_str_char <= CONF_STR[(($size(CONF_STR)>>3) - conf_str_addr - 1)<<3 +:8];
+    conf_str_char <= CONF_STR[(($size(CONF_STR)>>3) - conf_str_addr - 1)<<3 +:8];
 
 always @(posedge clk_sys) if (mouse_strobe) mouse_strobe_level <= ~mouse_strobe_level;
 
 data_io #(.ROM_DIRECT_UPLOAD(DIRECT_UPLOAD), .DOUT_16(1'b1)) data_io
 (
-	.clk_sys(clk_sys),
-	.SPI_SCK(SPI_SCK),
-	.SPI_DI(SPI_DI),
-	.SPI_DO(SPI_DO),
-	.SPI_SS2(SPI_SS2),
-	.SPI_SS4(SPI_SS4),
+    .clk_sys(clk_sys),
+    .SPI_SCK(SPI_SCK),
+    .SPI_DI(SPI_DI),
+    .SPI_DO(SPI_DO),
+    .SPI_SS2(SPI_SS2),
+    .SPI_SS4(SPI_SS4),
 
-	.ioctl_wr(ioctl_wr),
-	.ioctl_addr(ioctl_addr),
-	.ioctl_dout(ioctl_dout),
-	.ioctl_download(ioctl_download),
-	.ioctl_index(ioctl_index),
-	.ioctl_filesize(ioctl_filesize)
+    .clkref_n(1'b0),
+    .ioctl_wr(ioctl_wr),
+    .ioctl_addr(ioctl_addr),
+    .ioctl_dout(ioctl_dout),
+    .ioctl_din(8'd0),
+    .ioctl_download(ioctl_download),
+    .ioctl_index(ioctl_index),
+    .ioctl_filesize(ioctl_filesize)
 );
 
-////////////////////////////  SDRAM  ///////////////////////////////////
+wire cart_download = ioctl_download && ioctl_index[5:1] == 0; //0-1
+wire spc_download  = ioctl_download && ioctl_index[5:0] == 6'd2;
+
+
+
+////////////////////////////  MEMORY  ///////////////////////////////////
+
+wire [24:0] ioctl_addr_adj = ioctl_addr[24:0] - ioctl_filesize[9:0];
+wire        ioctl_hdr      = ioctl_addr[24:0] < ioctl_filesize[9:0];
+wire        rom_wr         = cart_download & ioctl_wr & ~ioctl_hdr;
+
 wire [23:0] ROM_ADDR;
-wire [24:0] ioctl_addr_adj = ioctl_addr - ioctl_filesize[9:0]; // adjust for 512 byte SMC header
-wire [23:0] rom_addr_rw = cart_download ? ioctl_addr_adj[23:0] : ROM_ADDR[23:0];
-reg  [23:1] rom_addr_sd;
-wire        ROM_CE_N;
-wire        ROM_OE_N;
-wire        ROM_WE_N;
-wire        ROM_WORD;
-wire [15:0] ROM_D;
-wire [15:0] ROM_Q;
-`ifndef USE_SIMPLE_SDRAM
-assign      ROM_Q = (ROM_WORD || ~ROM_ADDR[0]) ? cpu_port0 : { cpu_port0[7:0], cpu_port0[15:8] };
+wire [23:0] ROM_ADDR_EARLY;
+wire        ROM_CE_N, ROM_OE_N, ROM_WE_N, ROM_WORD;
+wire [15:0] ROM_D, ROM_Q;
+
+// The DSP/LoROM/HiROM mapper gives the address at the start of the cycle
+// (ROM_ADDR only half way through): more time for the SDRAM.
+`ifdef EXTRA_CHIPS_1
+wire [23:0] rom_addr_cpu = ROM_ADDR;
+`elsif EXTRA_CHIPS_2
+wire [23:0] rom_addr_cpu = ROM_ADDR;
+`else
+wire [23:0] rom_addr_cpu = ROM_ADDR_EARLY;
 `endif
-
-wire [15:0] cpu_port0;
-wire [15:0] cpu_port1;
-reg         cpu_port;
-
-reg         cpu_req;
-reg   [1:0] cpu_ds;
-reg  [15:0] cpu_din;
-reg  [23:1] cpu_addr_sd;
-reg         cpu_we;
-
-reg         cpu2_req;
-reg   [1:0] cpu2_ds;
-reg  [15:0] cpu2_din;
-reg  [23:1] cpu2_addr_sd;
-reg         cpu2_we;
 
 wire [16:0] WRAM_ADDR;
-reg  [16:0] wram_addr_sd;
-wire        WRAM_CE_N;
-wire        WRAM_OE_N;
-wire        WRAM_RD_N;
-wire        WRAM_WE_N;
-wire  [7:0] WRAM_SD_Q = WRAM_ADDR[0] ? cpu_port1[15:8] : cpu_port1[7:0];
-wire  [7:0] WRAM_Q;
-wire  [7:0] WRAM_D;
+wire        WRAM_CE_N, WRAM_OE_N, WRAM_RD_N, WRAM_WE_N;
+wire  [7:0] WRAM_Q, WRAM_D;
 wire        wram_rd = ~WRAM_CE_N & ~WRAM_RD_N;
-reg         wram_rdD;
 wire        wram_wr = ~WRAM_CE_N & ~WRAM_WE_N;
-reg         wram_wrD;
 
 wire [19:0] BSRAM_ADDR;
-reg  [19:0] bsram_sd_addr;
-wire        BSRAM_CE_N;
-wire        BSRAM_OE_N;
-wire        BSRAM_WE_N;
-wire        BSRAM_RD_N;
-wire  [7:0] BSRAM_SD_Q = BSRAM_ADDR[0] ? bsram_dout[15:8] : bsram_dout[7:0];
-wire  [7:0] BSRAM_Q;
-wire  [7:0] BSRAM_D;
-reg   [7:0] bsram_din;
-wire [15:0] bsram_dout;
-wire        bsram_rd = ~BSRAM_CE_N & (~BSRAM_RD_N || rom_type[7:4] == 4'hC);
-reg         bsram_rdD;
+wire        BSRAM_CE_N, BSRAM_OE_N, BSRAM_WE_N, BSRAM_RD_N;
+wire  [7:0] BSRAM_Q, BSRAM_D;
+wire        bsram_rd = ~BSRAM_CE_N & (~BSRAM_RD_N || rom_type[7:4] == 4'hC); // OBC1 reads without RD
 wire        bsram_wr = ~BSRAM_CE_N & ~BSRAM_WE_N;
-reg         bsram_wrD;
-wire        bsram_req;
-reg         bsram_req_reg;
 
 wire        VRAM_OE_N;
-
-wire [15:0] VRAM1_ADDR;
-reg  [14:0] vram1_addr_sd;
-wire        VRAM1_WE_N;
-wire  [7:0] VRAM1_D, VRAM1_Q;
-reg   [7:0] vram1_din;
-wire        vram1_req;
-reg         vram1_req_reg;
-reg         vram1_we_nD;
-
-wire [15:0] VRAM2_ADDR;
-reg  [14:0] vram2_addr_sd;
-wire        VRAM2_WE_N;
-wire  [7:0] VRAM2_D, VRAM2_Q;
-reg   [7:0] vram2_din;
-wire        vram2_req;
-reg         vram2_req_reg;
-reg         vram2_we_nD;
+wire [15:0] VRAM1_ADDR, VRAM2_ADDR;
+wire        VRAM1_WE_N, VRAM2_WE_N;
+wire  [7:0] VRAM1_D, VRAM1_Q, VRAM2_D, VRAM2_Q;
 
 wire [15:0] ARAM_ADDR;
-reg  [15:0] aram_addr_sd;
-wire        ARAM_CE_N;
-wire        ARAM_OE_N;
-wire        ARAM_WE_N;
-wire  [7:0] ARAM_Q;
-`ifndef BRAM_ARAM
-assign ARAM_Q = ARAM_ADDR[0] ? aram_dout[15:8] : aram_dout[7:0];
-`endif
-wire  [7:0] ARAM_D;
-reg  [15:0] aram_din;
-wire [15:0] aram_dout;
+wire        ARAM_CE_N, ARAM_OE_N, ARAM_WE_N;
+wire  [7:0] ARAM_Q, ARAM_D;
 wire        aram_rd = ~ARAM_CE_N & ~ARAM_OE_N;
-reg         aram_rd_last;
 wire        aram_wr = ~ARAM_CE_N & ~ARAM_WE_N;
-reg         aram_wr_last;
-wire        aram_req;
-wire        aram_req_reg;
+wire [15:0] aram_dout;
+assign ARAM_Q = ARAM_ADDR[0] ? aram_dout[15:8] : aram_dout[7:0];
 
 wire        DOT_CLK_CE;
 
-always @(negedge clk_sys) begin
+// ---------------- requests (clk_sys, as in SNESTang) ----------------
+reg         rom_req = 0;   reg [21:1] rom_a;  reg [15:0] rom_d;  reg rom_w;  reg [23:1] rom_addr_sd;
+wire [15:0] rom_dout;
+// ROM above 4MB: in the PSRAM when it was found (byte wide, through the
+// read cache of snes_psram_bus.sv); otherwise it mirrors the SDRAM part
+wire        rom_hi  = psram_present & rom_addr_cpu[22];
+wire  [7:0] romh_q;
+wire        romh_rd = ~cart_download & ~ROM_CE_N & rom_hi;
+assign ROM_Q = rom_hi ? {romh_q, romh_q} :
+               (ROM_WORD || ~rom_addr_cpu[0]) ? rom_dout : { rom_dout[7:0], rom_dout[15:8] };
 
-	wram_rdD <= wram_rd;
-	wram_wrD <= wram_wr;
-	if (spc_download) begin
-	end
-`ifndef USE_SIMPLE_SDRAM
-	else
-	if ((~cart_download && ~ROM_CE_N /*&& ~ROM_OE_N */&& rom_addr_sd != rom_addr_rw[23:1]) || (ioctl_wr & cart_download)) begin
-		rom_addr_sd <= rom_addr_rw[23:1];
-		cpu_req <= ~cpu_req;
-		cpu_addr_sd <= rom_addr_rw[23:1];
-		cpu_we <= cart_download;
-		cpu_din <= ioctl_dout;
-		cpu_ds <= 2'b11;
-		cpu_port <= 0;
-	end
-`endif
-`ifndef BRAM_WRAM
-	else
-	if ((wram_rd && WRAM_ADDR[16:1] != wram_addr_sd[16:1]) || (~wram_wrD & wram_wr) || (~wram_rdD & wram_rd)) begin
-		wram_addr_sd <= WRAM_ADDR;
-		cpu_req <= ~cpu_req;
-		cpu_addr_sd <= {7'b1110111, WRAM_ADDR[16:1]};
-		cpu_we <= wram_wr;
-		cpu_din <= {WRAM_D, WRAM_D};
-		cpu_ds <= {WRAM_ADDR[0], ~WRAM_ADDR[0]};
-		cpu_port <= 1;
-	end
-`endif // BRAM_WRAM
+reg         wramw_req = 0; reg [16:0] wramw_a; reg [7:0] wramw_d;
+reg         wramr_req = 0; reg [16:0] wramr_a; reg wramr_ok = 1'b0;
+reg  [16:0] ww_a_l;        reg  [7:0] ww_d_l;   reg ww_fix = 1'b0;
+wire        wramw_ack;
+wire [15:0] wramr_dout;
+assign WRAM_Q = WRAM_ADDR[0] ? wramr_dout[15:8] : wramr_dout[7:0];
 
-`ifndef BRAM_ARAM
-	aram_wr_last <= aram_wr;
-	aram_rd_last <= aram_rd;
-	if (spc_download) begin
-		if (ioctl_wr & ioctl_addr < 24'h10100) aram_req <= ~aram_req;
-		aram_addr_sd <= ioctl_addr - 9'd256;
-		aram_din <= ioctl_dout;
-	end else if ((aram_rd && ARAM_ADDR[15:1] != aram_addr_sd[15:1]) || (aram_wr && ARAM_ADDR != aram_addr_sd) || (aram_rd & ~aram_rd_last) || (aram_wr & ~aram_wr_last)) begin
-		aram_req <= ~aram_req;
-		aram_addr_sd <= ARAM_ADDR;
-		aram_din <= {ARAM_D, ARAM_D};
-	end
-`endif // BRAM_ARAM
+reg         aram_req = 0;  reg [15:0] aram_a; reg [15:0] aram_d; reg aram_w;
 
-	if (~RESET_N) begin
-//		vram1_addr_sd <= 15'h7fff;
-//		vram2_addr_sd <= 15'h7fff;
-	end else begin
-`ifndef BRAM_LEVEL_1
-		bsram_rdD <= bsram_rd;
-		bsram_wrD <= bsram_wr;
-		if ((bsram_rd && BSRAM_ADDR[19:1] != bsram_sd_addr[19:1]) || (~bsram_wrD & bsram_wr) || (~bsram_rdD & bsram_rd)) begin
-			bsram_req <= ~bsram_req;
-			bsram_sd_addr <= BSRAM_ADDR;
-			bsram_din <= BSRAM_D;
-		end
+reg         vram1_req = 0, vram2_req = 0;
+reg  [14:0] vram1_a, vram2_a, vram1_wa, vram2_wa;
+reg   [7:0] vram1_din, vram2_din, vram1_wd, vram2_wd;
+reg         vram1_w, vram2_w;
+reg         vram1_wpend = 1'b0, vram2_wpend = 1'b0;
+reg  [14:0] vram1_wa_p, vram2_wa_p;
+reg   [7:0] vram1_wd_p, vram2_wd_p;
+wire        vram1_ack, vram2_ack;
+reg         vram1_ack_s, vram2_ack_s;
 
-		vram1_we_nD <= VRAM1_WE_N;
-		if ((vram1_we_nD & ~VRAM1_WE_N) || (VRAM1_ADDR[14:0] != vram1_addr_sd && ~VRAM_OE_N)) begin
-			vram1_addr_sd <= VRAM1_ADDR[14:0];
-			vram1_din <= VRAM1_D;
-			vram1_req <= ~vram1_req;
-		end
+// BSRAM port: the core, or the save RAM engine while the core is halted
+reg         bs_req = 0;    reg [18:0] bs_a;   reg [7:0] bs_d;   reg bs_w;
+wire        bs_ack;
+wire  [7:0] bs_dout;
+reg  [18:0] bsram_addr_sd;
+assign BSRAM_Q = bs_dout;
 
-		vram2_we_nD <= VRAM2_WE_N;
-		if ((vram2_we_nD & ~VRAM2_WE_N) || (VRAM2_ADDR[14:0] != vram2_addr_sd && ~VRAM_OE_N)) begin
-			vram2_addr_sd <= VRAM2_ADDR[14:0];
-			vram2_din <= VRAM2_D;
-			vram2_req <= ~vram2_req;
-		end
-`endif // BRAM_LEVEL_1
+// save RAM engine side (pulse in, pulse out)
+reg         ld_req, ld_we;
+reg  [22:0] ld_addr;
+reg   [7:0] ld_din;
+wire  [7:0] ld_q = bs_dout;
+reg         ld_done = 0;
+reg         ld_pend = 0;
+localparam [22:0] BSRAM_PBASE = 23'd0;
 
-	end
+always @(posedge clk_sys) begin
+    reg wram_rdD, wram_wrD, bsram_rdD, bsram_wrD, aram_rdD, aram_wrD, vram1_weD, vram2_weD;
 
+    wram_rdD  <= wram_rd;   wram_wrD  <= wram_wr;
+    bsram_rdD <= bsram_rd;  bsram_wrD <= bsram_wr;
+    aram_rdD  <= aram_rd;   aram_wrD  <= aram_wr;
+    vram1_weD <= VRAM1_WE_N; vram2_weD <= VRAM2_WE_N;
+    vram1_ack_s <= vram1_ack; vram2_ack_s <= vram2_ack;
+    ld_done   <= 1'b0;
+
+    // ROM: download writes, or reads when the CPU address changes
+    if (rom_wr && !ioctl_addr_adj[23] && !ioctl_addr_adj[22]) begin
+        rom_a <= ioctl_addr_adj[21:1]; rom_d <= ioctl_dout; rom_w <= 1'b1;
+        rom_req <= ~rom_req;
+        rom_addr_sd <= 23'h7FFFFF;
+    end else if (!cart_download && !ROM_CE_N && !rom_hi && rom_addr_sd != rom_addr_cpu[23:1]) begin
+        rom_addr_sd <= rom_addr_cpu[23:1];
+        rom_a <= rom_addr_cpu[21:1]; rom_w <= 1'b0;
+        rom_req <= ~rom_req;
+    end
+
+    // WRAM writes: at the start of the strobe, so they are done before the
+    // next cycle (a write and a read share channel 1). A DMA from ROM to
+    // $2180 may give the data later in the cycle: if the data or the
+    // address seen at the end of the strobe differ, the write is repeated.
+    if (wram_wr) begin ww_a_l <= WRAM_ADDR; ww_d_l <= WRAM_D; end
+    if (wram_wr && !wram_wrD) begin
+        wramw_a <= WRAM_ADDR; wramw_d <= WRAM_D;
+        wramw_req <= ~wramw_req;
+        if (WRAM_ADDR[16:1] == wramr_a[16:1]) wramr_ok <= 1'b0;   // the word read before is old now
+    end else if (wram_wrD && !wram_wr && (ww_a_l != wramw_a || ww_d_l != wramw_d)) begin
+        ww_fix <= 1'b1;
+    end
+    if (ww_fix && wramw_ack == wramw_req) begin
+        ww_fix  <= 1'b0;
+        wramw_a <= ww_a_l; wramw_d <= ww_d_l;
+        wramw_req <= ~wramw_req;
+        if (ww_a_l[16:1] == wramr_a[16:1]) wramr_ok <= 1'b0;
+    end
+    // WRAM reads: on a new word, a new read strobe, or after a write to it
+    if (wram_rd && (WRAM_ADDR[16:1] != wramr_a[16:1] || !wram_rdD || !wramr_ok)) begin
+        wramr_a   <= WRAM_ADDR;
+        wramr_req <= ~wramr_req;
+        wramr_ok  <= 1'b1;
+    end
+
+    // ARAM
+    if ((aram_rd && ARAM_ADDR[15:1] != aram_a[15:1]) || (aram_wr && ARAM_ADDR != aram_a) || (aram_rd && !aram_rdD) || (aram_wr && !aram_wrD)) begin
+        aram_req <= ~aram_req;
+        aram_a   <= ARAM_ADDR;
+        aram_d   <= {ARAM_D, ARAM_D};
+        aram_w   <= aram_wr;
+    end
+    if (spc_download) begin
+        if (ioctl_wr & ioctl_addr < 24'h10100) aram_req <= ~aram_req;
+        aram_a <= ioctl_addr - 9'd256;
+        aram_d <= ioctl_dout;
+        aram_w <= 1'b1;
+    end
+
+    // VRAM: writes at the end of the strobe (see snes_psram_calypso.sv).
+    // A request is only made when the previous one has been taken (req ==
+    // ack): after a write the PPU moves its address and prefetches, and a
+    // read toggle on top of a pending write cancelled both (lost writes =
+    // wrong tiles, seen in Test Drive II and Super Ghouls'n Ghosts).
+    if (RESET_N) begin
+        if (~VRAM1_WE_N) begin vram1_wa <= VRAM1_ADDR[14:0]; vram1_wd <= VRAM1_D; end
+        if (~vram1_weD & VRAM1_WE_N) begin vram1_wpend <= 1'b1; vram1_wa_p <= vram1_wa; vram1_wd_p <= vram1_wd; end
+        if (vram1_req == vram1_ack_s) begin
+            if (vram1_wpend) begin
+                vram1_wpend <= 1'b0;
+                vram1_a <= vram1_wa_p; vram1_din <= vram1_wd_p; vram1_w <= 1'b1; vram1_req <= ~vram1_req;
+            end else if (VRAM1_WE_N && VRAM1_ADDR[14:0] != vram1_a && ~VRAM_OE_N) begin
+                vram1_a <= VRAM1_ADDR[14:0]; vram1_w <= 1'b0; vram1_req <= ~vram1_req;
+            end
+        end
+        if (~VRAM2_WE_N) begin vram2_wa <= VRAM2_ADDR[14:0]; vram2_wd <= VRAM2_D; end
+        if (~vram2_weD & VRAM2_WE_N) begin vram2_wpend <= 1'b1; vram2_wa_p <= vram2_wa; vram2_wd_p <= vram2_wd; end
+        if (vram2_req == vram2_ack_s) begin
+            if (vram2_wpend) begin
+                vram2_wpend <= 1'b0;
+                vram2_a <= vram2_wa_p; vram2_din <= vram2_wd_p; vram2_w <= 1'b1; vram2_req <= ~vram2_req;
+            end else if (VRAM2_WE_N && VRAM2_ADDR[14:0] != vram2_a && ~VRAM_OE_N) begin
+                vram2_a <= VRAM2_ADDR[14:0]; vram2_w <= 1'b0; vram2_req <= ~vram2_req;
+            end
+        end
+    end
+
+    // BSRAM: the save RAM engine while it works, otherwise the core
+    if (bk_busy) begin
+        if (ld_req) begin
+            bs_a <= ld_addr[18:0]; bs_d <= ld_din; bs_w <= ld_we;
+            bs_req <= ~bs_req; ld_pend <= 1'b1;
+        end else if (ld_pend && bs_ack == bs_req) begin
+            ld_pend <= 1'b0; ld_done <= 1'b1;
+        end
+        bsram_addr_sd <= 19'h7FFFF;
+    end else if ((bsram_wr && !bsram_wrD) ||
+                 (bsram_rd && (BSRAM_ADDR[18:0] != bsram_addr_sd || !bsram_rdD))) begin
+        // writes at the start of the strobe: CPU data, valid already
+        bsram_addr_sd <= bsram_wr ? 19'h7FFFF : BSRAM_ADDR[18:0];
+        bs_a <= BSRAM_ADDR[18:0]; bs_d <= BSRAM_D; bs_w <= bsram_wr;
+        bs_req <= ~bs_req;
+    end
 end
 
-`ifdef BRAM_LEVEL_1
 
-localparam  BSRAM_BITS = 17; // 1Mbits
+////////////////////////////  PSRAM (optional)  ///////////////////////////
 
-dpram #(BSRAM_BITS,8) bsram 
-(
-	.clock(clk_sys),
+// PSRAM controller port
+wire        psram_ready;
+wire        p_req, p_we, p_ack;
+wire [22:0] p_addr;
+wire  [7:0] p_din, p_dout;
 
-	.address_a(BSRAM_ADDR),
-	.data_a(BSRAM_D),
-	.wren_a(~BSRAM_CE_N & ~BSRAM_WE_N),
-	.q_a(BSRAM_Q),
+// loader port of the PSRAM bus: ROM download above 4MB, or the calibration
+reg         pl_req = 1'b0, pl_we;
+reg  [22:0] pl_addr;
+reg   [7:0] pl_din;
+wire  [7:0] pl_q;
+wire        pl_done, pl_busy;
 
-	.address_b({sd_lba[BSRAM_BITS-9:0],sd_buff_addr}),
-	.data_b(sd_buff_dout),
-	.wren_b(sd_buff_wr & sd_ack),
-	.q_b(sd_buff_din)
+// detection and calibration at start-up (and when the OSD option changes)
+wire  [1:0] calib_rd;
+wire        calib_rst_n, calib_done, calib_found;
+wire  [5:0] calib_len;
+wire        c_ld_req, c_ld_we;
+wire [22:0] c_ld_addr;
+wire  [7:0] c_ld_din;
+reg         psram_en_l = 1'b0, psram_restart = 1'b0;
+always @(posedge clk_sys) begin
+    psram_en_l    <= psram_enable;
+    psram_restart <= psram_en_l != psram_enable;
+end
+
+psram_calib psram_calib (
+    .clk(clk_sys),
+    .start(mem_ok & psram_enable),
+    .restart(psram_restart),
+    .manual(1'b0),
+    .man_rd(2'd2),
+    .man_phase(7'sd0),
+    .ctrl_rst_n(calib_rst_n),
+    .ctrl_ready(psram_ready),
+    .rd_delay(calib_rd),
+    .phase(calib_phase),
+    .phase_settled(pll_settled),
+    .ld_req(c_ld_req),
+    .ld_we(c_ld_we),
+    .ld_addr(c_ld_addr),
+    .ld_din(c_ld_din),
+    .ld_q(pl_q),
+    .ld_done(pl_done),
+    .done(calib_done),
+    .win_len(calib_len),
+    .found(calib_found)
 );
 
-dpram #(15) vram1
+// the core waits for the calibration only when the PSRAM is enabled
+assign calib_ok = ~psram_enable | calib_done;
+assign psram_present = psram_enable & calib_done & calib_found;
+
+psram_ctrl #(.MHZ(108)) psram
 (
-	.clock(clk_sys),
-	.address_a(VRAM1_ADDR[14:0]),
-	.data_a(VRAM1_D),
-	.wren_a(~VRAM1_WE_N),
-	.q_a(VRAM1_Q)
+    .clk(clk_psram),
+    .rst_n(mem_ok & psram_enable & calib_rst_n),
+
+    .PSRAM_SIO(PSRAM_SIO),
+    .PSRAM_CE(PSRAM_CE),
+
+    .req(p_req),
+    .we(p_we),
+    .addr(p_addr),
+    .din(p_din),
+    .dout(p_dout),
+    .ack(p_ack),
+    .ready(psram_ready),
+    .rd_delay(calib_rd)
 );
 
-dpram #(15) vram2
+// only the ROM uses it: WRAM and BSRAM stay in the SDRAM
+snes_psram_bus #(
+    .ROM_W(22),
+    .WRAM_BASE(23'h400000),
+    .BSRAM_BASE(23'h480000)
+) psram_bus
 (
-	.clock(clk_sys),
-	.address_a(VRAM2_ADDR[14:0]),
-	.data_a(VRAM2_D),
-	.wren_a(~VRAM2_WE_N),
-	.q_a(VRAM2_Q)
+    .clk(clk_sys),
+    .en(~cart_download & ~spc_download),
+
+    .wram_addr(17'd0), .wram_rd(1'b0), .wram_wr(1'b0), .wram_d(8'd0), .wram_q(),
+    .bsram_addr(19'd0), .bsram_rd(1'b0), .bsram_wr(1'b0), .bsram_d(8'd0), .bsram_q(),
+
+    .romh_addr(rom_addr_cpu[21:0]),
+    .romh_rd(romh_rd),
+    .romh_flush(cart_download),
+    .romh_q(romh_q),
+
+    // the calibration owns the loader port until it is done
+    .ld_req(calib_done ? pl_req : c_ld_req),
+    .ld_we(calib_done ? pl_we : c_ld_we),
+    .ld_addr(calib_done ? pl_addr : c_ld_addr),
+    .ld_din(calib_done ? pl_din : c_ld_din),
+    .ld_q(pl_q),
+    .ld_done(pl_done),
+    .ld_busy(pl_busy),
+
+    .p_req(p_req),
+    .p_we(p_we),
+    .p_addr(p_addr),
+    .p_din(p_din),
+    .p_dout(p_dout),
+    .p_ack(p_ack),
+    .p_ready(psram_ready)
 );
 
-`endif // BRAM_LEVEL_1
+// ROM download above 4MB: the words go through a FIFO (256 words) and are
+// written as two bytes each. The SPI download cannot be paused, so if the
+// PSRAM were slower on average the FIFO would overflow: LED3 lights then
+// (cleared at the next download), and LED4 shows the FIFO draining.
+reg  [37:0] dlf [0:255];            // {addr[21:1], data[15:0]}
+reg   [8:0] dlf_wp = 9'd0, dlf_rp = 9'd0;
+reg  [37:0] dlf_q;
+reg   [1:0] dl_st = 2'd0;
+reg   [7:0] dl_byte_hi;
+reg  [21:1] dl_addr;
+wire        dlf_empty = dlf_wp == dlf_rp;
+wire        dlf_full  = dlf_wp == {~dlf_rp[8], dlf_rp[7:0]};
 
-`ifdef BRAM_WRAM
-dpram #(17)	wram
+always @(posedge clk_sys) begin
+    reg cart_downloadD;
+    cart_downloadD <= cart_download;
+    pl_req <= 1'b0;
+
+    // push
+    if (cart_download && rom_wr && ioctl_addr_adj[22] && !ioctl_addr_adj[23] && psram_present) begin
+        if (dlf_full) dl_overrun <= 1'b1;
+        else begin
+            dlf[dlf_wp[7:0]] <= {ioctl_addr_adj[21:1], ioctl_dout};
+            dlf_wp <= dlf_wp + 1'd1;
+        end
+    end
+    if (~cart_downloadD & cart_download) dl_overrun <= 1'b0;
+
+    // drain: low byte, then high byte
+    dlf_q <= dlf[dlf_rp[7:0]];
+    case (dl_st)
+    2'd0: if (!dlf_empty) begin
+            dlf_rp <= dlf_rp + 1'd1;
+            dl_st  <= 2'd1;             // dlf_q valid next cycle
+          end
+    2'd1: begin
+            pl_req     <= 1'b1;
+            pl_we      <= 1'b1;
+            pl_addr    <= {1'b0, dlf_q[37:16], 1'b0};
+            pl_din     <= dlf_q[7:0];
+            dl_addr    <= dlf_q[37:16];
+            dl_byte_hi <= dlf_q[15:8];
+            dl_st      <= 2'd2;
+          end
+    2'd2: if (pl_done) begin
+            pl_req  <= 1'b1;
+            pl_addr <= {1'b0, dl_addr, 1'b1};
+            pl_din  <= dl_byte_hi;
+            dl_st   <= 2'd3;
+          end
+    2'd3: if (pl_done) dl_st <= 2'd0;
+    endcase
+end
+assign dl_active = !dlf_empty || dl_st != 2'd0;
+
+sdram_calypso sdram
 (
-	.clock(clk_sys),
-	.address_a(WRAM_ADDR),
-	.data_a(WRAM_D),
-	.wren_a(~WRAM_CE_N & ~WRAM_WE_N),
-	.q_a(WRAM_Q),
-/*
-	// clear the RAM on loading
-	.address_b(mem_fill_addr[16:0]),
-	.data_b(wram_fill_data),
-	.wren_b(clearing_ram)
-*/
-);
-`endif // BRAM_WRAM
+    .init_n(mem_ok),
+    .clk(clk_mem),
+    .clkref(DOT_CLK_CE),
+    .ready(sdram_ready),
 
-`ifdef BRAM_ARAM
-dpram_dif #(16,8,15,16) aram
-(
-	.clock(clk_sys),
-	.address_a(ARAM_ADDR),
-	.data_a(ARAM_D),
-	.wren_a(~ARAM_CE_N & ~ARAM_WE_N),
-	.q_A(ARAM_Q),
-/*
-	// clear the RAM on loading
-	.address_b(spc_download ? addr_download[15:1] : mem_fill_addr[15:1]),
-	.data_b(spc_download ? ioctl_dout : {2{aram_fill_data}}),
-	.wren_b(spc_download ? ioctl_wr : clearing_ram)
-*/
-);
-`endif // BRAM_ARAM
+    .SDRAM_DQ(SDRAM_DQ), .SDRAM_A(SDRAM_A), .SDRAM_DQML(SDRAM_DQML), .SDRAM_DQMH(SDRAM_DQMH),
+    .SDRAM_BA(SDRAM_BA), .SDRAM_nCS(SDRAM_nCS), .SDRAM_nWE(SDRAM_nWE), .SDRAM_nCAS(SDRAM_nCAS),
+    .SDRAM_nRAS(SDRAM_nRAS), .SDRAM_CKE(SDRAM_CKE),
 
-`ifndef BRAM_LEVEL_1
-`define USE_MULTI_SDRAM
-`endif
-`ifndef BRAM_WRAM
-`define USE_MULTI_SDRAM
-`endif
-`ifndef BRAM_ARAM
-`define USE_MULTI_SDRAM
-`endif
+    .rom_req(rom_req), .rom_ack(), .rom_addr(rom_a), .rom_din(rom_d), .rom_we(rom_w), .rom_dout(rom_dout),
 
-`ifdef USE_MULTI_SDRAM
-sdram_cl3 sdram
-(
-	.init_n(locked),
-	.clk(clk_mem),
-	.clkref(DOT_CLK_CE),
+    .aram_req(aram_req), .aram_ack(), .aram_addr(aram_a), .aram_din(aram_d), .aram_we(aram_w),
+    .aram_16(spc_download), .aram_dout(aram_dout),
 
-	.SDRAM_DQ(SDRAM_DQ),
-	.SDRAM_A(SDRAM_A),
-	.SDRAM_DQML(SDRAM_DQML),
-	.SDRAM_DQMH(SDRAM_DQMH),
-	.SDRAM_BA(SDRAM_BA),
-	.SDRAM_nCS(SDRAM_nCS),
-	.SDRAM_nWE(SDRAM_nWE),
-	.SDRAM_nCAS(SDRAM_nCAS),
-	.SDRAM_nRAS(SDRAM_nRAS),
-	.SDRAM_CKE(SDRAM_CKE),
+    .wramw_req(wramw_req), .wramw_ack(wramw_ack), .wramw_addr(wramw_a), .wramw_din(wramw_d),
+    .wramr_req(wramr_req), .wramr_ack(), .wramr_addr(wramr_a), .wramr_dout(wramr_dout),
 
-`ifndef BRAM_WRAM
-	.cpu_addr(cpu_addr_sd),
-	.cpu_din(cpu_din),
-	.cpu_req(cpu_req),
-	.cpu_req_ack(),
-	.cpu_we(cpu_we),
-	.cpu_ds(cpu_ds),
-	.cpu_port(cpu_port),
-	.cpu_port0(cpu_port0),
-	.cpu_port1(cpu_port1),
-`endif
+    .bs_req(bs_req), .bs_ack(bs_ack), .bs_addr(bs_a), .bs_din(bs_d), .bs_we(bs_w), .bs_dout(bs_dout),
 
-`ifndef BRAM_LEVEL_1
-	.bsram_addr(bsram_sd_addr),
-//	.bsram_din(bsram_din), // OBC1 doesn't like this
-	.bsram_din(BSRAM_D),
-	.bsram_dout(bsram_dout),
-	.bsram_req(bsram_req),
-	.bsram_req_ack(),
-//	.bsram_we(~BSRAM_WE_N),
-	.bsram_we(bsram_wrD),
-
-	.bsram_io_addr(BSRAM_IO_ADDR),
-	.bsram_io_din(BSRAM_IO_D),
-	.bsram_io_dout(BSRAM_IO_Q),
-	.bsram_io_req(bsram_io_req_d),
-	.bsram_io_req_ack(),
-	.bsram_io_we(bk_load),
-
-	.vram1_req(vram1_req),
-	.vram1_ack(),
-	.vram1_addr(vram1_addr_sd),
-	.vram1_din(vram1_din),
-	.vram1_dout(VRAM1_Q),
-	.vram1_we(~vram1_we_nD),
-
-	.vram2_req(vram2_req),
-	.vram2_ack(),
-	.vram2_addr(vram2_addr_sd),
-	.vram2_din(vram2_din),
-	.vram2_dout(VRAM2_Q),
-	.vram2_we(~vram2_we_nD),
-`endif
-
-`ifndef BRAM_ARAM
-	.aram_16(spc_download),
-	.aram_addr(aram_addr_sd),
-	.aram_din(aram_din),
-//	.aram_din(ARAM_D),
-	.aram_dout(aram_dout),
-	.aram_req(aram_req),
-	.aram_req_ack(),
-//	.aram_we(~ARAM_WE_N)
-	.aram_we(spc_download | aram_wr_last)
-`endif // BRAM_ARAM
-);
-`endif
-
-`ifdef USE_SIMPLE_SDRAM
-
-`ifdef DUAL_SDRAM
-wire locked2;
-wire clk_mem2;
-
-pll_sdram2 pll_sdram2
-(
-	.inclk0(CLOCK_50),
-	.c0(clk_mem2),
-	.locked(locked2)
-);
-assign SDRAM2_CLK = clk_mem2;
-`endif
-
-sdram sdram2
-(
-`ifdef DUAL_SDRAM
-	.SDRAM_DQ(SDRAM2_DQ),
-	.SDRAM_A(SDRAM2_A),
-	.SDRAM_DQML(SDRAM2_DQML),
-	.SDRAM_DQMH(SDRAM2_DQMH),
-	.SDRAM_BA(SDRAM2_BA),
-	.SDRAM_nCS(SDRAM2_nCS),
-	.SDRAM_nWE(SDRAM2_nWE),
-	.SDRAM_nCAS(SDRAM2_nCAS),
-	.SDRAM_nRAS(SDRAM2_nRAS),
-	.SDRAM_CKE(SDRAM2_CKE),
-`else
-	.SDRAM_DQ(SDRAM_DQ),
-	.SDRAM_A(SDRAM_A),
-	.SDRAM_DQML(SDRAM_DQML),
-	.SDRAM_DQMH(SDRAM_DQMH),
-	.SDRAM_BA(SDRAM_BA),
-	.SDRAM_nCS(SDRAM_nCS),
-	.SDRAM_nWE(SDRAM_nWE),
-	.SDRAM_nCAS(SDRAM_nCAS),
-	.SDRAM_nRAS(SDRAM_nRAS),
-	.SDRAM_CKE(SDRAM_CKE),
-`endif
-
-`ifdef DUAL_SDRAM
-	.init_n(locked2),
-	.clk(clk_mem2),
-`else
-	.init_n(locked),
-	.clk(clk_mem),
-`endif
-	.addr(rom_addr_rw),
-	.din(cart_download ? ioctl_dout : ROM_D),
-	.dout(ROM_Q),
-	.rd(~cart_download & (RESET_N ? ~ROM_OE_N : RFSH)),
-	.wr(cart_download ? ioctl_wr : ~ROM_WE_N),
-	.word(cart_download | ROM_WORD),
-	.busy()
+    .vram1_req(vram1_req), .vram1_ack(vram1_ack), .vram1_addr(vram1_a), .vram1_din(vram1_din), .vram1_dout(VRAM1_Q), .vram1_we(vram1_w),
+    .vram2_req(vram2_req), .vram2_ack(vram2_ack), .vram2_addr(vram2_a), .vram2_din(vram2_din), .vram2_dout(VRAM2_Q), .vram2_we(vram2_w)
 );
 
-`endif
-//////////////////////////  ROM DETECT  /////////////////////////////////
+//////////////////////////// BACKUP RAM / LOADER /////////////////////
 
-wire cart_download = ioctl_download && ioctl_index[5:1] == 0; //0-1
-wire spc_download = ioctl_download && ioctl_index[5:0] == 6'd2;
+// SD sector buffer: port B is the user_io side, port A the copy engine
+reg   [8:0] buf_addr;
+reg   [7:0] buf_din;
+reg         buf_we;
+wire  [7:0] buf_q;
+
+sector_buf sector_buf
+(
+    .clk(clk_sys),
+
+    .addr_a(buf_addr),
+    .din_a(buf_din),
+    .we_a(buf_we),
+    .q_a(buf_q),
+
+    .addr_b(sd_buff_addr),
+    .din_b(sd_buff_dout),
+    .we_b(sd_buff_wr & sd_ack),
+    .q_b(sd_buff_din)
+);
+
+localparam BK_IDLE     = 3'd0;
+localparam BK_SD       = 3'd1;   // waiting for the SD transfer of one sector
+localparam BK_TO_MEM = 3'd2;   // sector buffer -> BSRAM (load)
+localparam BK_BUF_RD   = 3'd3;   // sector buffer read latency
+localparam BK_BUF_Q    = 3'd4;   // sector buffer data valid, write it
+localparam BK_TO_BUF   = 3'd5;   // BSRAM -> sector buffer (save)
+localparam BK_WAIT     = 3'd6;   // waiting for a loader access
+
+reg   [2:0] bk_state = BK_IDLE;
+reg   [2:0] bk_next;
+reg         bk_ena = 0;
+reg         bk_load = 0;
+reg   [9:0] bk_last;             // last sector (save RAM is at most 512KB)
+reg   [9:0] bk_sector;
+reg   [9:0] bk_idx;              // byte index in the sector, bit 9 = done
+
+
+always @(posedge clk_sys) begin
+    reg img_mountedD;
+    reg ioctl_downloadD;
+    reg bk_saveD;
+    reg sd_ackD;
+
+    ld_req <= 1'b0;
+    buf_we <= 1'b0;
+
+    img_mountedD    <= img_mounted;
+    ioctl_downloadD <= ioctl_download;
+    bk_saveD        <= bk_save;
+    sd_ackD         <= sd_ack;
+
+    if (~sd_ackD & sd_ack) { sd_rd, sd_wr } <= 2'b00;
+
+    // ---------------- save RAM ----------------
+    if (~img_mountedD & img_mounted) begin
+        if (|img_size) begin
+            bk_ena  <= 1;
+            bk_load <= 1;
+            bk_last <= |img_size[31:17] ? 10'd255 :    // 128KB or more (BSRAM area of sdram_calypso)
+                       ~|img_size[18:9] ? 10'd0    :   // less than a sector
+                       img_size[18:9] - 1'd1;
+        end else
+            bk_ena <= 0;
+    end
+
+    case (bk_state)
+    BK_IDLE:
+        if (bk_ena && RESET_N && !cart_download && (bk_load || (~bk_saveD & bk_save))) begin
+            bk_sector <= 0;
+            sd_lba    <= 0;
+            bk_idx    <= 0;
+            if (bk_load) begin
+                sd_rd    <= 1'b1;
+                bk_state <= BK_SD;
+            end else
+                bk_state <= BK_TO_BUF;
+        end
+
+    BK_SD:
+        if (sd_ackD & ~sd_ack) begin
+            bk_idx <= 0;
+            if (bk_load)
+                bk_state <= BK_TO_MEM;
+            else if (bk_sector == bk_last)
+                bk_state <= BK_IDLE;
+            else begin
+                bk_sector <= bk_sector + 1'd1;
+                sd_lba    <= sd_lba + 1'd1;
+                bk_state  <= BK_TO_BUF;
+            end
+        end
+
+    // load: sector buffer byte bk_idx -> BSRAM
+    BK_TO_MEM:
+        if (bk_idx[9]) begin
+            if (bk_sector == bk_last) begin
+                bk_load  <= 0;
+                bk_state <= BK_IDLE;
+            end else begin
+                bk_sector <= bk_sector + 1'd1;
+                sd_lba    <= sd_lba + 1'd1;
+                sd_rd     <= 1'b1;
+                bk_state  <= BK_SD;
+            end
+        end else begin
+            buf_addr <= bk_idx[8:0];
+            bk_state <= BK_BUF_RD;
+        end
+
+    BK_BUF_RD: bk_state <= BK_BUF_Q;
+
+    BK_BUF_Q: begin
+        ld_req   <= 1'b1;
+        ld_we    <= 1'b1;
+        ld_addr  <= BSRAM_PBASE | {4'b0000, bk_sector, bk_idx[8:0]};
+        ld_din   <= buf_q;
+        bk_next  <= BK_TO_MEM;
+        bk_state <= BK_WAIT;
+    end
+
+    // save: BSRAM byte bk_idx -> sector buffer
+    BK_TO_BUF:
+        if (bk_idx[9]) begin
+            sd_wr    <= 1'b1;
+            bk_state <= BK_SD;
+        end else begin
+            ld_req   <= 1'b1;
+            ld_we    <= 1'b0;
+            ld_addr  <= BSRAM_PBASE | {4'b0000, bk_sector, bk_idx[8:0]};
+            buf_addr <= bk_idx[8:0];
+            bk_next  <= BK_TO_BUF;
+            bk_state <= BK_WAIT;
+        end
+
+    BK_WAIT:
+        if (ld_done) begin
+            if (bk_next == BK_TO_BUF) begin
+                buf_din <= ld_q;
+                buf_we  <= 1'b1;
+            end
+            bk_idx   <= bk_idx + 1'd1;
+            bk_state <= bk_next;
+        end
+
+    default: bk_state <= BK_IDLE;
+    endcase
+
+    // a new download aborts any transfer and forgets the mounted file
+    if (cart_download) begin
+        bk_state <= BK_IDLE;
+        bk_load  <= 0;
+    end
+    if (~ioctl_downloadD & ioctl_download) bk_ena <= 0;
+end
+
+wire bk_busy = bk_state != BK_IDLE;
+
+////////////////////////////  ROM DETECT  /////////////////////////////////
 
 reg spc_mode = 0;
 always @(posedge clk_sys) begin
-	if(buttons[1] | status[0]) spc_mode <= 0;
-	if(ioctl_wr) spc_mode <= spc_download;
+    if(buttons[1] | status[0]) spc_mode <= 0;
+    if(ioctl_wr) spc_mode <= spc_download;
 end
 
 reg  [1:0] PAL;
@@ -742,65 +880,67 @@ wire [8:0] hdr_prefix = LHRom_type == 2 ? { 8'h40, 1'b1 } : // ExHiROM
                         9'd0; // LoROM
 
 always @(posedge clk_sys) begin
-	reg [3:0] ram_size;
+    reg [3:0] ram_size;
 
-	if (cart_download) begin
-		if(ioctl_wr) begin
-			if (ioctl_addr == 0) begin
-				ram_size <= 4'h0;
-				rom_type <= { 6'd0, LHRom_type };
-			end
+    if (cart_download) begin
+        if(ioctl_wr) begin
+            if (ioctl_addr == 0) begin
+                ram_size <= 4'h0;
+                rom_type <= { 6'd0, LHRom_type };
+            end
 
-			if(ioctl_addr_adj == { hdr_prefix, 15'h7FD4 }) mapper_header <= ioctl_dout[15:8];
-			if(ioctl_addr_adj == { hdr_prefix, 15'h7FD6 }) { rom_size, rom_type_header } <= ioctl_dout[11:0];
-			if(ioctl_addr_adj == { hdr_prefix, 15'h7FD8 }) ram_size <= ioctl_dout[3:0];
-			if(ioctl_addr_adj == { hdr_prefix, 15'h7FDA }) company_header <= ioctl_dout[7:0];
+            if(ioctl_addr_adj == { hdr_prefix, 15'h7FD4 }) mapper_header <= ioctl_dout[15:8];
+            if(ioctl_addr_adj == { hdr_prefix, 15'h7FD6 }) { rom_size, rom_type_header } <= ioctl_dout[11:0];
+            if(ioctl_addr_adj == { hdr_prefix, 15'h7FD8 }) ram_size <= ioctl_dout[3:0];
+            if(ioctl_addr_adj == { hdr_prefix, 15'h7FDA }) company_header <= ioctl_dout[7:0];
 
-			rom_mask <= (24'd1024 << ((rom_size < 4'd7) ? 4'hC : rom_size)) - 1'd1;
-			ram_mask <= ram_size ? (24'd1024 << ram_size) - 1'd1 : 24'd0;
+            rom_mask <= (24'd1024 << ((rom_size < 4'd7) ? 4'hC : rom_size)) - 1'd1;
+            ram_mask <= ram_size ? (24'd1024 << ram_size) - 1'd1 : 24'd0;
 
-		end
-	end
-	else begin
-		PAL <= video_region;
-		//DSP3
-		if (mapper_header == 8'h30 && rom_type_header == 8'd5 && company_header == 8'hB2) rom_type[7:4] <= 4'hA;
-		//DSP1
-		else if (((mapper_header == 8'h20 || mapper_header == 8'h21) && rom_type_header == 8'd3) ||
-		    (mapper_header == 8'h30 && rom_type_header == 8'd5) || 
-		    (mapper_header == 8'h31 && (rom_type_header == 8'd3 || rom_type_header == 8'd5))) rom_type[7] <= 1'b1;
-		//DSP2
-		else if (mapper_header == 8'h20 && rom_type_header == 8'd5) rom_type[7:4] <= 4'h9;
-		//DSP4
-		else if (mapper_header == 8'h30 && rom_type_header == 8'd3) rom_type[7:4] <= 4'hB;
-		//OBC1
-		else if (mapper_header == 8'h30 && rom_type_header == 8'h25) rom_type[7:4] <= 4'hC;
-		//SDD1
-		else if (mapper_header == 8'h32 && (rom_type_header == 8'h43 || rom_type_header == 8'h45)) rom_type[7:4] <= 4'h5;
-		//ST0XX
-		else if (mapper_header == 8'h30 && rom_type_header == 8'hf6) begin
-			rom_type[7:3] <= { 4'h8, 1'b1 };
-			if (rom_size < 4'd10) rom_type[5] <= 1'b1; // Hayazashi Nidan Morita Shougi
-		end
-		//GSU
-		else if (mapper_header == 8'h20 &&
-		    (rom_type_header == 8'h13 || rom_type_header == 8'h14 || rom_type_header == 8'h15 || rom_type_header == 8'h1a))
-		begin
-			rom_type[7:4] <= 4'h7;
-			ram_mask <= (24'd1024 << 4'd6) - 1'd1;
-		end
-		//SA1
-		else if (mapper_header == 8'h23 && (rom_type_header == 8'h32 || rom_type_header == 8'h34 || rom_type_header == 8'h35)) begin
-			rom_type[7:4] <= 4'h6;
-		// SPC7110
-		end else if (mapper_header == 8'h3a && (rom_type_header == 8'hf5 || rom_type_header == 8'hf9)) begin
-			rom_type[7:4] <= 4'hD;
-			rom_type[3] <= rom_type_header[3]; // with RTC
-		//CX4
-		end else if (mapper_header == 8'h20 && rom_type_header == 8'hf3) begin
-			rom_type[7:4] <= 4'h4;
-		end
-	end
+        end
+    end
+    else begin
+        PAL <= video_region;
+        //DSP3
+        if (mapper_header == 8'h30 && rom_type_header == 8'd5 && company_header == 8'hB2) rom_type[7:4] <= 4'hA;
+        //DSP1
+        else if (((mapper_header == 8'h20 || mapper_header == 8'h21) && rom_type_header == 8'd3) ||
+            (mapper_header == 8'h30 && rom_type_header == 8'd5) ||
+            (mapper_header == 8'h31 && (rom_type_header == 8'd3 || rom_type_header == 8'd5))) rom_type[7] <= 1'b1;
+        //DSP2
+        else if (mapper_header == 8'h20 && rom_type_header == 8'd5) rom_type[7:4] <= 4'h9;
+        //DSP4
+        else if (mapper_header == 8'h30 && rom_type_header == 8'd3) rom_type[7:4] <= 4'hB;
+        //OBC1
+        else if (mapper_header == 8'h30 && rom_type_header == 8'h25) rom_type[7:4] <= 4'hC;
+        //ST0XX
+        else if (mapper_header == 8'h30 && rom_type_header == 8'hf6) begin
+            rom_type[7:3] <= { 4'h8, 1'b1 };
+            if (rom_size < 4'd10) rom_type[5] <= 1'b1; // Hayazashi Nidan Morita Shougi
+        end
+        // SDD1, GSU, SA1, SPC7110 and CX4 are detected as upstream, although
+        // this build does not include them
+        //SDD1
+        else if (mapper_header == 8'h32 && (rom_type_header == 8'h43 || rom_type_header == 8'h45)) rom_type[7:4] <= 4'h5;
+        //GSU
+        else if (mapper_header == 8'h20 &&
+            (rom_type_header == 8'h13 || rom_type_header == 8'h14 || rom_type_header == 8'h15 || rom_type_header == 8'h1a))
+        begin
+            rom_type[7:4] <= 4'h7;
+            ram_mask <= (24'd1024 << 4'd6) - 1'd1;
+        end
+        //SA1
+        else if (mapper_header == 8'h23 && (rom_type_header == 8'h32 || rom_type_header == 8'h34 || rom_type_header == 8'h35)) begin
+            rom_type[7:4] <= 4'h6;
+        // SPC7110
+        end else if (mapper_header == 8'h3a && (rom_type_header == 8'hf5 || rom_type_header == 8'hf9)) begin
+            rom_type[7:4] <= 4'hD;
+            rom_type[3] <= rom_type_header[3]; // with RTC
+        //CX4
+        end else if (mapper_header == 8'h20 && rom_type_header == 8'hf3) begin
+            rom_type[7:4] <= 4'h4;
+        end
+    end
 end
 
 ////////////////////////////  SYSTEM  ///////////////////////////////////
@@ -809,129 +949,123 @@ wire [16:0] io_addr = ioctl_addr >= 17'h00100 && ioctl_addr < 17'h10100 ? ioctl_
                       ioctl_addr >= 17'h10100 ? {1'b1, ioctl_addr[7:0]} :
                       ioctl_addr[16:0];
 
-main #(.USE_DSPn(1'b1), .USE_CX4(EXTRA_CHIPS_2), .USE_SDD1(EXTRA_CHIPS_1), .USE_SA1(EXTRA_CHIPS_1), .USE_GSU(EXTRA_CHIPS_1), .USE_DLH(1'b1), .USE_SPC7110(EXTRA_CHIPS_2), .USE_BSX(1'b0), .HAVE_MLAB("FALSE")) main
+main #(.USE_DSPn(1'b1), .USE_CX4(1'b0), .USE_SDD1(1'b0), .USE_SA1(1'b0), .USE_GSU(1'b0), .USE_DLH(1'b1), .USE_SPC7110(1'b0), .USE_BSX(1'b0), .USE_SUFAMI(1'b0), .USE_SS(1'b0), .HAVE_MLAB("FALSE")) main
 (
-	.RESET_N(RESET_N),
+    .RESET_N(RESET_N),
 
-	.MCLK(clk_sys), // 21.47727 / 21.28137
-	.ACLK(clk_sys),
-	.HALT(bk_state == 1'b1),
+    .MCLK(clk_sys), // 21.4 MHz
+    .ACLK(clk_sys),
+    .HALT(bk_busy),
 
-	.ROM_TYPE(rom_type),
-	.ROM_MASK(rom_mask),
-	.RAM_MASK(ram_mask),
+    .ROM_TYPE(rom_type),
+    .ROM_MASK(rom_mask),
+    .RAM_MASK(ram_mask),
+    .RAM_SIZE(4'd0),
 
-	.ROM_ADDR(ROM_ADDR),
-	.ROM_D(ROM_D),
-	.ROM_Q(ROM_Q),
-	.ROM_CE_N(ROM_CE_N),
-	.ROM_OE_N(ROM_OE_N),
-	.ROM_WE_N(ROM_WE_N),
-	.ROM_WORD(ROM_WORD),
+    .ROM_ADDR(ROM_ADDR),
+    .ROM_ADDR_EARLY(ROM_ADDR_EARLY),
+    .ROM_D(ROM_D),
+    .ROM_Q(ROM_Q),
+    .ROM_CE_N(ROM_CE_N),
+    .ROM_OE_N(ROM_OE_N),
+    .ROM_WE_N(ROM_WE_N),
+    .ROM_WORD(ROM_WORD),
 
-	.BSRAM_ADDR(BSRAM_ADDR),
-	.BSRAM_D(BSRAM_D),
-`ifdef BRAM_LEVEL_1
-	.BSRAM_Q(BSRAM_Q),
-`else
-	.BSRAM_Q(BSRAM_SD_Q),
-`endif
-	.BSRAM_CE_N(BSRAM_CE_N),
-	.BSRAM_OE_N(BSRAM_OE_N),
-	.BSRAM_WE_N(BSRAM_WE_N),
-	.BSRAM_RD_N(BSRAM_RD_N),
+    .BSRAM_ADDR(BSRAM_ADDR),
+    .BSRAM_D(BSRAM_D),
+    .BSRAM_Q(BSRAM_Q),
+    .BSRAM_CE_N(BSRAM_CE_N),
+    .BSRAM_OE_N(BSRAM_OE_N),
+    .BSRAM_WE_N(BSRAM_WE_N),
+    .BSRAM_RD_N(BSRAM_RD_N),
 
-	.WRAM_ADDR(WRAM_ADDR),
-	.WRAM_D(WRAM_D),
-`ifdef BRAM_WRAM
-	.WRAM_Q(WRAM_Q),
-`else
-	.WRAM_Q(WRAM_SD_Q),
-`endif
-	.WRAM_CE_N(WRAM_CE_N),
-	.WRAM_OE_N(WRAM_OE_N),
-	.WRAM_WE_N(WRAM_WE_N),
-	.WRAM_RD_N(WRAM_RD_N),
+    .WRAM_ADDR(WRAM_ADDR),
+    .WRAM_D(WRAM_D),
+    .WRAM_Q(WRAM_Q),
+    .WRAM_CE_N(WRAM_CE_N),
+    .WRAM_OE_N(WRAM_OE_N),
+    .WRAM_WE_N(WRAM_WE_N),
+    .WRAM_RD_N(WRAM_RD_N),
 
-	.VRAM1_ADDR(VRAM1_ADDR),
-	.VRAM1_DI(VRAM1_Q),
-	.VRAM1_DO(VRAM1_D),
-	.VRAM1_WE_N(VRAM1_WE_N),
-	.VRAM2_ADDR(VRAM2_ADDR),
-	.VRAM2_DI(VRAM2_Q),
-	.VRAM2_DO(VRAM2_D),
-	.VRAM2_WE_N(VRAM2_WE_N),
-	.VRAM_OE_N(VRAM_OE_N),
+    .VRAM1_ADDR(VRAM1_ADDR),
+    .VRAM1_DI(VRAM1_Q),
+    .VRAM1_DO(VRAM1_D),
+    .VRAM1_WE_N(VRAM1_WE_N),
+    .VRAM2_ADDR(VRAM2_ADDR),
+    .VRAM2_DI(VRAM2_Q),
+    .VRAM2_DO(VRAM2_D),
+    .VRAM2_WE_N(VRAM2_WE_N),
+    .VRAM_OE_N(VRAM_OE_N),
 
-	.ARAM_ADDR(ARAM_ADDR),
-	.ARAM_D(ARAM_D),
-	.ARAM_Q(ARAM_Q),
-	.ARAM_CE_N(ARAM_CE_N),
-	.ARAM_OE_N(ARAM_OE_N),
-	.ARAM_WE_N(ARAM_WE_N),
+    .ARAM_ADDR(ARAM_ADDR),
+    .ARAM_D(ARAM_D),
+    .ARAM_Q(ARAM_Q),
+    .ARAM_CE_N(ARAM_CE_N),
+    .ARAM_OE_N(ARAM_OE_N),
+    .ARAM_WE_N(ARAM_WE_N),
 
-	.GSU_ACTIVE(),
-	.GSU_TURBO(GSU_TURBO),
+    .GSU_ACTIVE(),
+    .GSU_TURBO(1'b0),
+    .GSU_FASTROM(1'b0),
+    .SUFAMI_SWAP(1'b0),
 
-	.BLEND(BLEND),
-	.PAL(PAL[0]),
-	.DIS_SHORTLINE(PAL[1]),
-	.HIGH_RES(),
-	.FIELD(),
-	.INTERLACE(),
-	.DOTCLK(DOTCLK),
-	.R(R),
-	.G(G),
-	.B(B),
-	.HBLANKn(HBLANKn),
-	.VBLANKn(VBLANKn),
-	.HSYNC(HSYNC),
-	.VSYNC(VSYNC),
+    .BLEND(BLEND),
+    .PAL(PAL[0]),
+    .DIS_SHORTLINE(PAL[1]),
+    .HIGH_RES(),
+    .FIELD(),
+    .INTERLACE(),
+    .DOTCLK(DOTCLK),
+    .R(R),
+    .G(G),
+    .B(B),
+    .HBLANKn(HBLANKn),
+    .VBLANKn(VBLANKn),
+    .HSYNC(HSYNC),
+    .VSYNC(VSYNC),
 
-	.DOT_CLK_CE(DOT_CLK_CE),
+    .DOT_CLK_CE(DOT_CLK_CE),
+    .SYSCLKR_CE(),
+    .SYSCLKF_CE(),
+    .REFRESH(),
 
-	.JOY1_DI(JOY1_DO),
-	.JOY2_DI(|GUN_MODE ? LG_DO : JOY2_DO),
-	.JOY_STRB(JOY_STRB),
-	.JOY1_CLK(JOY1_CLK),
-	.JOY2_CLK(JOY2_CLK),
-	.JOY1_P6(JOY1_P6),
-	.JOY2_P6(JOY2_P6),
-	.JOY2_P6_in(JOY2_P6_DI),
+    .JOY1_DI(JOY1_DO),
+    .JOY2_DI(|GUN_MODE ? LG_DO : JOY2_DO),
+    .JOY_STRB(JOY_STRB),
+    .JOY1_CLK(JOY1_CLK),
+    .JOY2_CLK(JOY2_CLK),
+    .JOY1_P6(JOY1_P6),
+    .JOY2_P6(JOY2_P6),
+    .JOY2_P6_in(JOY2_P6_DI),
 
-	.SPC_MODE(spc_mode),
-	.IO_ADDR(io_addr),
-	.IO_DAT(ioctl_dout),
-	.IO_WR(spc_download & ioctl_wr & ioctl_addr < 17'h10200),
-/*
-	.GG_EN(1'b0),
-	.GG_CODE(128'd0),
-	.GG_RESET(1'b0),
-	.GG_AVAILABLE(1'b0),
-*/
-	.TURBO(1'b0),
-	.TURBO_ALLOW(),
+    .SPC_MODE(spc_mode),
+    .IO_ADDR(io_addr),
+    .IO_DAT(ioctl_dout),
+    .IO_WR(spc_download & ioctl_wr & ioctl_addr < 17'h10200),
 
-	.DBG_BG_EN(5'b11111),
-	.DBG_CPU_EN(1'b1),
+    .TURBO(1'b0),
+    .TURBO_ALLOW(),
 
-	.MSU_TRACK_NUM(),
-	.MSU_TRACK_REQUEST(),
-	.MSU_TRACK_MOUNTING(1'b0),
-	.MSU_TRACK_MISSING(1'b0),
-	.MSU_VOLUME(),
-	.MSU_AUDIO_STOP(1'b0),
-	.MSU_AUDIO_REPEAT(),
-	.MSU_AUDIO_PLAYING(),
-	.MSU_DATA_ADDR(),
-	.MSU_DATA(8'd0),
-	.MSU_DATA_ACK(1'b0),
-	.MSU_DATA_SEEK(),
-	.MSU_DATA_REQ(),
-	.MSU_ENABLE(1'b0),
+    .DBG_BG_EN(5'b11111),
+    .DBG_CPU_EN(1'b1),
 
-	.AUDIO_L(audioL),
-	.AUDIO_R(audioR)
+    .MSU_TRACK_NUM(),
+    .MSU_TRACK_REQUEST(),
+    .MSU_TRACK_MOUNTING(1'b0),
+    .MSU_TRACK_MISSING(1'b0),
+    .MSU_VOLUME(),
+    .MSU_AUDIO_STOP(1'b0),
+    .MSU_AUDIO_REPEAT(),
+    .MSU_AUDIO_PLAYING(),
+    .MSU_DATA_ADDR(),
+    .MSU_DATA(8'd0),
+    .MSU_DATA_ACK(1'b0),
+    .MSU_DATA_SEEK(),
+    .MSU_DATA_REQ(),
+    .MSU_ENABLE(1'b0),
+
+    .AUDIO_L(audioL),
+    .AUDIO_R(audioR)
 );
 
 //////////////////   VIDEO   //////////////////
@@ -941,64 +1075,63 @@ wire       HBLANKn,VBLANKn;
 
 mist_video #(.SD_HCNT_WIDTH(10), .COLOR_DEPTH(8), .USE_BLANKS(1'b1), .OUT_COLOR_DEPTH(VGA_BITS), .BIG_OSD(BIG_OSD)) mist_video
 (
-	.clk_sys(clk_sys),
-	.scanlines(scanlines),
-	.scandoubler_disable(scandoubler_disable),
-	.ypbpr(ypbpr),
-	.no_csync(no_csync),
-	.rotate(2'b00),
-	.ce_divider(3'd1),
-	.SPI_DI(SPI_DI),
-	.SPI_SCK(SPI_SCK),
-	.SPI_SS3(SPI_SS3),
-	.HSync(~HSYNC),
-	.VSync(~VSYNC),
-	.HBlank(~HBLANKn),
-	.VBlank(~VBLANKn),
-	.R((LG_TARGET && |GUN_MODE) ? {8{LG_TARGET[0]}} : R),
-	.G((LG_TARGET && |GUN_MODE) ? {8{LG_TARGET[1]}} : G),
-	.B((LG_TARGET && |GUN_MODE) ? {8{LG_TARGET[2]}} : B),
-	.VGA_HS(VGA_HS),
-	.VGA_VS(VGA_VS),
-	.VGA_R(VGA_R),
-	.VGA_G(VGA_G),
-	.VGA_B(VGA_B)
+    .clk_sys(clk_sys),
+    .scanlines(scanlines),
+    .scandoubler_disable(scandoubler_disable),
+    .ypbpr(ypbpr),
+    .no_csync(no_csync),
+    .rotate(2'b00),
+    .ce_divider(3'd1),
+    .SPI_DI(SPI_DI),
+    .SPI_SCK(SPI_SCK),
+    .SPI_SS3(SPI_SS3),
+    .HSync(~HSYNC),
+    .VSync(~VSYNC),
+    .HBlank(~HBLANKn),
+    .VBlank(~VBLANKn),
+    .R((LG_TARGET && |GUN_MODE) ? {8{LG_TARGET[0]}} : R),
+    .G((LG_TARGET && |GUN_MODE) ? {8{LG_TARGET[1]}} : G),
+    .B((LG_TARGET && |GUN_MODE) ? {8{LG_TARGET[2]}} : B),
+    .VGA_HS(VGA_HS),
+    .VGA_VS(VGA_VS),
+    .VGA_R(VGA_R),
+    .VGA_G(VGA_G),
+    .VGA_B(VGA_B)
 );
 
 //////////////////   AUDIO   //////////////////
 wire [15:0] audioL, audioR;
 
+`ifdef SIDI_UNUSED
+hybrid_pwm_sd dacl
+(
+    .clk(clk_sys),
+    .n_reset(RESET_N),
+    .din({~audioL[15], audioL[14:0]}),
+    .dout(AUDIO_L)
+);
+
+hybrid_pwm_sd dacr
+(
+    .clk(clk_sys),
+    .n_reset(RESET_N),
+    .din({~audioR[15], audioR[14:0]}),
+    .dout(AUDIO_R)
+);
+`endif
+
 `ifdef I2S_AUDIO
 i2s i2s (
-	.reset(1'b0),
-	.clk(clk_sys),
-	.clk_rate(32'd21_333_333),
+    .reset(1'b0),
+    .clk(clk_sys),
+    .clk_rate(32'd21_400_000),
 
-	.sclk(I2S_BCK),
-	.lrclk(I2S_LRCK),
-	.sdata(I2S_DATA),
+    .sclk(I2S_BCK),
+    .lrclk(I2S_LRCK),
+    .sdata(I2S_DATA),
 
-	.left_chan(audioR),
-	.right_chan(audioL)
-);
-`ifdef I2S_AUDIO_HDMI
-assign HDMI_MCLK = 0;
-always @(posedge clk_mem) begin
-	HDMI_BCK <= I2S_BCK;
-	HDMI_LRCK <= I2S_LRCK;
-	HDMI_SDATA <= I2S_DATA;
-end
-`endif
-`endif
-
-`ifdef SPDIF_AUDIO
-spdif spdif
-(
-	.clk_i(clk_mem),
-	.rst_i(1'b0),
-	.clk_rate_i(`AUDIO_CLOCK_RATE),
-	.spdif_o(SPDIF),
-	.sample_i({audioR, audioL})
+    .left_chan(audioR),
+    .right_chan(audioL)
 );
 `endif
 
@@ -1016,17 +1149,17 @@ wire       JOY1_CLK;
 wire       JOY1_P6;
 ioport port1
 (
-	.CLK(clk_sys),
+    .CLK(clk_sys),
 
-	.PORT_LATCH(JOY_STRB),
-	.PORT_CLK(JOY1_CLK),
-	.PORT_P6(JOY1_P6),
-	.PORT_DO(JOY1_DO),
+    .PORT_LATCH(JOY_STRB),
+    .PORT_CLK(JOY1_CLK),
+    .PORT_P6(JOY1_P6),
+    .PORT_DO(JOY1_DO),
 
-	.JOYSTICK1(joy_swap ? joy1 : joy0),
+    .JOYSTICK1(joy_swap ? joy1 : joy0),
 
-	.MOUSE(ps2_mouse),
-	.MOUSE_EN(mouse_mode[0])
+    .MOUSE(ps2_mouse),
+    .MOUSE_EN(mouse_mode[0])
 );
 
 wire [1:0] JOY2_DO;
@@ -1036,22 +1169,22 @@ wire       JOY2_P6_DI = (LG_P6_out | ~|GUN_MODE);
 
 ioport port2
 (
-	.CLK(clk_sys),
+    .CLK(clk_sys),
 
-	.MULTITAP(multitap),
+    .MULTITAP(multitap),
 
-	.PORT_LATCH(JOY_STRB),
-	.PORT_CLK(JOY2_CLK),
-	.PORT_P6(JOY2_P6),
-	.PORT_DO(JOY2_DO),
+    .PORT_LATCH(JOY_STRB),
+    .PORT_CLK(JOY2_CLK),
+    .PORT_P6(JOY2_P6),
+    .PORT_DO(JOY2_DO),
 
-	.JOYSTICK1(joy_swap ? joy0 : joy1),
-	.JOYSTICK2(joy2),
-	.JOYSTICK3(joy3),
-	.JOYSTICK4(joy4),
+    .JOYSTICK1(joy_swap ? joy0 : joy1),
+    .JOYSTICK2(joy2),
+    .JOYSTICK3(joy3),
+    .JOYSTICK4(joy4),
 
-	.MOUSE(ps2_mouse),
-	.MOUSE_EN(mouse_mode[1])
+    .MOUSE(ps2_mouse),
+    .MOUSE_EN(mouse_mode[1])
 );
 
 wire       LG_P6_out;
@@ -1062,121 +1195,32 @@ wire       DOTCLK;
 
 lightgun lightgun
 (
-	.CLK(clk_sys),
-	.RESET(~RESET_N),
+    .CLK(clk_sys),
+    .RESET(~RESET_N),
 
-	.MOUSE(ps2_mouse),
-	.MOUSE_XY(1'b1),
+    .MOUSE(ps2_mouse),
+    .MOUSE_XY(1'b1),
 
-	.JOY_X(),
-	.JOY_Y(),
+    .JOY_X(),
+    .JOY_Y(),
 
-	.F(ps2_mouse[0]),
-	.C(ps2_mouse[1]),
-	.T(LG_T), // always from joysticks
-	.P(ps2_mouse[2] | joy0[7] | joy1), // always from joysticks and mouse
+    .F(ps2_mouse[0]),
+    .C(ps2_mouse[1]),
+    .T(LG_T), // always from joysticks
+    .P(ps2_mouse[2] | joy0[7] | joy1[7]), // always from joysticks and mouse (upstream ORs the whole joy1)
 
-	.HDE(HBLANKn),
-	.VDE(VBLANKn),
-	.CLKPIX(DOTCLK),
+    .HDE(HBLANKn),
+    .VDE(VBLANKn),
+    .CLKPIX(DOTCLK),
 
-	.TARGET(LG_TARGET),
-	.SIZE(1'b0),
-	.GUN_TYPE(GUN_MODE[1]),
+    .TARGET(LG_TARGET),
+    .SIZE(1'b0),
+    .GUN_TYPE(GUN_MODE[1]),
 
-	.PORT_LATCH(JOY_STRB),
-	.PORT_CLK(JOY2_CLK),
-	.PORT_P6(LG_P6_out),
-	.PORT_DO(LG_DO)
+    .PORT_LATCH(JOY_STRB),
+    .PORT_CLK(JOY2_CLK),
+    .PORT_P6(LG_P6_out),
+    .PORT_DO(LG_DO)
 );
-
-//////////////////////////// BACKUP RAM /////////////////////
-reg  [19:1] BSRAM_IO_ADDR;
-wire [15:0] BSRAM_IO_D;
-wire [15:0] BSRAM_IO_Q;
-reg  [15:0] bsram_io_q_save;
-reg         bsram_io_req, bsram_io_req_d;
-reg         bk_ena, bk_load;
-reg         bk_state;
-reg  [11:0] sav_size;
-
-`ifndef BRAM_LEVEL_1
-assign      sd_buff_din = sd_buff_addr[0] ? bsram_io_q_save[15:8] : bsram_io_q_save[7:0];
-`endif
-
-always @(posedge clk_mem) bsram_io_req_d <= bsram_io_req;
-always @(posedge clk_sys) begin
-
-	reg img_mountedD;
-	reg ioctl_downloadD;
-	reg bk_loadD, bk_saveD;
-	reg sd_ackD;
-
-	if (~RESET_N) begin
-		bk_ena <= 0;
-		bk_state <= 0;
-		bk_load <= 0;
-	end else begin
-		img_mountedD <= img_mounted;
-		if (~img_mountedD & img_mounted) begin
-			if (|img_size) begin
-				bk_ena <= 1;
-				bk_load <= 1;
-				sav_size <= img_size[20:9];
-			end else begin
-				bk_ena <= 0;
-			end
-		end
-
-		ioctl_downloadD <= ioctl_download;
-		if (~ioctl_downloadD & ioctl_download) bk_ena <= 0;
-
-		bk_loadD <= bk_load;
-		bk_saveD <= bk_save;
-		sd_ackD  <= sd_ack;
-
-		if (~sd_ackD & sd_ack) { sd_rd, sd_wr } <= 2'b00;
-
-		case (bk_state)
-		0:	if (bk_ena && ((~bk_loadD & bk_load) || (~bk_saveD & bk_save))) begin
-				bk_state <= 1;
-				sd_lba <= 0;
-				sd_rd <= bk_load;
-				sd_wr <= ~bk_load;
-				if (bk_save) begin
-					BSRAM_IO_ADDR <= 0;
-					bsram_io_req <= ~bsram_io_req;
-				end else
-					BSRAM_IO_ADDR <= 19'h7ffff;
-			end
-		1:	if (sd_ackD & ~sd_ack) begin
-				if (sd_lba[11:0] == sav_size) begin
-					bk_load <= 0;
-					bk_state <= 0;
-				end else begin
-					sd_lba <= sd_lba + 1'd1;
-					sd_rd  <= bk_load;
-					sd_wr  <= ~bk_load;
-				end
-			end
-		endcase
-
-		if (sd_buff_wr) begin
-			if (sd_buff_addr[0]) begin
-				BSRAM_IO_D[15:8] <= sd_buff_dout;
-				bsram_io_req <= ~bsram_io_req;
-				BSRAM_IO_ADDR <= BSRAM_IO_ADDR + 1'd1;
-			end else
-				BSRAM_IO_D[7:0] <= sd_buff_dout;
-		end
-
-		if (~sd_buff_addr[0]) bsram_io_q_save <= BSRAM_IO_Q;
-
-		if (sd_buff_rd & sd_buff_addr[0]) begin
-			bsram_io_req <= ~bsram_io_req;
-			BSRAM_IO_ADDR <= BSRAM_IO_ADDR + 1'd1;
-		end
-	end
-end
 
 endmodule

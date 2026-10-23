@@ -1,0 +1,6 @@
+CORE_ID=snes
+PROJECT_NAME=snes
+VERSION=0.1
+BITSTREAM_FILE=output_files/snes.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=../common/mist-modules

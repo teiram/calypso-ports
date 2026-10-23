@@ -17,7 +17,6 @@ set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_
 set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_boundary_scan
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
-set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name AUTO_MERGE_PLLS OFF
 set_global_assignment -name GENERATE_RBF_FILE ON
@@ -111,17 +110,23 @@ set_location_assignment PIN_B7 -to SDRAM_nRAS
 set_location_assignment PIN_A7 -to SDRAM_nWE
 set_location_assignment PIN_A6 -to SDRAM_nCS
 set_location_assignment PIN_F8 -to SDRAM_CKE
+
+# PSRAM (powerpack add-on), same pins as svi328-psram and imsai8080
+set_location_assignment PIN_T12 -to PSRAM_CE
+set_location_assignment PIN_R11 -to PSRAM_CLK
+set_location_assignment PIN_R12 -to PSRAM_SIO[0]
+set_location_assignment PIN_P14 -to PSRAM_SIO[1]
+set_location_assignment PIN_J14 -to PSRAM_SIO[2]
+set_location_assignment PIN_L2 -to PSRAM_SIO[3]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to PSRAM_CE
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to PSRAM_SIO[*]
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to PSRAM_SIO[*]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to PSRAM_CE
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to PSRAM_CLK
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to PSRAM_SIO[*]
 set_location_assignment PIN_B13 -to SDRAM_DQML
 set_location_assignment PIN_D12 -to SDRAM_DQMH
 
-set_location_assignment PIN_T12 -to AUX[0]
-set_location_assignment PIN_R11 -to AUX[1]
-set_location_assignment PIN_R12 -to AUX[2]
-set_location_assignment PIN_P14 -to AUX[3]
-set_location_assignment PIN_J14 -to AUX[4]
-set_location_assignment PIN_L2 -to AUX[5]
-set_location_assignment PIN_F13 -to AUX[6]
-set_location_assignment PIN_F16 -to AUX[7]
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[0]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[1]
@@ -151,7 +156,6 @@ set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_A[8]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_A[9]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_A[10]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_A[11]
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_A[12]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_BA[0]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_BA[1]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQMH
@@ -274,6 +278,8 @@ set_global_assignment -name VERILOG_MACRO "USE_AUDIO_IN=1"
 
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../common/build_id.tcl"
 set_global_assignment -name QIP_FILE files.qip
+# DSPn.vhd loads its firmware from "rtl/chip/DSP/*.mif", relative to SNES_FPGA
+set_global_assignment -name SEARCH_PATH SNES_FPGA
 
 
 
