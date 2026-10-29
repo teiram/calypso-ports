@@ -1,0 +1,7 @@
+CORE_ID=arcadia
+PROJECT_NAME=arcadia_calypso
+VERSION=1.1
+BITSTREAM_FILE=arcadia/calypso/output_files/arcadia_calypso.rbf
+EXTRA_BINARIES=readme.md
+EXTRA_SUBMODULES=common/mist-modules
+BUILDER=./build.sh
